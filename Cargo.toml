@@ -1,0 +1,30 @@
+[package]
+edition = "2021"
+name = "envio_hypersync-client"
+version = "0.0.0"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+# Default enable napi4 feature, see https://nodejs.org/api/n-api.html#node-api-version-matrix
+napi = { version = "2", default-features = false, features = ["napi4", "async", "serde-json"] }
+napi-derive = "2"
+arrow2 = { version = "0.18" }
+prefix-hex = "0.7.1"
+arrayvec = "0.7"
+serde = { version = "1", features = ["derive"] }
+
+anyhow = "1"
+
+serde_json = "1"
+
+skar-client = "0.1.0"
+skar-net-types = "0.0.1"
+skar-format = "0.0.1"
+
+[build-dependencies]
+napi-build = "2.0.1"
+
+[profile.release]
+lto = true
