@@ -1,4 +1,9 @@
 name: CI
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   DEBUG: napi:*
   APP_NAME: hypersync-client
