@@ -28,31 +28,44 @@ jobs:
           - host: macos-latest
             target: x86_64-apple-darwin
             build: |
+              brew install capnp
+              yarn set version 3
               yarn build
               strip -x *.node
           - host: windows-latest
-            build: yarn build
+            build: |
+              choco install capnproto
+              yarn build
             target: x86_64-pc-windows-msvc
           - host: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian
             build: |-
+              apt-get install -y capnproto libcapnp-dev
               set -e &&
               yarn build --target x86_64-unknown-linux-gnu &&
               strip *.node
           - host: ubuntu-latest
             target: x86_64-unknown-linux-musl
-            docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-alpine
-            build: set -e && yarn build && strip *.node
+            docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian-zig
+            build: |-
+              apt-get install -y capnproto libcapnp-dev
+              set -e &&
+              rustup target install x86_64-unknown-linux-musl
+              yarn build --target x86_64-unknown-linux-musl &&
+              strip *.node
           - host: macos-latest
             target: aarch64-apple-darwin
             build: |
+              brew install capnp
+              yarn set version 3
               yarn build --target aarch64-apple-darwin
               strip -x *.node
           - host: ubuntu-latest
             target: aarch64-unknown-linux-gnu
             docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian-aarch64
             build: |-
+              apt-get install -y capnproto libcapnp-dev
               set -e &&
               yarn build --target aarch64-unknown-linux-gnu &&
               aarch64-unknown-linux-gnu-strip *.node
@@ -60,13 +73,15 @@ jobs:
             target: aarch64-unknown-linux-musl
             docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-alpine
             build: |-
+              apt-get install -y capnproto libcapnp-dev
               set -e &&
-              rustup target add aarch64-unknown-linux-musl &&
-              yarn build --target aarch64-unknown-linux-musl &&
-              /aarch64-linux-musl-cross/bin/aarch64-linux-musl-strip *.node
+              yarn build --target aarch64-unknown-linux-gnu &&
+              aarch64-unknown-linux-gnu-strip *.node
           - host: windows-latest
             target: aarch64-pc-windows-msvc
-            build: yarn build --target aarch64-pc-windows-msvc
+            build: |
+              choco install capnproto
+              yarn build
     name: stable - ${{ matrix.settings.target }} - node@18
     runs-on: ${{ matrix.settings.host }}
     steps:
