@@ -1,10 +1,17 @@
+/// Data relating to a single event (log)
 #[napi(object)]
 pub struct Event {
+    /// Transaction that triggered this event
     pub transaction: Option<Transaction>,
+    /// Block that this event happened in
     pub block: Option<Block>,
+    /// Evm log data
     pub log: Log,
 }
 
+/// Evm log object
+///
+/// See ethereum rpc spec for the meaning of fields
 #[napi(object)]
 #[derive(Default, Clone)]
 pub struct Log {
@@ -19,6 +26,9 @@ pub struct Log {
     pub topics: Vec<Option<String>>,
 }
 
+/// Evm transaction object
+///
+/// See ethereum rpc spec for the meaning of fields
 #[napi(object)]
 #[derive(Default, Clone)]
 pub struct Transaction {
@@ -49,6 +59,9 @@ pub struct Transaction {
     pub status: Option<u32>,
 }
 
+/// Evm block header object
+///
+/// See ethereum rpc spec for the meaning of fields
 #[napi(object)]
 #[derive(Default, Clone)]
 pub struct Block {

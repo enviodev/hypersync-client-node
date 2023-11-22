@@ -31,6 +31,7 @@ impl SkarClient {
         })
     }
 
+    /// Get the height of the source hypersync instance
     #[napi]
     pub async fn get_height(&self) -> napi::Result<i64> {
         let height = self
@@ -42,6 +43,9 @@ impl SkarClient {
         Ok(height.try_into().unwrap())
     }
 
+    /// Send a query request to the source hypersync instance.
+    ///
+    /// Returns a query response which contains block, tx and log data.
     #[napi]
     pub async fn send_req(&self, query: Query) -> napi::Result<QueryResponse> {
         self.send_req_impl(query)
@@ -63,6 +67,10 @@ impl SkarClient {
         Ok(res)
     }
 
+    /// Send a event query request to the source hypersync instance.
+    ///
+    /// This executes the same query as send_req function on the source side but
+    /// it groups data for each event(log) so it is easier to process it.
     #[napi]
     pub async fn send_events_req(&self, query: Query) -> napi::Result<Events> {
         self.send_events_req_impl(query)
@@ -111,9 +119,15 @@ pub struct QueryResponseData {
 
 #[napi(object)]
 pub struct QueryResponse {
+    /// Current height of the source hypersync instance
     pub archive_height: Option<i64>,
+    /// Next block to query for, the responses are paginated so,
+    ///  the caller should continue the query from this block if they
+    ///  didn't get responses up to the to_block they specified in the Query.
     pub next_block: i64,
+    /// Total time it took the hypersync instance to execute the query.
     pub total_execution_time: i64,
+    /// Response data
     pub data: QueryResponseData,
 }
 
@@ -123,9 +137,15 @@ const LOG_JOIN_FIELDS: &[&str] = &["log_index", "transaction_index", "block_numb
 
 #[napi(object)]
 pub struct Events {
+    /// Current height of the source hypersync instance
     pub archive_height: Option<i64>,
+    /// Next block to query for, the responses are paginated so,
+    ///  the caller should continue the query from this block if they
+    ///  didn't get responses up to the to_block they specified in the Query.
     pub next_block: i64,
+    /// Total time it took the hypersync instance to execute the query.
     pub total_execution_time: i64,
+    /// Response data
     pub events: Vec<Event>,
 }
 
