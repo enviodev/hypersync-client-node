@@ -80,6 +80,7 @@ jobs:
             build: |-
               yarn set version 3
               apt-get install -y capnproto libcapnp-dev
+              rustup target add aarch64-unknown-linux-gnu
               set -e &&
               yarn build --target aarch64-unknown-linux-gnu &&
               aarch64-unknown-linux-gnu-strip *.node
