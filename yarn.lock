@@ -5,15 +5,6 @@ __metadata:
   version: 6
   cacheKey: 8
 
-"hypersync-client@workspace:.":
-  version: 0.0.0-use.local
-  resolution: "hypersync-client@workspace:."
-  dependencies:
-    "@napi-rs/cli": ^2.16.3
-    ava: ^5.1.1
-  languageName: unknown
-  linkType: soft
-
 "@isaacs/cliui@npm:^8.0.2":
   version: 8.0.2
   resolution: "@isaacs/cliui@npm:8.0.2"
@@ -829,6 +820,15 @@ __metadata:
   checksum: 088969a0dd476ea7a0ed0a2cf1283013682b08f874c3bc6696c83fa061d2c157d29ef0ad3eb70a2046010bb7665573b2388d10fdcb3e410a66995e5248444292
   languageName: node
   linkType: hard
+
+"hypersync-client@workspace:.":
+  version: 0.0.0-use.local
+  resolution: "hypersync-client@workspace:."
+  dependencies:
+    "@napi-rs/cli": ^2.16.3
+    ava: ^5.1.1
+  languageName: unknown
+  linkType: soft
 
 "iconv-lite@npm:^0.6.2":
   version: 0.6.3
