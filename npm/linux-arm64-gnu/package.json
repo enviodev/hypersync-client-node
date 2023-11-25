@@ -1,5 +1,5 @@
 {
-  "name": "@envio/hypersync-client-linux-arm64-gnu",
+  "name": "hypersync-client-linux-arm64-gnu",
   "version": "0.0.1",
   "os": [
     "linux"

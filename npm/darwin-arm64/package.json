@@ -1,5 +1,5 @@
 {
-  "name": "@envio/hypersync-client-darwin-arm64",
+  "name": "hypersync-client-darwin-arm64",
   "version": "0.0.1",
   "os": [
     "darwin"

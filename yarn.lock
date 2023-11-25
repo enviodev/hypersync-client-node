@@ -5,9 +5,9 @@ __metadata:
   version: 6
   cacheKey: 8
 
-"@envio/hypersync-client@workspace:.":
+"hypersync-client@workspace:.":
   version: 0.0.0-use.local
-  resolution: "@envio/hypersync-client@workspace:."
+  resolution: "hypersync-client@workspace:."
   dependencies:
     "@napi-rs/cli": ^2.16.3
     ava: ^5.1.1

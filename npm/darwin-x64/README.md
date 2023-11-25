@@ -1,3 +1,3 @@
-# `@envio/hypersync-client-darwin-x64`
+# `hypersync-client-darwin-x64`
 
-This is the **x86_64-apple-darwin** binary for `@envio/hypersync-client`
+This is the **x86_64-apple-darwin** binary for `hypersync-client`

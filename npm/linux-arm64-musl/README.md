@@ -1,3 +1,3 @@
-# `@envio/hypersync-client-linux-arm64-musl`
+# `hypersync-client-linux-arm64-musl`
 
-This is the **aarch64-unknown-linux-musl** binary for `@envio/hypersync-client`
+This is the **aarch64-unknown-linux-musl** binary for `hypersync-client`
