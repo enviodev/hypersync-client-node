@@ -16,12 +16,12 @@ export interface LogSelection {
    * Address of the contract, any logs that has any of these addresses will be returned.
    * Empty means match all.
    */
-  address: Array<string>
+  address?: Array<string>
   /**
    * Topics to match, each member of the top level array is another array, if the nth topic matches any
    *  topic specified in topics[n] the log will be returned. Empty means match all.
    */
-  topics: Array<Array<string>>
+  topics?: Array<Array<string>>
 }
 export interface TransactionSelection {
   /**
@@ -29,22 +29,22 @@ export interface TransactionSelection {
    *  will be returned. Keep in mind that this has an and relationship with to filter, so each transaction should
    *  match both of them. Empty means match all.
    */
-  from: Array<string>
+  from?: Array<string>
   /**
    * Address the transaction should go to. If transaction.to matches any of these, the transaction will
    *  be returned. Keep in mind that this has an and relationship with from filter, so each transaction should
    *  match both of them. Empty means match all.
    */
-  to: Array<string>
+  to?: Array<string>
   /** If first 4 bytes of transaction input matches any of these, transaction will be returned. Empty means match all. */
-  sighash: Array<string>
+  sighash?: Array<string>
   /** If tx.status matches this it will be returned. */
   status?: number
 }
 export interface FieldSelection {
-  block: Array<string>
-  transaction: Array<string>
-  log: Array<string>
+  block?: Array<string>
+  transaction?: Array<string>
+  log?: Array<string>
 }
 export interface Query {
   /** The block to start the query from */
@@ -63,18 +63,18 @@ export interface Query {
    * List of log selections, these have an or relationship between them, so the query will return logs
    * that match any of these selections.
    */
-  logs: Array<LogSelection>
+  logs?: Array<LogSelection>
   /**
    * List of transaction selections, the query will return transactions that match any of these selections and
    *  it will return transactions that are related to the returned logs.
    */
-  transactions: Array<TransactionSelection>
+  transactions?: Array<TransactionSelection>
   /**
    * Weather to include all blocks regardless of if they are related to a returned transaction or log. Normally
    *  the server will return only the blocks that are related to the transaction or logs in the response. But if this
    *  is set to true, the server will return data for all blocks in the requested range [from_block, to_block).
    */
-  includeAllBlocks: boolean
+  includeAllBlocks?: boolean
   /**
    * Field selection. The user can select which fields they are interested in, requesting less fields will improve
    *  query execution time and reduce the payload size so the user should always use a minimal number of fields.
@@ -211,8 +211,8 @@ export interface Events {
   /** Response data */
   events: Array<Event>
 }
-export class SkarClient {
-  static new(cfg: Config): SkarClient
+export class HypersyncClient {
+  static new(cfg: Config): HypersyncClient
   /** Get the height of the source hypersync instance */
   getHeight(): Promise<number>
   /**

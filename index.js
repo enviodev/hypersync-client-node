@@ -252,6 +252,6 @@ if (!nativeBinding) {
   throw new Error(`Failed to load native binding`)
 }
 
-const { SkarClient } = nativeBinding
+const { HypersyncClient } = nativeBinding
 
-module.exports.SkarClient = SkarClient
+module.exports.HypersyncClient = HypersyncClient

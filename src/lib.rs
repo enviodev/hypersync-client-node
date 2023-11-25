@@ -14,19 +14,19 @@ use query::Query;
 use types::{Block, Event, Log, Transaction};
 
 #[napi]
-pub struct SkarClient {
+pub struct HypersyncClient {
     inner: skar_client::Client,
 }
 
 #[napi]
-impl SkarClient {
+impl HypersyncClient {
     #[napi]
-    pub fn new(cfg: Config) -> napi::Result<SkarClient> {
+    pub fn new(cfg: Config) -> napi::Result<HypersyncClient> {
         let cfg = cfg
             .try_convert()
             .map_err(|e| napi::Error::from_reason(format!("{:?}", e)))?;
 
-        Ok(SkarClient {
+        Ok(HypersyncClient {
             inner: skar_client::Client::new(cfg),
         })
     }
