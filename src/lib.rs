@@ -43,6 +43,32 @@ impl SkarClient {
         Ok(height.try_into().unwrap())
     }
 
+    /// Create a parquet file by executing a query.
+    ///
+    /// If the query can't be finished in a single request, this function will
+    ///  keep on making requests using the pagination mechanism (next_block) until
+    ///  it reaches the end. It will stream data into the parquet file as it comes from
+    ///. the server.
+    ///
+    /// Path should point to a folder that will contain the parquet files in the end.
+    #[napi]
+    pub async fn create_parquet_folder(&self, query: Query, path: String) -> napi::Result<()> {
+        self.create_parquet_folder_impl(query, path)
+            .await
+            .map_err(|e| napi::Error::from_reason(format!("{:?}", e)))
+    }
+
+    async fn create_parquet_folder_impl(&self, query: Query, path: String) -> Result<()> {
+        let query = query.try_convert().context("parse query")?;
+
+        self.inner
+            .create_parquet_folder(query, path)
+            .await
+            .context("create parquet folder")?;
+
+        Ok(())
+    }
+
     /// Send a query request to the source hypersync instance.
     ///
     /// Returns a query response which contains block, tx and log data.
