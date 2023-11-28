@@ -1,10 +1,10 @@
 {
-  "name": "hypersync-client",
+  "name": "@envio-dev/hypersync-client",
   "version": "0.0.5",
   "main": "index.js",
   "types": "index.d.ts",
   "napi": {
-    "name": "hypersync-client",
+    "name": "@envio-dev/hypersync-client",
     "triples": {
       "additional": [
         "aarch64-apple-darwin",

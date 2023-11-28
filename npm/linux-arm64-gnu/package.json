@@ -1,5 +1,5 @@
 {
-  "name": "hypersync-client-linux-arm64-gnu",
+  "name": "@envio-dev/hypersync-client-linux-arm64-gnu",
   "version": "0.0.5",
   "os": [
     "linux"
@@ -7,9 +7,9 @@
   "cpu": [
     "arm64"
   ],
-  "main": "hypersync-client.linux-arm64-gnu.node",
+  "main": "@envio-dev/hypersync-client.linux-arm64-gnu.node",
   "files": [
-    "hypersync-client.linux-arm64-gnu.node"
+    "@envio-dev/hypersync-client.linux-arm64-gnu.node"
   ],
   "license": "MIT",
   "engines": {
