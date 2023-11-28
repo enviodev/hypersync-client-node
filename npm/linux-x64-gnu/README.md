@@ -1,3 +1,3 @@
-# `hypersync-client-linux-x64-gnu`
+# `@envio-dev/hypersync-client-linux-x64-gnu`
 
-This is the **x86_64-unknown-linux-gnu** binary for `hypersync-client`
+This is the **x86_64-unknown-linux-gnu** binary for `@envio-dev/hypersync-client`

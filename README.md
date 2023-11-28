@@ -1,4 +1,4 @@
-# hypersync-client-node
+# @envio-dev/hypersync-client-node
 
 ### Example usage
 
