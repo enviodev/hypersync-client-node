@@ -4,7 +4,7 @@
   "main": "index.js",
   "types": "index.d.ts",
   "napi": {
-    "name": "@envio-dev/hypersync-client",
+    "name": "hypersync-client",
     "triples": {
       "additional": [
         "aarch64-apple-darwin",

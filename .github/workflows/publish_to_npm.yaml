@@ -6,7 +6,7 @@ concurrency:
 
 env:
   DEBUG: napi:*
-  APP_NAME: '@envio-dev/hypersync-client'
+  APP_NAME: 'hypersync-client'
   MACOSX_DEPLOYMENT_TARGET: '10.13'
 permissions:
   contents: write
@@ -27,7 +27,7 @@ jobs:
               brew install capnp
               yarn set version 3
               yarn build
-              strip -x @envio-dev/*.node
+              strip -x *.node
           - host: windows-latest
             build: |
               yarn set version 3
@@ -42,7 +42,7 @@ jobs:
               apt-get install -y capnproto libcapnp-dev
               set -e &&
               yarn build --target x86_64-unknown-linux-gnu &&
-              strip @envio-dev/*.node
+              strip *.node
           - host: ubuntu-latest
             target: x86_64-unknown-linux-musl
             docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian-zig
@@ -52,7 +52,7 @@ jobs:
               set -e &&
               rustup target install x86_64-unknown-linux-musl
               yarn build --target x86_64-unknown-linux-musl &&
-              strip @envio-dev/*.node
+              strip *.node
           - host: macos-latest
             target: aarch64-apple-darwin
             build: |
@@ -60,7 +60,7 @@ jobs:
               brew install capnp
               yarn set version 3
               yarn build --target aarch64-apple-darwin
-              strip -x @envio-dev/*.node
+              strip -x *.node
           - host: ubuntu-latest
             target: aarch64-unknown-linux-gnu
             docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian-aarch64
@@ -69,7 +69,7 @@ jobs:
               apt-get install -y capnproto libcapnp-dev
               set -e &&
               yarn build --target aarch64-unknown-linux-gnu &&
-              aarch64-unknown-linux-gnu-strip @envio-dev/*.node
+              aarch64-unknown-linux-gnu-strip *.node
           - host: windows-latest
             target: aarch64-pc-windows-msvc
             build: |

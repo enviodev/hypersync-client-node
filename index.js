@@ -32,10 +32,10 @@ switch (platform) {
   case 'android':
     switch (arch) {
       case 'arm64':
-        localFileExisted = existsSync(join(__dirname, '@envio-dev/hypersync-client.android-arm64.node'))
+        localFileExisted = existsSync(join(__dirname, 'hypersync-client.android-arm64.node'))
         try {
           if (localFileExisted) {
-            nativeBinding = require('./@envio-dev/hypersync-client.android-arm64.node')
+            nativeBinding = require('./hypersync-client.android-arm64.node')
           } else {
             nativeBinding = require('@envio-dev/hypersync-client-android-arm64')
           }
@@ -44,10 +44,10 @@ switch (platform) {
         }
         break
       case 'arm':
-        localFileExisted = existsSync(join(__dirname, '@envio-dev/hypersync-client.android-arm-eabi.node'))
+        localFileExisted = existsSync(join(__dirname, 'hypersync-client.android-arm-eabi.node'))
         try {
           if (localFileExisted) {
-            nativeBinding = require('./@envio-dev/hypersync-client.android-arm-eabi.node')
+            nativeBinding = require('./hypersync-client.android-arm-eabi.node')
           } else {
             nativeBinding = require('@envio-dev/hypersync-client-android-arm-eabi')
           }
@@ -63,11 +63,11 @@ switch (platform) {
     switch (arch) {
       case 'x64':
         localFileExisted = existsSync(
-          join(__dirname, '@envio-dev/hypersync-client.win32-x64-msvc.node')
+          join(__dirname, 'hypersync-client.win32-x64-msvc.node')
         )
         try {
           if (localFileExisted) {
-            nativeBinding = require('./@envio-dev/hypersync-client.win32-x64-msvc.node')
+            nativeBinding = require('./hypersync-client.win32-x64-msvc.node')
           } else {
             nativeBinding = require('@envio-dev/hypersync-client-win32-x64-msvc')
           }
@@ -77,11 +77,11 @@ switch (platform) {
         break
       case 'ia32':
         localFileExisted = existsSync(
-          join(__dirname, '@envio-dev/hypersync-client.win32-ia32-msvc.node')
+          join(__dirname, 'hypersync-client.win32-ia32-msvc.node')
         )
         try {
           if (localFileExisted) {
-            nativeBinding = require('./@envio-dev/hypersync-client.win32-ia32-msvc.node')
+            nativeBinding = require('./hypersync-client.win32-ia32-msvc.node')
           } else {
             nativeBinding = require('@envio-dev/hypersync-client-win32-ia32-msvc')
           }
@@ -91,11 +91,11 @@ switch (platform) {
         break
       case 'arm64':
         localFileExisted = existsSync(
-          join(__dirname, '@envio-dev/hypersync-client.win32-arm64-msvc.node')
+          join(__dirname, 'hypersync-client.win32-arm64-msvc.node')
         )
         try {
           if (localFileExisted) {
-            nativeBinding = require('./@envio-dev/hypersync-client.win32-arm64-msvc.node')
+            nativeBinding = require('./hypersync-client.win32-arm64-msvc.node')
           } else {
             nativeBinding = require('@envio-dev/hypersync-client-win32-arm64-msvc')
           }
@@ -108,10 +108,10 @@ switch (platform) {
     }
     break
   case 'darwin':
-    localFileExisted = existsSync(join(__dirname, '@envio-dev/hypersync-client.darwin-universal.node'))
+    localFileExisted = existsSync(join(__dirname, 'hypersync-client.darwin-universal.node'))
     try {
       if (localFileExisted) {
-        nativeBinding = require('./@envio-dev/hypersync-client.darwin-universal.node')
+        nativeBinding = require('./hypersync-client.darwin-universal.node')
       } else {
         nativeBinding = require('@envio-dev/hypersync-client-darwin-universal')
       }
@@ -119,10 +119,10 @@ switch (platform) {
     } catch {}
     switch (arch) {
       case 'x64':
-        localFileExisted = existsSync(join(__dirname, '@envio-dev/hypersync-client.darwin-x64.node'))
+        localFileExisted = existsSync(join(__dirname, 'hypersync-client.darwin-x64.node'))
         try {
           if (localFileExisted) {
-            nativeBinding = require('./@envio-dev/hypersync-client.darwin-x64.node')
+            nativeBinding = require('./hypersync-client.darwin-x64.node')
           } else {
             nativeBinding = require('@envio-dev/hypersync-client-darwin-x64')
           }
@@ -132,11 +132,11 @@ switch (platform) {
         break
       case 'arm64':
         localFileExisted = existsSync(
-          join(__dirname, '@envio-dev/hypersync-client.darwin-arm64.node')
+          join(__dirname, 'hypersync-client.darwin-arm64.node')
         )
         try {
           if (localFileExisted) {
-            nativeBinding = require('./@envio-dev/hypersync-client.darwin-arm64.node')
+            nativeBinding = require('./hypersync-client.darwin-arm64.node')
           } else {
             nativeBinding = require('@envio-dev/hypersync-client-darwin-arm64')
           }
@@ -152,10 +152,10 @@ switch (platform) {
     if (arch !== 'x64') {
       throw new Error(`Unsupported architecture on FreeBSD: ${arch}`)
     }
-    localFileExisted = existsSync(join(__dirname, '@envio-dev/hypersync-client.freebsd-x64.node'))
+    localFileExisted = existsSync(join(__dirname, 'hypersync-client.freebsd-x64.node'))
     try {
       if (localFileExisted) {
-        nativeBinding = require('./@envio-dev/hypersync-client.freebsd-x64.node')
+        nativeBinding = require('./hypersync-client.freebsd-x64.node')
       } else {
         nativeBinding = require('@envio-dev/hypersync-client-freebsd-x64')
       }
@@ -168,11 +168,11 @@ switch (platform) {
       case 'x64':
         if (isMusl()) {
           localFileExisted = existsSync(
-            join(__dirname, '@envio-dev/hypersync-client.linux-x64-musl.node')
+            join(__dirname, 'hypersync-client.linux-x64-musl.node')
           )
           try {
             if (localFileExisted) {
-              nativeBinding = require('./@envio-dev/hypersync-client.linux-x64-musl.node')
+              nativeBinding = require('./hypersync-client.linux-x64-musl.node')
             } else {
               nativeBinding = require('@envio-dev/hypersync-client-linux-x64-musl')
             }
@@ -181,11 +181,11 @@ switch (platform) {
           }
         } else {
           localFileExisted = existsSync(
-            join(__dirname, '@envio-dev/hypersync-client.linux-x64-gnu.node')
+            join(__dirname, 'hypersync-client.linux-x64-gnu.node')
           )
           try {
             if (localFileExisted) {
-              nativeBinding = require('./@envio-dev/hypersync-client.linux-x64-gnu.node')
+              nativeBinding = require('./hypersync-client.linux-x64-gnu.node')
             } else {
               nativeBinding = require('@envio-dev/hypersync-client-linux-x64-gnu')
             }
@@ -197,11 +197,11 @@ switch (platform) {
       case 'arm64':
         if (isMusl()) {
           localFileExisted = existsSync(
-            join(__dirname, '@envio-dev/hypersync-client.linux-arm64-musl.node')
+            join(__dirname, 'hypersync-client.linux-arm64-musl.node')
           )
           try {
             if (localFileExisted) {
-              nativeBinding = require('./@envio-dev/hypersync-client.linux-arm64-musl.node')
+              nativeBinding = require('./hypersync-client.linux-arm64-musl.node')
             } else {
               nativeBinding = require('@envio-dev/hypersync-client-linux-arm64-musl')
             }
@@ -210,11 +210,11 @@ switch (platform) {
           }
         } else {
           localFileExisted = existsSync(
-            join(__dirname, '@envio-dev/hypersync-client.linux-arm64-gnu.node')
+            join(__dirname, 'hypersync-client.linux-arm64-gnu.node')
           )
           try {
             if (localFileExisted) {
-              nativeBinding = require('./@envio-dev/hypersync-client.linux-arm64-gnu.node')
+              nativeBinding = require('./hypersync-client.linux-arm64-gnu.node')
             } else {
               nativeBinding = require('@envio-dev/hypersync-client-linux-arm64-gnu')
             }
@@ -225,11 +225,11 @@ switch (platform) {
         break
       case 'arm':
         localFileExisted = existsSync(
-          join(__dirname, '@envio-dev/hypersync-client.linux-arm-gnueabihf.node')
+          join(__dirname, 'hypersync-client.linux-arm-gnueabihf.node')
         )
         try {
           if (localFileExisted) {
-            nativeBinding = require('./@envio-dev/hypersync-client.linux-arm-gnueabihf.node')
+            nativeBinding = require('./hypersync-client.linux-arm-gnueabihf.node')
           } else {
             nativeBinding = require('@envio-dev/hypersync-client-linux-arm-gnueabihf')
           }
