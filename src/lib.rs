@@ -1,6 +1,8 @@
 #[macro_use]
 extern crate napi_derive;
 
+use std::collections::BTreeMap;
+
 use anyhow::{Context, Result};
 use from_arrow::FromArrow;
 
@@ -176,16 +178,38 @@ pub struct Events {
 }
 
 fn convert_response_to_events(res: skar_client::QueryResponse) -> Result<Events> {
-    let blocks = Block::from_batches(&res.data.blocks).context("map blocks from arrow")?;
+    let mut blocks = BTreeMap::new();
 
-    let txs =
-        Transaction::from_batches(&res.data.transactions).context("map transactions from arrow")?;
+    for batch in res.data.blocks.iter() {
+        let data = Block::from_arrow(batch).context("map blocks from arrow")?;
 
-    let logs = Log::from_batches(&res.data.logs).context("map logs from arrow")?;
+        for block in data {
+            blocks.insert(block.number, block);
+        }
+    }
+
+    let mut txs = BTreeMap::new();
+
+    for batch in res.data.transactions.iter() {
+        let data = Transaction::from_arrow(batch).context("map transactions from arrow")?;
+
+        for tx in data {
+            txs.insert((tx.block_number, tx.transaction_index), tx);
+        }
+    }
+
+    let logs = res
+        .data
+        .logs
+        .iter()
+        .map(Log::from_arrow)
+        .collect::<Result<Vec<_>>>()
+        .context("map logs from arrow")?
+        .concat();
 
     let mut events = Vec::with_capacity(logs.len());
 
-    for (_, log) in logs.into_iter() {
+    for log in logs.into_iter() {
         let transaction = txs.get(&(log.block_number, log.transaction_index)).cloned();
         let block = blocks.get(&log.block_number).cloned();
 
@@ -205,20 +229,32 @@ fn convert_response_to_events(res: skar_client::QueryResponse) -> Result<Events>
 }
 
 fn convert_response_to_query_response(res: skar_client::QueryResponse) -> Result<QueryResponse> {
-    let blocks = Block::from_batches(&res.data.blocks)
+    let blocks = res
+        .data
+        .blocks
+        .iter()
+        .map(Block::from_arrow)
+        .collect::<Result<Vec<_>>>()
         .context("map blocks from arrow")?
-        .into_values()
-        .collect();
+        .concat();
 
-    let transactions = Transaction::from_batches(&res.data.transactions)
+    let transactions = res
+        .data
+        .transactions
+        .iter()
+        .map(Transaction::from_arrow)
+        .collect::<Result<Vec<_>>>()
         .context("map transactions from arrow")?
-        .into_values()
-        .collect();
+        .concat();
 
-    let logs = Log::from_batches(&res.data.logs)
+    let logs = res
+        .data
+        .logs
+        .iter()
+        .map(Log::from_arrow)
+        .collect::<Result<Vec<_>>>()
         .context("map logs from arrow")?
-        .into_values()
-        .collect();
+        .concat();
 
     Ok(QueryResponse {
         archive_height: res

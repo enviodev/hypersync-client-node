@@ -116,7 +116,7 @@ switch (platform) {
         nativeBinding = require('@envio-dev/hypersync-client-darwin-universal')
       }
       break
-    } catch { }
+    } catch {}
     switch (arch) {
       case 'x64':
         localFileExisted = existsSync(join(__dirname, '@envio-dev/hypersync-client.darwin-x64.node'))
