@@ -7,9 +7,9 @@
   "cpu": [
     "x64"
   ],
-  "main": "@envio-dev/hypersync-client.darwin-x64.node",
+  "main": "hypersync-client.darwin-x64.node",
   "files": [
-    "@envio-dev/hypersync-client.darwin-x64.node"
+    "hypersync-client.darwin-x64.node"
   ],
   "license": "MIT",
   "engines": {

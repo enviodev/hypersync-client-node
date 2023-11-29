@@ -7,9 +7,9 @@
   "cpu": [
     "x64"
   ],
-  "main": "@envio-dev/hypersync-client.win32-x64-msvc.node",
+  "main": "hypersync-client.win32-x64-msvc.node",
   "files": [
-    "@envio-dev/hypersync-client.win32-x64-msvc.node"
+    "hypersync-client.win32-x64-msvc.node"
   ],
   "license": "MIT",
   "engines": {
