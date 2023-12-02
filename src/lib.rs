@@ -14,10 +14,9 @@ mod query;
 mod types;
 
 use config::Config;
-use napi::JsUnknown;
 use query::Query;
 use skar_format::Address;
-use types::{Block, DecodedEvent, Event, Log, Transaction, DecodedSolValue};
+use types::{Block, DecodedEvent, DecodedSolValue, Event, Log, Transaction};
 
 #[napi]
 pub struct HypersyncClient {
@@ -385,19 +384,15 @@ fn convert_decoded_event(event: &alloy_dyn_abi::DecodedEvent) -> Result<DecodedE
     let indexed = event
         .indexed
         .iter()
-        .map(convert_dyn_sol_value)
-        .collect::<Result<Vec<_>>>()
-        .context("convert topics")?;
+        .cloned()
+        .map(|inner| DecodedSolValue { inner })
+        .collect();
     let body = event
         .body
         .iter()
-        .map(convert_dyn_sol_value)
-        .collect::<Result<Vec<_>>>()
-        .context("convert body")?;
+        .cloned()
+        .map(|inner| DecodedSolValue { inner })
+        .collect();
 
     Ok(DecodedEvent { indexed, body })
-}
-
-fn convert_dyn_sol_value(value: &DynSolValue) -> Result<DecodedSolValue> {
-    todo!()
 }

@@ -1,5 +1,5 @@
 use alloy_dyn_abi::DynSolValue;
-use napi::JsUnknown;
+use napi::bindgen_prelude::{FromNapiValue, ToNapiValue};
 
 /// Data relating to a single event (log)
 #[napi(object)]
@@ -89,27 +89,35 @@ pub struct Block {
 }
 
 /// Decoded EVM log
-#[napi]
+#[napi(object)]
 #[derive(Default)]
 pub struct DecodedEvent {
-    pub indexed: Vec<napi::Ref<napi::JsUnknown>>,
-    pub body: Vec<napi::Ref<()>>,
+    pub indexed: Vec<DecodedSolValue>,
+    pub body: Vec<DecodedSolValue>,
 }
 
-/// Decoded solidity value
-#[napi]
 pub struct DecodedSolValue {
-    inner: DynSolValue,
+    pub inner: DynSolValue,
 }
 
-#[napi]
-impl DecodedSolValue {
-    pub(crate) fn new(inner: DynSolValue) -> Self {
-        Self { inner }
+impl ToNapiValue for DecodedSolValue {
+    unsafe fn to_napi_value(
+        env: napi::sys::napi_env,
+        val: Self,
+    ) -> napi::Result<napi::sys::napi_value> {
+        todo!()
+    }
+}
+
+impl FromNapiValue for DecodedSolValue {
+    fn from_unknown(value: napi::JsUnknown) -> napi::Result<Self> {
+        todo!()
     }
 
-    #[napi]
-    pub fn get_value(&self) -> JsUnknown {
+    unsafe fn from_napi_value(
+        env: napi::sys::napi_env,
+        napi_val: napi::sys::napi_value,
+    ) -> napi::Result<Self> {
         todo!()
     }
 }
