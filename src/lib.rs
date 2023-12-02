@@ -3,6 +3,8 @@ extern crate napi_derive;
 
 use std::collections::BTreeMap;
 
+use alloy_dyn_abi::DynSolValue;
+use alloy_json_abi::JsonAbi;
 use anyhow::{Context, Result};
 use from_arrow::FromArrow;
 
@@ -12,8 +14,10 @@ mod query;
 mod types;
 
 use config::Config;
+use napi::JsUnknown;
 use query::Query;
-use types::{Block, Event, Log, Transaction};
+use skar_format::Address;
+use types::{Block, DecodedEvent, Event, Log, Transaction, DecodedSolValue};
 
 #[napi]
 pub struct HypersyncClient {
@@ -22,15 +26,76 @@ pub struct HypersyncClient {
 
 #[napi]
 impl HypersyncClient {
+    /// Create a new client with given config and (contract_address, json_abi_object) pairs.
+    ///
+    /// The abi pairs are used for decoding events if address, data and all topic fields of log
+    ///  are present in the query.fieldSelection
     #[napi]
-    pub fn new(cfg: Config) -> napi::Result<HypersyncClient> {
-        let cfg = cfg
-            .try_convert()
-            .map_err(|e| napi::Error::from_reason(format!("{:?}", e)))?;
+    pub fn new(
+        cfg: Config,
+        json_abis: Option<Vec<(String, serde_json::Value)>>,
+    ) -> napi::Result<HypersyncClient> {
+        Self::new_impl(cfg, json_abis).map_err(|e| napi::Error::from_reason(format!("{:?}", e)))
+    }
 
-        Ok(HypersyncClient {
-            inner: skar_client::Client::new(cfg),
-        })
+    fn new_impl(
+        cfg: Config,
+        json_abis: Option<Vec<(String, serde_json::Value)>>,
+    ) -> Result<HypersyncClient> {
+        let cfg = cfg.try_convert().context("parse config")?;
+
+        let json_abis = json_abis
+            .map(|json_abis| {
+                json_abis
+                    .into_iter()
+                    .map(|(addr, abi)| {
+                        let abi: JsonAbi = serde_json::from_value(abi).context("parse json abi")?;
+                        let addr = Address::decode_hex(&addr).context("decode hex address")?;
+                        Ok((addr, abi))
+                    })
+                    .collect::<Result<Vec<_>>>()
+            })
+            .transpose()
+            .context("parse json abi list")?;
+
+        let inner = skar_client::Client::new(cfg, json_abis.as_deref()).context("build client")?;
+
+        Ok(HypersyncClient { inner })
+    }
+
+    /// Create a new client with given config and (contract_address, json_abi_file_path) pairs.
+    ///
+    /// The abi pairs are used for decoding events if address, data and all topic fields of log
+    ///  are present in the query.fieldSelection
+    #[napi]
+    pub async fn new_from_abi_paths(
+        cfg: Config,
+        abi_paths: Vec<(String, String)>,
+    ) -> napi::Result<HypersyncClient> {
+        Self::new_from_abi_paths_impl(cfg, abi_paths)
+            .await
+            .map_err(|e| napi::Error::from_reason(format!("{:?}", e)))
+    }
+
+    async fn new_from_abi_paths_impl(
+        cfg: Config,
+        abi_paths: Vec<(String, String)>,
+    ) -> Result<HypersyncClient> {
+        let cfg = cfg.try_convert().context("parse config")?;
+
+        let abi_paths = abi_paths
+            .into_iter()
+            .map(|(addr, path)| {
+                let addr = Address::decode_hex(&addr).context("decode hex address")?;
+                Ok((addr, path))
+            })
+            .collect::<Result<Vec<_>>>()?;
+
+        let inner = skar_client::Client::new_from_abi_paths(cfg, abi_paths.as_slice())
+            .await
+            .context("build client")?;
+
+        Ok(HypersyncClient { inner })
     }
 
     /// Get the height of the source hypersync instance
@@ -157,6 +222,11 @@ pub struct QueryResponse {
     pub total_execution_time: i64,
     /// Response data
     pub data: QueryResponseData,
+    /// Array of decoded evm logs, in order to get decoded logs,
+    ///  user must select address, data and all topic fields in log field selection.
+    ///  They should also create the client with relevant abi files. Each log will be
+    ///  matched using address and topic for decoding.
+    pub decoded_logs: Option<Vec<Option<DecodedEvent>>>,
 }
 
 const BLOCK_JOIN_FIELDS: &[&str] = &["number"];
@@ -175,6 +245,11 @@ pub struct Events {
     pub total_execution_time: i64,
     /// Response data
     pub events: Vec<Event>,
+    /// Array of decoded evm logs, in order to get decoded logs,
+    ///  user must select address, data and all topic fields in log field selection.
+    ///  They should also create the client with relevant abi files. Each log will be
+    ///  matched using address and topic for decoding.
+    pub decoded_logs: Option<Vec<Option<DecodedEvent>>>,
 }
 
 fn convert_response_to_events(res: skar_client::QueryResponse) -> Result<Events> {
@@ -220,11 +295,19 @@ fn convert_response_to_events(res: skar_client::QueryResponse) -> Result<Events>
         })
     }
 
+    let decoded_logs = res
+        .decoded_logs
+        .as_deref()
+        .map(convert_decoded_logs)
+        .transpose()
+        .context("convert decoded logs")?;
+
     Ok(Events {
         archive_height: res.archive_height.map(|h| h.try_into().unwrap()),
         next_block: res.next_block.try_into().unwrap(),
         total_execution_time: res.total_execution_time.try_into().unwrap(),
         events,
+        decoded_logs,
     })
 }
 
@@ -256,6 +339,13 @@ fn convert_response_to_query_response(res: skar_client::QueryResponse) -> Result
         .context("map logs from arrow")?
         .concat();
 
+    let decoded_logs = res
+        .decoded_logs
+        .as_deref()
+        .map(convert_decoded_logs)
+        .transpose()
+        .context("convert decoded logs")?;
+
     Ok(QueryResponse {
         archive_height: res
             .archive_height
@@ -272,5 +362,42 @@ fn convert_response_to_query_response(res: skar_client::QueryResponse) -> Result
             transactions,
             logs,
         },
+        decoded_logs,
     })
+}
+
+fn convert_decoded_logs(
+    decoded_logs: &[Option<alloy_dyn_abi::DecodedEvent>],
+) -> Result<Vec<Option<DecodedEvent>>> {
+    decoded_logs
+        .iter()
+        .map(|decoded| {
+            let decoded = match decoded {
+                Some(decoded) => decoded,
+                None => return Ok(None),
+            };
+            convert_decoded_event(decoded).map(Some)
+        })
+        .collect()
+}
+
+fn convert_decoded_event(event: &alloy_dyn_abi::DecodedEvent) -> Result<DecodedEvent> {
+    let indexed = event
+        .indexed
+        .iter()
+        .map(convert_dyn_sol_value)
+        .collect::<Result<Vec<_>>>()
+        .context("convert topics")?;
+    let body = event
+        .body
+        .iter()
+        .map(convert_dyn_sol_value)
+        .collect::<Result<Vec<_>>>()
+        .context("convert body")?;
+
+    Ok(DecodedEvent { indexed, body })
+}
+
+fn convert_dyn_sol_value(value: &DynSolValue) -> Result<DecodedSolValue> {
+    todo!()
 }

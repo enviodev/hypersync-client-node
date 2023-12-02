@@ -1,3 +1,6 @@
+use alloy_dyn_abi::DynSolValue;
+use napi::JsUnknown;
+
 /// Data relating to a single event (log)
 #[napi(object)]
 pub struct Event {
@@ -83,4 +86,30 @@ pub struct Block {
     pub gas_used: Option<String>,
     pub timestamp: Option<i64>,
     pub base_fee_per_gas: Option<String>,
+}
+
+/// Decoded EVM log
+#[napi]
+#[derive(Default)]
+pub struct DecodedEvent {
+    pub indexed: Vec<napi::Ref<napi::JsUnknown>>,
+    pub body: Vec<napi::Ref<()>>,
+}
+
+/// Decoded solidity value
+#[napi]
+pub struct DecodedSolValue {
+    inner: DynSolValue,
+}
+
+#[napi]
+impl DecodedSolValue {
+    pub(crate) fn new(inner: DynSolValue) -> Self {
+        Self { inner }
+    }
+
+    #[napi]
+    pub fn get_value(&self) -> JsUnknown {
+        todo!()
+    }
 }
