@@ -252,6 +252,7 @@ if (!nativeBinding) {
   throw new Error(`Failed to load native binding`)
 }
 
-const { HypersyncClient } = nativeBinding
+const { Decoder, HypersyncClient } = nativeBinding
 
+module.exports.Decoder = Decoder
 module.exports.HypersyncClient = HypersyncClient

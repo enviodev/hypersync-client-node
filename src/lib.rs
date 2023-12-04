@@ -7,6 +7,7 @@ use anyhow::{Context, Result};
 use from_arrow::FromArrow;
 
 mod config;
+mod decode;
 mod from_arrow;
 mod query;
 mod types;
@@ -22,15 +23,18 @@ pub struct HypersyncClient {
 
 #[napi]
 impl HypersyncClient {
+    /// Create a new client with given config
     #[napi]
     pub fn new(cfg: Config) -> napi::Result<HypersyncClient> {
-        let cfg = cfg
-            .try_convert()
-            .map_err(|e| napi::Error::from_reason(format!("{:?}", e)))?;
+        Self::new_impl(cfg).map_err(|e| napi::Error::from_reason(format!("{:?}", e)))
+    }
 
-        Ok(HypersyncClient {
-            inner: skar_client::Client::new(cfg),
-        })
+    fn new_impl(cfg: Config) -> Result<HypersyncClient> {
+        let cfg = cfg.try_convert().context("parse config")?;
+
+        let inner = skar_client::Client::new(cfg).context("build client")?;
+
+        Ok(HypersyncClient { inner })
     }
 
     /// Get the height of the source hypersync instance
