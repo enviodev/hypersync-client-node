@@ -1,8 +1,9 @@
 use alloy_dyn_abi::DynSolValue;
-use napi::bindgen_prelude::{FromNapiValue, ToNapiValue};
+use napi::bindgen_prelude::{BigInt, Either4};
 
 /// Data relating to a single event (log)
 #[napi(object)]
+#[derive(Default, Clone)]
 pub struct Event {
     /// Transaction that triggered this event
     pub transaction: Option<Transaction>,
@@ -96,28 +97,40 @@ pub struct DecodedEvent {
     pub body: Vec<DecodedSolValue>,
 }
 
+#[napi(object)]
+#[derive(Clone)]
 pub struct DecodedSolValue {
-    pub inner: DynSolValue,
+    pub val: Either4<bool, BigInt, String, Vec<DecodedSolValue>>,
 }
 
-impl ToNapiValue for DecodedSolValue {
-    unsafe fn to_napi_value(
-        env: napi::sys::napi_env,
-        val: Self,
-    ) -> napi::Result<napi::sys::napi_value> {
-        todo!()
-    }
-}
+impl DecodedSolValue {
+    pub fn new(val: DynSolValue) -> Self {
+        let val = match val {
+            DynSolValue::Bool(b) => Either4::A(b),
+            DynSolValue::Int(v, _) => Either4::B(BigInt {
+                sign_bit: v.is_positive(),
+                words: v.into_limbs().to_vec(),
+            }),
+            DynSolValue::Uint(v, _) => Either4::B(BigInt {
+                sign_bit: true,
+                words: v.into_limbs().to_vec(),
+            }),
+            DynSolValue::FixedBytes(bytes, _) => Either4::C(prefix_hex::encode(bytes.as_slice())),
+            DynSolValue::Address(bytes) => Either4::C(prefix_hex::encode(bytes.as_slice())),
+            DynSolValue::Function(bytes) => Either4::C(prefix_hex::encode(bytes.as_slice())),
+            DynSolValue::Bytes(bytes) => Either4::C(prefix_hex::encode(bytes.as_slice())),
+            DynSolValue::String(bytes) => Either4::C(prefix_hex::encode(bytes.as_bytes())),
+            DynSolValue::Array(vals) => {
+                Either4::D(vals.into_iter().map(DecodedSolValue::new).collect())
+            }
+            DynSolValue::FixedArray(vals) => {
+                Either4::D(vals.into_iter().map(DecodedSolValue::new).collect())
+            }
+            DynSolValue::Tuple(vals) => {
+                Either4::D(vals.into_iter().map(DecodedSolValue::new).collect())
+            }
+        };
 
-impl FromNapiValue for DecodedSolValue {
-    fn from_unknown(value: napi::JsUnknown) -> napi::Result<Self> {
-        todo!()
-    }
-
-    unsafe fn from_napi_value(
-        env: napi::sys::napi_env,
-        napi_val: napi::sys::napi_value,
-    ) -> napi::Result<Self> {
-        todo!()
+        Self { val }
     }
 }

@@ -178,6 +178,14 @@ export interface Block {
   timestamp?: number
   baseFeePerGas?: string
 }
+/** Decoded EVM log */
+export interface DecodedEvent {
+  indexed: Array<DecodedSolValue>
+  body: Array<DecodedSolValue>
+}
+export interface DecodedSolValue {
+  val: boolean | bigint | string | Array<DecodedSolValue>
+}
 export interface QueryResponseData {
   blocks: Array<Block>
   transactions: Array<Transaction>
@@ -211,7 +219,13 @@ export interface Events {
   /** Response data */
   events: Array<Event>
 }
+export class Decoder {
+  static new(jsonAbis: Record<string, any>): this
+  decodeLogs(logs: Array<Log>): Array<DecodedEvent | undefined | null>
+  decodeEvents(events: Array<Event>): Array<DecodedEvent | undefined | null>
+}
 export class HypersyncClient {
+  /** Create a new client with given config */
   static new(cfg: Config): HypersyncClient
   /** Get the height of the source hypersync instance */
   getHeight(): Promise<number>
