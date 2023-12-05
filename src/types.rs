@@ -108,11 +108,11 @@ impl DecodedSolValue {
         let val = match val {
             DynSolValue::Bool(b) => Either4::A(b),
             DynSolValue::Int(v, _) => Either4::B(BigInt {
-                sign_bit: v.is_positive(),
+                sign_bit: v.is_negative(),
                 words: v.into_limbs().to_vec(),
             }),
             DynSolValue::Uint(v, _) => Either4::B(BigInt {
-                sign_bit: true,
+                sign_bit: false,
                 words: v.into_limbs().to_vec(),
             }),
             DynSolValue::FixedBytes(bytes, _) => Either4::C(prefix_hex::encode(bytes.as_slice())),
