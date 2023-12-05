@@ -94,6 +94,7 @@ impl HypersyncClient {
             .send::<skar_client::ArrowIpc>(&query)
             .await
             .context("execute query")?;
+
         let res =
             convert_response_to_query_response(res).context("convert response to js format")?;
 

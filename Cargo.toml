@@ -20,6 +20,7 @@ arrayvec = "0.7"
 serde = { version = "1", features = ["derive"] }
 alloy-json-abi = "0.5"
 alloy-dyn-abi = "0.5"
+tokio = { version = "1", features = ["rt-multi-thread"] }
 
 anyhow = "1"
 

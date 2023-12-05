@@ -221,8 +221,10 @@ export interface Events {
 }
 export class Decoder {
   static new(jsonAbis: Record<string, any>): Decoder
-  decodeLogs(logs: Array<Log>): Array<DecodedEvent | undefined | null>
-  decodeEvents(events: Array<Event>): Array<DecodedEvent | undefined | null>
+  decodeLogs(logs: Array<Log>): Promise<Array<DecodedEvent | undefined | null>>
+  decodeLogsSync(logs: Array<Log>): Array<DecodedEvent | undefined | null>
+  decodeEvents(events: Array<Event>): Promise<Array<DecodedEvent | undefined | null>>
+  decodeEventsSync(events: Array<Event>): Array<DecodedEvent | undefined | null>
 }
 export class HypersyncClient {
   /** Create a new client with given config */
