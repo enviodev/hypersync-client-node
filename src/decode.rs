@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use alloy_json_abi::JsonAbi;
 use anyhow::{anyhow, Context, Result};
-use skar_format::{Address, LogArgument};
+use skar_format::{Address, Hex, LogArgument};
 
 use crate::types::{DecodedEvent, DecodedSolValue, Event, Log};
 
@@ -23,7 +23,8 @@ impl Decoder {
         let json_abis = json_abis
             .into_iter()
             .map(|(addr, abi)| {
-                let abi: JsonAbi = serde_json::from_value(abi).context("parse json abi")?;
+                let json = serde_json::to_string(&abi).context("serialize json")?;
+                let abi: JsonAbi = serde_json::from_str(&json).context("parse json abi")?;
                 let addr = Address::decode_hex(&addr).context("decode hex address")?;
                 Ok((addr, abi))
             })
