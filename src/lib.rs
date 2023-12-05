@@ -25,6 +25,7 @@ pub struct HypersyncClient {
 impl HypersyncClient {
     /// Create a new client with given config
     #[napi]
+    #[napi(ts_return_type = "HypersyncClient")]
     pub fn new(cfg: Config) -> napi::Result<HypersyncClient> {
         Self::new_impl(cfg).map_err(|e| napi::Error::from_reason(format!("{:?}", e)))
     }

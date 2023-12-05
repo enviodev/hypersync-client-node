@@ -220,7 +220,7 @@ export interface Events {
   events: Array<Event>
 }
 export class Decoder {
-  static new(jsonAbis: Record<string, any>): this
+  static new(jsonAbis: Record<string, any>): Decoder
   decodeLogs(logs: Array<Log>): Array<DecodedEvent | undefined | null>
   decodeEvents(events: Array<Event>): Array<DecodedEvent | undefined | null>
 }
