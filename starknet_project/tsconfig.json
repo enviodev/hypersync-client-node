@@ -1,0 +1,11 @@
+// tsconfig.json
+{
+  "compilerOptions": {
+    // ... other options
+    "module": "commonjs",
+    "target": "es6",
+    "esModuleInterop": true,
+    "resolveJsonModule": true
+  },
+  "include": ["src/**/*"]
+}
