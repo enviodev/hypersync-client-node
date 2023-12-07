@@ -1,6 +1,5 @@
 use alloy_dyn_abi::DynSolValue;
 use napi::bindgen_prelude::{BigInt, Either4};
-use starknet_types_core::felt::Felt;
 
 /// Data relating to a single event (log)
 #[napi(object)]

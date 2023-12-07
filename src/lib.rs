@@ -103,6 +103,31 @@ impl HypersyncClient {
         Ok(res)
     }
 
+    /// Send a query request to the source hypersync instance.
+    ///
+    /// Returns a query response which contains block, tx and log data.
+    #[napi]
+    pub async fn send_req_starknet(&self, query: Query) -> napi::Result<QueryResponseStarknet> {
+        self.send_req_starknet_impl(query)
+            .await
+            .map_err(|e| napi::Error::from_reason(format!("{:?}", e)))
+    }
+
+    async fn send_req_starknet_impl(&self, query: Query) -> Result<QueryResponseStarknet> {
+        let query = query.try_convert().context("parse query")?;
+
+        let res = self
+            .inner
+            .send::<skar_client::ArrowIpc>(&query)
+            .await
+            .context("execute query")?;
+
+        let res = convert_response_to_starknet_query_response(res)
+            .context("convert response to js format")?;
+
+        Ok(res)
+    }
+
     /// Send a event query request to the source hypersync instance.
     ///
     /// This executes the same query as send_req function on the source side but
@@ -165,6 +190,27 @@ pub struct QueryResponse {
     pub total_execution_time: i64,
     /// Response data
     pub data: QueryResponseData,
+}
+
+#[napi(object)]
+pub struct QueryResponseDataStarknet {
+    pub blocks: Vec<starknet_types::Block>,
+    pub transactions: Vec<starknet_types::Transaction>,
+    pub logs: Vec<starknet_types::Log>,
+}
+
+#[napi(object)]
+pub struct QueryResponseStarknet {
+    /// Current height of the source hypersync instance
+    pub archive_height: Option<i64>,
+    /// Next block to query for, the responses are paginated so,
+    ///  the caller should continue the query from this block if they
+    ///  didn't get responses up to the to_block they specified in the Query.
+    pub next_block: i64,
+    /// Total time it took the hypersync instance to execute the query.
+    pub total_execution_time: i64,
+    /// Response data
+    pub data: QueryResponseDataStarknet,
 }
 
 const BLOCK_JOIN_FIELDS: &[&str] = &["number"];
@@ -276,6 +322,55 @@ fn convert_response_to_query_response(res: skar_client::QueryResponse) -> Result
             .try_into()
             .context("convert total_execution_time")?,
         data: QueryResponseData {
+            blocks,
+            transactions,
+            logs,
+        },
+    })
+}
+
+fn convert_response_to_starknet_query_response(
+    res: skar_client::QueryResponse,
+) -> Result<QueryResponseStarknet> {
+    let blocks = res
+        .data
+        .blocks
+        .iter()
+        .map(starknet_types::Block::from_arrow)
+        .collect::<Result<Vec<_>>>()
+        .context("map blocks from arrow")?
+        .concat();
+
+    let transactions = res
+        .data
+        .transactions
+        .iter()
+        .map(starknet_types::Transaction::from_arrow)
+        .collect::<Result<Vec<_>>>()
+        .context("map transactions from arrow")?
+        .concat();
+
+    let logs = res
+        .data
+        .logs
+        .iter()
+        .map(starknet_types::Log::from_arrow)
+        .collect::<Result<Vec<_>>>()
+        .context("map logs from arrow")?
+        .concat();
+
+    Ok(QueryResponseStarknet {
+        archive_height: res
+            .archive_height
+            .map(|h| h.try_into())
+            .transpose()
+            .context("convert height")?,
+        next_block: res.next_block.try_into().context("convert next_block")?,
+        total_execution_time: res
+            .total_execution_time
+            .try_into()
+            .context("convert total_execution_time")?,
+        data: QueryResponseDataStarknet {
             blocks,
             transactions,
             logs,
