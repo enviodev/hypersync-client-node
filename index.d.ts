@@ -118,6 +118,96 @@ export interface Log {
   blockHash?: string
   blockNumber: number
   address?: string
+  data?: Array<string>
+  topics: Array<string>
+}
+/**
+ * Evm transaction object
+ *
+ * See ethereum rpc spec for the meaning of fields
+ */
+export interface Transaction {
+  blockHash?: string
+  blockNumber: number
+  from?: string
+  gas?: string
+  gasPrice?: string
+  hash?: string
+  input?: string
+  nonce?: string
+  to?: string
+  transactionIndex: number
+  value?: string
+  v?: string
+  r?: string
+  s?: string
+  maxPriorityFeePerGas?: string
+  maxFeePerGas?: string
+  chainId?: string
+  cumulativeGasUsed?: string
+  effectiveGasPrice?: string
+  gasUsed?: string
+  contractAddress?: string
+  logsBloom?: string
+  kind?: number
+  root?: string
+  status?: number
+}
+/**
+ * Evm block header object
+ *
+ * See ethereum rpc spec for the meaning of fields
+ */
+export interface Block {
+  number: number
+  hash?: string
+  parentHash?: string
+  nonce?: string
+  sha3Uncles?: string
+  logsBloom?: string
+  transactionsRoot?: string
+  stateRoot?: string
+  receiptsRoot?: string
+  miner?: string
+  difficulty?: string
+  totalDifficulty?: string
+  extraData?: string
+  size?: string
+  gasLimit?: string
+  gasUsed?: string
+  timestamp?: number
+  baseFeePerGas?: string
+}
+/** Decoded EVM log */
+export interface DecodedEvent {
+  indexed: Array<DecodedSolValue>
+  body: Array<DecodedSolValue>
+}
+export interface DecodedSolValue {
+  val: boolean | bigint | string | Array<DecodedSolValue>
+}
+/** Data relating to a single event (log) */
+export interface Event {
+  /** Transaction that triggered this event */
+  transaction?: Transaction
+  /** Block that this event happened in */
+  block?: Block
+  /** Evm log data */
+  log: Log
+}
+/**
+ * Evm log object
+ *
+ * See ethereum rpc spec for the meaning of fields
+ */
+export interface Log {
+  removed?: boolean
+  logIndex: number
+  transactionIndex: number
+  transactionHash?: string
+  blockHash?: string
+  blockNumber: number
+  address?: string
   data?: string
   topics: Array<string | undefined | null>
 }
@@ -205,6 +295,25 @@ export interface QueryResponse {
   /** Response data */
   data: QueryResponseData
 }
+export interface QueryResponseDataStarknet {
+  blocks: Array<Block>
+  transactions: Array<Transaction>
+  logs: Array<Log>
+}
+export interface QueryResponseStarknet {
+  /** Current height of the source hypersync instance */
+  archiveHeight?: number
+  /**
+   * Next block to query for, the responses are paginated so,
+   *  the caller should continue the query from this block if they
+   *  didn't get responses up to the to_block they specified in the Query.
+   */
+  nextBlock: number
+  /** Total time it took the hypersync instance to execute the query. */
+  totalExecutionTime: number
+  /** Response data */
+  data: QueryResponseDataStarknet
+}
 export interface Events {
   /** Current height of the source hypersync instance */
   archiveHeight?: number
@@ -248,6 +357,12 @@ export class HypersyncClient {
    * Returns a query response which contains block, tx and log data.
    */
   sendReq(query: Query): Promise<QueryResponse>
+  /**
+   * Send a query request to the source hypersync instance.
+   *
+   * Returns a query response which contains block, tx and log data.
+   */
+  sendReqStarknet(query: Query): Promise<QueryResponseStarknet>
   /**
    * Send a event query request to the source hypersync instance.
    *
