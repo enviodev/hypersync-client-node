@@ -30,6 +30,15 @@ skar-client = "0.5.1"
 skar-net-types = "0.1.1"
 skar-format = "0.2.0"
 
+starknet-types-core = { version = "0.0.3", git = "https://github.com/starknet-io/types-rs", default-features = false, features = [
+    "alloc",
+    "serde",
+    "arbitrary",
+    "curve",
+    "hash",
+] }
+bincode = "1.3.3"
+
 [build-dependencies]
 napi-build = "2.0.1"
 

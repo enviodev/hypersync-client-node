@@ -9,7 +9,9 @@ use from_arrow::FromArrow;
 mod config;
 mod decode;
 mod from_arrow;
+mod from_arrow_starknet;
 mod query;
+mod starknet_types;
 mod types;
 
 use config::Config;
