@@ -58,7 +58,7 @@ impl FromArrow for Log {
         if let Ok(col) = batch.column::<BinaryArray<i32>>("data") {
             for (target, val) in out.iter_mut().zip(col.iter()) {
                 target.data = val.map(|v| {
-                    bincode::deserialize::<Vec<Felt>>(v)
+                    serde_json::from_slice::<Vec<Felt>>(v)
                         .iter()
                         .map(|felt| serde_json::to_string(felt).unwrap())
                         .collect()

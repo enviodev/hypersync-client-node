@@ -1,5 +1,6 @@
 use alloy_dyn_abi::DynSolValue;
 use napi::bindgen_prelude::{BigInt, Either4};
+use starknet_types_core::felt::Felt;
 
 /// Data relating to a single event (log)
 #[napi(object)]
@@ -134,3 +135,16 @@ impl DecodedSolValue {
         Self { val }
     }
 }
+
+// #[test]
+// fn print_dai_address_hex() {
+//     // let dai_address =
+//     //     serde_json::json!("0x00da114221cb83fa859dbdb4c44beeaa0bb37c7537ad5ae66fe5e0efd20e6eb3");
+//     let dai_address = "0x00da114221cb83fa859dbdb4c44beeaa0bb37c7537ad5ae66fe5e0efd20e6eb3";
+//     // let dai_address: Felt = serde_json::from_value(dai_address).unwrap();
+//
+//     let address_h160: ethers_core::types::H160 = dai_address.parse().unwrap();
+//     let hex_encoded = ethers_core::utils::to_checksum(address_h160, None). //prefix_hex::encode(dai_address.to_bytes_be());
+//
+//     println!("{}", hex_encoded);
+// }
