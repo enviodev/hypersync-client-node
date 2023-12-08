@@ -11,6 +11,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "ethers": "6",
+    "hypersync": "../.",
     "starknet": "^5.24.3",
     "ts-node": "^10.9.1"
   }
