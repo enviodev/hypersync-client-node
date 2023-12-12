@@ -18,6 +18,7 @@
     "@napi-rs/cli": "^2.16.3",
     "ava": "^5.1.1",
     "typedoc": "^0.25.4",
+    "typedoc-plugin-markdown": "^3.17.1",
     "typescript": "^5.3.2"
   },
   "ava": {
@@ -33,7 +34,8 @@
     "prepublishOnly": "napi prepublish -t npm",
     "test": "ava",
     "universal": "napi universal",
-    "version": "napi version"
+    "version": "napi version",
+    "docs": "yarn build && npx typedoc --plugin typedoc-plugin-markdown index.d.ts"
   },
   "packageManager": "yarn@3.7.0"
 }
