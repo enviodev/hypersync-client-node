@@ -8,7 +8,7 @@ import fs from "node:fs";
 
 async function main() {
     // Create hypersync client using the mainnet hypersync endpoint
-    const client = await HypersyncClient.new({
+    const client = HypersyncClient.new({
         url: "https://eth.hypersync.xyz"
     });
 

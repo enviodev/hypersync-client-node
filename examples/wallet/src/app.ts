@@ -4,7 +4,7 @@ import fs from "node:fs";
 async function main() {
     // Create hypersync client using the mainnet hypersync endpoint
     const client = HypersyncClient.new({
-        url: "https://eth.hypersync.xyz"
+      url: "https://eth.hypersync.xyz"
     });
 
     // The query to run
