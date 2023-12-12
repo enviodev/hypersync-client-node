@@ -1,6 +1,5 @@
 import { HypersyncClient, Decoder } from "@envio-dev/hypersync-client";
 import fs from "node:fs";
-import * as ethers from "ethers";
 
 async function main() {
     // Create hypersync client using the mainnet hypersync endpoint
