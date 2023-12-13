@@ -61,7 +61,7 @@ async function main() {
 
         // Decode the log on a background thread so we don't block the event loop.
         // Can also use decoder.decodeLogsSync if it is more convenient.
-        const decodedLogs = await decoder.decodeLogs(res.data.logs);
+        const decodedLogs = await decoder.decodeLogs(filteredLogs);
 
         for (const log of decodedLogs) {
           total_dai_volume += log.body[0].val as bigint;

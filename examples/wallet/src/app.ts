@@ -117,7 +117,7 @@ async function main() {
 
     // Decode the log on a background thread so we don't block the event loop.
     // Can also use decoder.decodeLogsSync if it is more convenient.
-    const decodedLogs = await decoder.decodeLogs(res.data.logs);
+    const decodedLogs = await decoder.decodeLogs(filteredLogs);
 
     // Let's count total volume for each address, it is meaningless because of currency differences but good as an example.
     let total_erc20_volume = {};
