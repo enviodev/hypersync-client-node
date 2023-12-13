@@ -96,9 +96,6 @@ async function main() {
 
     console.log(`Ran the query once. Next block to query is ${res.nextBlock}`);
 
-    // Filter zero value transfers, this makes decoding fail
-    const filteredLogs = res.data.logs.filter(log => log.data !== "x0");
-
     // read json abi file for erc20
     const abi = fs.readFileSync('./erc20.abi.json', 'utf8');
     const parsedAbi = JSON.parse(abi);
@@ -117,7 +114,7 @@ async function main() {
 
     // Decode the log on a background thread so we don't block the event loop.
     // Can also use decoder.decodeLogsSync if it is more convenient.
-    const decodedLogs = await decoder.decodeLogs(filteredLogs);
+    const decodedLogs = await decoder.decodeLogs(res.data.logs);
 
     // Let's count total volume for each address, it is meaningless because of currency differences but good as an example.
     let total_erc20_volume = {};

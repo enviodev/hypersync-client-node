@@ -60,9 +60,6 @@ async function main() {
 
     console.log(`Ran the query once. Next block to query is ${res.nextBlock}`);
 
-    // Filter zero value transfers, this makes decoding fail
-    const filteredLogs = res.data.logs.filter(log => log.data !== "x0");
-
     // read json abi file for erc20
     const abi = fs.readFileSync('./erc20.abi.json', 'utf8');
     const parsedAbi = JSON.parse(abi);

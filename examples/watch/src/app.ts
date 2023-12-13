@@ -56,12 +56,9 @@ async function main() {
       const res = await client.sendReq(query);
 
       if(res.data.logs.length !== 0) {
-        // Filter zero value transfers, this makes decoding fail
-        const filteredLogs = res.data.logs.filter(log => log.data !== "x0");
-
         // Decode the log on a background thread so we don't block the event loop.
         // Can also use decoder.decodeLogsSync if it is more convenient.
-        const decodedLogs = await decoder.decodeLogs(filteredLogs);
+        const decodedLogs = await decoder.decodeLogs(res.data.logs);
 
         for (const log of decodedLogs) {
           total_dai_volume += log.body[0].val as bigint;

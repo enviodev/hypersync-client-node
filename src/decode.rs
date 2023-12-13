@@ -16,8 +16,7 @@ pub struct Decoder {
 #[napi]
 impl Decoder {
     #[napi]
-    #[napi(ts_return_type = "Decoder")]
-    pub fn new(json_abis: HashMap<String, serde_json::Value>) -> napi::Result<Self> {
+    pub fn new(json_abis: HashMap<String, serde_json::Value>) -> napi::Result<Decoder> {
         Self::new_impl(json_abis).map_err(|e| napi::Error::from_reason(format!("{:?}", e)))
     }
 
