@@ -26,7 +26,7 @@ anyhow = "1"
 
 serde_json = "1"
 
-skar-client = "0.5.1"
+skar-client = "0.5.2"
 skar-net-types = "0.1.1"
 skar-format = "0.2.0"
 
