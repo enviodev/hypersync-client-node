@@ -191,6 +191,26 @@ export interface QueryResponseData {
   transactions: Array<Transaction>
   logs: Array<Log>
 }
+export interface RollbackGuard {
+  /** Block number of the last scanned block */
+  blockNumber: number
+  /** Block timestamp of the last scanned block */
+  timestamp: number
+  /** Block hash of the last scanned block */
+  hash: string
+  /**
+   * Block number of the first scanned block in memory.
+   *
+   * This might not be the first scanned block. It only includes blocks that are in memory (possible to be rolled back).
+   */
+  firstBlockNumber: number
+  /**
+   * Parent hash of the first scanned block in memory.
+   *
+   * This might not be the first scanned block. It only includes blocks that are in memory (possible to be rolled back).
+   */
+  firstParentHash: string
+}
 export interface QueryResponse {
   /** Current height of the source hypersync instance */
   archiveHeight?: number
@@ -204,6 +224,8 @@ export interface QueryResponse {
   totalExecutionTime: number
   /** Response data */
   data: QueryResponseData
+  /** Rollback guard, supposed to be used to detect rollbacks */
+  rollbackGuard?: RollbackGuard
 }
 export interface Events {
   /** Current height of the source hypersync instance */
@@ -218,6 +240,8 @@ export interface Events {
   totalExecutionTime: number
   /** Response data */
   events: Array<Event>
+  /** Rollback guard, supposed to be used to detect rollbacks */
+  rollbackGuard?: RollbackGuard
 }
 export class Decoder {
   static new(jsonAbis: Record<string, any>): Decoder
