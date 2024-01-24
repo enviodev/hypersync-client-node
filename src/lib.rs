@@ -14,6 +14,7 @@ mod types;
 
 use config::Config;
 use query::Query;
+use skar_format::Hex;
 use types::{Block, Event, Log, Transaction};
 
 #[napi]
@@ -151,6 +152,42 @@ pub struct QueryResponseData {
 }
 
 #[napi(object)]
+pub struct RollbackGuard {
+    /// Block number of the last scanned block
+    pub block_number: i64,
+    /// Block timestamp of the last scanned block
+    pub timestamp: i64,
+    /// Block hash of the last scanned block
+    pub hash: String,
+    /// Block number of the first scanned block in memory.
+    ///
+    /// This might not be the first scanned block. It only includes blocks that are in memory (possible to be rolled back).
+    pub first_block_number: i64,
+    /// Parent hash of the first scanned block in memory.
+    ///
+    /// This might not be the first scanned block. It only includes blocks that are in memory (possible to be rolled back).
+    pub first_parent_hash: String,
+}
+
+impl RollbackGuard {
+    fn try_convert(arg: skar_net_types::RollbackGuard) -> Result<Self> {
+        Ok(Self {
+            block_number: arg
+                .block_number
+                .try_into()
+                .context("convert block_number")?,
+            timestamp: arg.timestamp,
+            hash: arg.hash.encode_hex(),
+            first_block_number: arg
+                .first_block_number
+                .try_into()
+                .context("convert first_block_number")?,
+            first_parent_hash: arg.first_parent_hash.encode_hex(),
+        })
+    }
+}
+
+#[napi(object)]
 pub struct QueryResponse {
     /// Current height of the source hypersync instance
     pub archive_height: Option<i64>,
@@ -162,6 +199,8 @@ pub struct QueryResponse {
     pub total_execution_time: i64,
     /// Response data
     pub data: QueryResponseData,
+    /// Rollback guard, supposed to be used to detect rollbacks
+    pub rollback_guard: Option<RollbackGuard>,
 }
 
 const BLOCK_JOIN_FIELDS: &[&str] = &["number"];
@@ -180,6 +219,8 @@ pub struct Events {
     pub total_execution_time: i64,
     /// Response data
     pub events: Vec<Event>,
+    /// Rollback guard, supposed to be used to detect rollbacks
+    pub rollback_guard: Option<RollbackGuard>,
 }
 
 fn convert_response_to_events(res: skar_client::QueryResponse) -> Result<Events> {
@@ -230,6 +271,11 @@ fn convert_response_to_events(res: skar_client::QueryResponse) -> Result<Events>
         next_block: res.next_block.try_into().unwrap(),
         total_execution_time: res.total_execution_time.try_into().unwrap(),
         events,
+        rollback_guard: res
+            .rollback_guard
+            .map(RollbackGuard::try_convert)
+            .transpose()
+            .context("convert rollback guard")?,
     })
 }
 
@@ -277,5 +323,10 @@ fn convert_response_to_query_response(res: skar_client::QueryResponse) -> Result
             transactions,
             logs,
         },
+        rollback_guard: res
+            .rollback_guard
+            .map(RollbackGuard::try_convert)
+            .transpose()
+            .context("convert rollback guard")?,
     })
 }
