@@ -27,6 +27,8 @@ impl HypersyncClient {
     /// Create a new client with given config
     #[napi]
     pub fn new(cfg: Config) -> napi::Result<HypersyncClient> {
+        env_logger::try_init().ok();
+
         Self::new_impl(cfg).map_err(|e| napi::Error::from_reason(format!("{:?}", e)))
     }
 

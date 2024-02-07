@@ -10,7 +10,7 @@ async function main() {
     // The query to run
     const query = {
         "fromBlock": 18500123,
-        "toBlock": 19500123,
+        "toBlock": 18550123,
         "transactions": [{}],
         // Select the fields we are interested in, notice topics are selected as topic0,1,2,3
         "fieldSelection": {
