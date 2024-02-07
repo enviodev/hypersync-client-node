@@ -12,7 +12,7 @@ mod from_arrow;
 mod query;
 mod types;
 
-use config::Config;
+use config::{Config, ParquetConfig};
 use query::Query;
 use skar_format::Hex;
 use types::{Block, Event, Log, Transaction};
@@ -59,17 +59,22 @@ impl HypersyncClient {
     ///
     /// Path should point to a folder that will contain the parquet files in the end.
     #[napi]
-    pub async fn create_parquet_folder(&self, query: Query, path: String) -> napi::Result<()> {
-        self.create_parquet_folder_impl(query, path)
+    pub async fn create_parquet_folder(
+        &self,
+        query: Query,
+        config: ParquetConfig,
+    ) -> napi::Result<()> {
+        self.create_parquet_folder_impl(query, config)
             .await
             .map_err(|e| napi::Error::from_reason(format!("{:?}", e)))
     }
 
-    async fn create_parquet_folder_impl(&self, query: Query, path: String) -> Result<()> {
+    async fn create_parquet_folder_impl(&self, query: Query, config: ParquetConfig) -> Result<()> {
         let query = query.try_convert().context("parse query")?;
+        let config = config.try_convert().context("parse parquet config")?;
 
         self.inner
-            .create_parquet_folder(query, path)
+            .create_parquet_folder(query, config)
             .await
             .context("create parquet folder")?;
 

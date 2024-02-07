@@ -1,6 +1,33 @@
 use std::num::NonZeroU64;
 
 use anyhow::{Context, Result};
+use serde::Serialize;
+
+#[napi(object)]
+#[derive(Default, Clone, Serialize)]
+pub struct ParquetConfig {
+    /// Path to write parquet files to
+    pub path: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    /// Convert binary output columns to hex
+    pub hex_output: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    /// Block range size to use when making individual requests.
+    pub batch_size: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    /// Controls the number of concurrent requests made to hypersync server.
+    pub concurrency: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    /// Requests are retried forever internally if this param is set to true.
+    pub retry: Option<bool>,
+}
+
+impl ParquetConfig {
+    pub fn try_convert(&self) -> Result<skar_client::ParquetConfig> {
+        let json = serde_json::to_vec(self).context("serialize to json")?;
+        serde_json::from_slice(&json).context("parse json")
+    }
+}
 
 #[napi(object)]
 #[derive(Default, Clone)]

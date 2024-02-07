@@ -1,8 +1,4 @@
 # @envio-dev/hypersync-client-node
-
-### Example usage
-
-```typescript
 import { HypersyncClient, Decoder } from "@envio-dev/hypersync-client";
 import fs from "node:fs";
 
@@ -122,4 +118,3 @@ async function main() {
 }
 
 main();
-```

@@ -1,6 +1,6 @@
 {
   "name": "parquet-out",
-  "version": "0.0.0",
+  "version": "0.1.4",
   "description": "",
   "main": "index.js",
   "scripts": {
