@@ -252,7 +252,9 @@ if (!nativeBinding) {
   throw new Error(`Failed to load native binding`)
 }
 
-const { Decoder, HypersyncClient } = nativeBinding
+const { Decoder, HypersyncClient, QueryResponseStream, EventsStream } = nativeBinding
 
 module.exports.Decoder = Decoder
 module.exports.HypersyncClient = HypersyncClient
+module.exports.QueryResponseStream = QueryResponseStream
+module.exports.EventsStream = EventsStream

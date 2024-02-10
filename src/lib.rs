@@ -12,9 +12,10 @@ mod from_arrow;
 mod query;
 mod types;
 
-use config::{Config, ParquetConfig};
+use config::{Config, ParquetConfig, StreamConfig};
 use query::Query;
 use skar_format::Hex;
+use tokio::sync::mpsc;
 use types::{Block, Event, Log, Transaction};
 
 #[napi]
@@ -52,12 +53,71 @@ impl HypersyncClient {
         Ok(height.try_into().unwrap())
     }
 
-    /// Create a parquet file by executing a query.
+    /// Stream data from hypersync server concurrently using the given query
     ///
-    /// If the query can't be finished in a single request, this function will
-    ///  keep on making requests using the pagination mechanism (next_block) until
-    ///  it reaches the end. It will stream data into the parquet file as it comes from
-    ///. the server.
+    /// This parallelizes the hypersync queries so will have higher performance compared to
+    ///  regular .send methods.
+    ///
+    /// If query.to_block is not specified, this stream will stop at the block height of the source
+    ///  hypersync node. It is not continuous.
+    pub async fn stream(
+        &self,
+        query: Query,
+        config: StreamConfig,
+    ) -> napi::Result<QueryResponseStream> {
+        self.stream_impl(query, config)
+            .await
+            .map_err(|e| napi::Error::from_reason(format!("{:?}", e)))
+    }
+
+    async fn stream_impl(&self, query: Query, config: StreamConfig) -> Result<QueryResponseStream> {
+        let query = query.try_convert().context("parse query")?;
+        let config = config.try_convert().context("parse config")?;
+
+        let rx = self
+            .inner
+            .stream::<skar_client::ArrowIpc>(query, config)
+            .await
+            .context("start stream")?;
+
+        Ok(QueryResponseStream {
+            inner: tokio::sync::Mutex::new(rx),
+        })
+    }
+
+    /// Stream events data from hypersync server concurrently using the given query
+    ///
+    /// This parallelizes the hypersync queries so will have higher performance compared to
+    ///  regular .send methods.
+    ///
+    /// If query.to_block is not specified, this stream will stop at the block height of the source
+    ///  hypersync node. It is not continuous.
+    pub async fn stream_events(
+        &self,
+        query: Query,
+        config: StreamConfig,
+    ) -> napi::Result<EventsStream> {
+        self.stream_events_impl(query, config)
+            .await
+            .map_err(|e| napi::Error::from_reason(format!("{:?}", e)))
+    }
+
+    async fn stream_events_impl(&self, query: Query, config: StreamConfig) -> Result<EventsStream> {
+        let query = query.try_convert().context("parse query")?;
+        let config = config.try_convert().context("parse config")?;
+
+        let rx = self
+            .inner
+            .stream::<skar_client::ArrowIpc>(query, config)
+            .await
+            .context("start stream")?;
+
+        Ok(EventsStream {
+            inner: tokio::sync::Mutex::new(rx),
+        })
+    }
+
+    /// Create a parquet file by executing a query.
     ///
     /// Path should point to a folder that will contain the parquet files in the end.
     #[napi]
@@ -148,6 +208,54 @@ impl HypersyncClient {
         let res = convert_response_to_events(res).context("convert response to js format")?;
 
         Ok(res)
+    }
+}
+
+#[napi]
+pub struct QueryResponseStream {
+    inner: tokio::sync::Mutex<mpsc::Receiver<Result<skar_client::QueryResponse>>>,
+}
+
+#[napi]
+impl QueryResponseStream {
+    #[napi]
+    pub async fn recv(&self) -> Option<napi::Result<QueryResponse>> {
+        self.recv_impl()
+            .await
+            .map(|v| v.map_err(|e| napi::Error::from_reason(format!("{:?}", e))))
+    }
+
+    async fn recv_impl(&self) -> Option<Result<QueryResponse>> {
+        self.inner
+            .lock()
+            .await
+            .recv()
+            .await
+            .map(|resp| convert_response_to_query_response(resp?).context("convert response"))
+    }
+}
+
+#[napi]
+pub struct EventsStream {
+    inner: tokio::sync::Mutex<mpsc::Receiver<Result<skar_client::QueryResponse>>>,
+}
+
+#[napi]
+impl EventsStream {
+    #[napi]
+    pub async fn recv(&self) -> Option<napi::Result<Events>> {
+        self.recv_impl()
+            .await
+            .map(|v| v.map_err(|e| napi::Error::from_reason(format!("{:?}", e))))
+    }
+
+    async fn recv_impl(&self) -> Option<Result<Events>> {
+        self.inner
+            .lock()
+            .await
+            .recv()
+            .await
+            .map(|resp| convert_response_to_events(resp?).context("convert response"))
     }
 }
 

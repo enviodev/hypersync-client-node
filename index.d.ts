@@ -15,6 +15,14 @@ export interface ParquetConfig {
   /** Requests are retried forever internally if this param is set to true. */
   retry?: boolean
 }
+export interface StreamConfig {
+  /** Block range size to use when making individual requests. */
+  batchSize?: number
+  /** Controls the number of concurrent requests made to hypersync server. */
+  concurrency?: number
+  /** Requests are retried forever internally if this param is set to true. */
+  retry?: boolean
+}
 export interface Config {
   /** Url of the source hypersync instance */
   url: string
@@ -270,11 +278,6 @@ export class HypersyncClient {
   /**
    * Create a parquet file by executing a query.
    *
-   * If the query can't be finished in a single request, this function will
-   *  keep on making requests using the pagination mechanism (next_block) until
-   *  it reaches the end. It will stream data into the parquet file as it comes from
-   *. the server.
-   *
    * Path should point to a folder that will contain the parquet files in the end.
    */
   createParquetFolder(query: Query, config: ParquetConfig): Promise<void>
@@ -291,4 +294,10 @@ export class HypersyncClient {
    * it groups data for each event(log) so it is easier to process it.
    */
   sendEventsReq(query: Query): Promise<Events>
+}
+export class QueryResponseStream {
+  recv(): Promise<Error | QueryResponse | null>
+}
+export class EventsStream {
+  recv(): Promise<Error | Events | null>
 }
