@@ -60,6 +60,7 @@ impl HypersyncClient {
     ///
     /// If query.to_block is not specified, this stream will stop at the block height of the source
     ///  hypersync node. It is not continuous.
+    #[napi]
     pub async fn stream(
         &self,
         query: Query,
@@ -92,6 +93,7 @@ impl HypersyncClient {
     ///
     /// If query.to_block is not specified, this stream will stop at the block height of the source
     ///  hypersync node. It is not continuous.
+    #[napi]
     pub async fn stream_events(
         &self,
         query: Query,

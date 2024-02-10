@@ -276,6 +276,26 @@ export class HypersyncClient {
   /** Get the height of the source hypersync instance */
   getHeight(): Promise<number>
   /**
+   * Stream data from hypersync server concurrently using the given query
+   *
+   * This parallelizes the hypersync queries so will have higher performance compared to
+   *  regular .send methods.
+   *
+   * If query.to_block is not specified, this stream will stop at the block height of the source
+   *  hypersync node. It is not continuous.
+   */
+  stream(query: Query, config: StreamConfig): Promise<QueryResponseStream>
+  /**
+   * Stream events data from hypersync server concurrently using the given query
+   *
+   * This parallelizes the hypersync queries so will have higher performance compared to
+   *  regular .send methods.
+   *
+   * If query.to_block is not specified, this stream will stop at the block height of the source
+   *  hypersync node. It is not continuous.
+   */
+  streamEvents(query: Query, config: StreamConfig): Promise<EventsStream>
+  /**
    * Create a parquet file by executing a query.
    *
    * Path should point to a folder that will contain the parquet files in the end.
