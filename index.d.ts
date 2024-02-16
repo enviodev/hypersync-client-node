@@ -14,6 +14,13 @@ export interface ParquetConfig {
   concurrency?: number
   /** Requests are retried forever internally if this param is set to true. */
   retry?: boolean
+  /** Define type mapping for output columns */
+  columnMapping?: ColumnMapping
+}
+export interface ColumnMapping {
+  block?: Record<string, string>
+  transaction?: Record<string, string>
+  log?: Record<string, string>
 }
 export interface StreamConfig {
   /** Block range size to use when making individual requests. */

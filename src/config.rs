@@ -1,4 +1,4 @@
-use std::num::NonZeroU64;
+use std::{collections::HashMap, num::NonZeroU64};
 
 use anyhow::{Context, Result};
 use serde::Serialize;
@@ -20,6 +20,20 @@ pub struct ParquetConfig {
     #[serde(skip_serializing_if = "Option::is_none")]
     /// Requests are retried forever internally if this param is set to true.
     pub retry: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    /// Define type mapping for output columns
+    pub column_mapping: Option<ColumnMapping>,
+}
+
+#[napi(object)]
+#[derive(Default, Clone, Serialize)]
+pub struct ColumnMapping {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub block: Option<HashMap<String, String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub transaction: Option<HashMap<String, String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub log: Option<HashMap<String, String>>,
 }
 
 impl ParquetConfig {
