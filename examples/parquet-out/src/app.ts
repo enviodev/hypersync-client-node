@@ -1,24 +1,21 @@
 import { HypersyncClient } from "@envio-dev/hypersync-client";
-import fs from "node:fs";
 
 async function main() {
     // Create hypersync client using the mainnet hypersync endpoint
     const client = HypersyncClient.new({
-      url: "https://eth.hypersync.xyz"
+      url: "https://eth.hypersync.xyz",
     });
 
     // The query to run
     const query = {
         "fromBlock": 18500123,
-        "toBlock": 18550123,
-        "transactions": [{}],
+        "toBlock": 18501123,
+        "logs": [{
+          "address": ["0xdAC17F958D2ee523a2206206994597C13D831ec7"],
+          "topics": [["0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"]],
+        }],
         // Select the fields we are interested in, notice topics are selected as topic0,1,2,3
         "fieldSelection": {
-          "block": [
-            "number",
-            "timestamp",
-            "hash"
-          ],
           "log": [
             "block_number",
             "log_index",
@@ -31,15 +28,6 @@ async function main() {
             "topic2",
             "topic3"
           ],
-          "transaction": [
-            "block_number",
-            "transaction_index",
-            "hash",
-            "from",
-            "to",
-            "value",
-            "input"
-          ]
         },
       };
 
@@ -51,6 +39,12 @@ async function main() {
       retry: true,
       /// Convert binary columns to prefixed hex format like '0x1ab..'
       hexOutput: true,
+      columnMapping: {
+        decodedLog: {
+          "value": "float64",
+        },
+      },
+      eventSignature: "Transfer(address indexed from, address indexed to, uint256 value)",
     });
 
     console.log("finished writing parquet");

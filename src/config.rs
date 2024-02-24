@@ -23,6 +23,9 @@ pub struct ParquetConfig {
     #[serde(skip_serializing_if = "Option::is_none")]
     /// Define type mapping for output columns
     pub column_mapping: Option<ColumnMapping>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    /// Event signature for decoding logs
+    pub event_signature: Option<String>,
 }
 
 #[napi(object)]
@@ -34,6 +37,8 @@ pub struct ColumnMapping {
     pub transaction: Option<HashMap<String, String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub log: Option<HashMap<String, String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub decoded_log: Option<HashMap<String, String>>,
 }
 
 impl ParquetConfig {

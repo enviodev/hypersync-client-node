@@ -16,11 +16,14 @@ export interface ParquetConfig {
   retry?: boolean
   /** Define type mapping for output columns */
   columnMapping?: ColumnMapping
+  /** Event signature for decoding logs */
+  eventSignature?: string
 }
 export interface ColumnMapping {
   block?: Record<string, string>
   transaction?: Record<string, string>
   log?: Record<string, string>
+  decodedLog?: Record<string, string>
 }
 export interface StreamConfig {
   /** Block range size to use when making individual requests. */
