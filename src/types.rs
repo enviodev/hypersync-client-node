@@ -104,7 +104,7 @@ pub struct DecodedSolValue {
 }
 
 impl DecodedSolValue {
-    pub fn new(val: DynSolValue) -> Self {
+    pub fn new(val: DynSolValue, checksummed_addresses: bool) -> Self {
         let val = match val {
             DynSolValue::Bool(b) => Either4::A(b),
             DynSolValue::Int(v, _) => Either4::B(BigInt {
@@ -116,19 +116,31 @@ impl DecodedSolValue {
                 words: v.into_limbs().to_vec(),
             }),
             DynSolValue::FixedBytes(bytes, _) => Either4::C(prefix_hex::encode(bytes.as_slice())),
-            DynSolValue::Address(bytes) => Either4::C(prefix_hex::encode(bytes.as_slice())),
+            DynSolValue::Address(addr) => {
+                if !checksummed_addresses {
+                    Either4::C(prefix_hex::encode(addr.as_slice()))
+                } else {
+                    Either4::C(addr.to_checksum(None))
+                }
+            }
             DynSolValue::Function(bytes) => Either4::C(prefix_hex::encode(bytes.as_slice())),
             DynSolValue::Bytes(bytes) => Either4::C(prefix_hex::encode(bytes.as_slice())),
             DynSolValue::String(bytes) => Either4::C(prefix_hex::encode(bytes.as_bytes())),
-            DynSolValue::Array(vals) => {
-                Either4::D(vals.into_iter().map(DecodedSolValue::new).collect())
-            }
-            DynSolValue::FixedArray(vals) => {
-                Either4::D(vals.into_iter().map(DecodedSolValue::new).collect())
-            }
-            DynSolValue::Tuple(vals) => {
-                Either4::D(vals.into_iter().map(DecodedSolValue::new).collect())
-            }
+            DynSolValue::Array(vals) => Either4::D(
+                vals.into_iter()
+                    .map(|v| DecodedSolValue::new(v, checksummed_addresses))
+                    .collect(),
+            ),
+            DynSolValue::FixedArray(vals) => Either4::D(
+                vals.into_iter()
+                    .map(|v| DecodedSolValue::new(v, checksummed_addresses))
+                    .collect(),
+            ),
+            DynSolValue::Tuple(vals) => Either4::D(
+                vals.into_iter()
+                    .map(|v| DecodedSolValue::new(v, checksummed_addresses))
+                    .collect(),
+            ),
         };
 
         Self { val }

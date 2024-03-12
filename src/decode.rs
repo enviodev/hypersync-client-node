@@ -11,6 +11,7 @@ use crate::types::{DecodedEvent, DecodedSolValue, Event, Log};
 #[derive(Clone)]
 pub struct Decoder {
     inner: Arc<skar_client::Decoder>,
+    checksummed_addresses: bool,
 }
 
 #[napi]
@@ -36,7 +37,18 @@ impl Decoder {
 
         Ok(Self {
             inner: Arc::new(inner),
+            checksummed_addresses: false,
         })
+    }
+
+    #[napi]
+    pub fn enable_checksummed_addresses(&mut self) {
+        self.checksummed_addresses = true;
+    }
+
+    #[napi]
+    pub fn disable_checksummed_addresses(&mut self) {
+        self.checksummed_addresses = false;
     }
 
     #[napi]
@@ -121,9 +133,13 @@ impl Decoder {
             indexed: decoded
                 .indexed
                 .into_iter()
-                .map(DecodedSolValue::new)
+                .map(|v| DecodedSolValue::new(v, self.checksummed_addresses))
                 .collect(),
-            body: decoded.body.into_iter().map(DecodedSolValue::new).collect(),
+            body: decoded
+                .body
+                .into_iter()
+                .map(|v| DecodedSolValue::new(v, self.checksummed_addresses))
+                .collect(),
         }))
     }
 }
