@@ -275,6 +275,8 @@ export interface Events {
 }
 export class Decoder {
   static new(jsonAbis: Record<string, any>): Decoder
+  enableChecksummedAddresses(): void
+  disableChecksummedAddresses(): void
   decodeLogs(logs: Array<Log>): Promise<Array<DecodedEvent | undefined | null>>
   decodeLogsSync(logs: Array<Log>): Array<DecodedEvent | undefined | null>
   decodeEvents(events: Array<Event>): Promise<Array<DecodedEvent | undefined | null>>
