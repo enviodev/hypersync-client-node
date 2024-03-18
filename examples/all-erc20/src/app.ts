@@ -9,7 +9,8 @@ async function main() {
 
     // The query to run
     const query = {
-        // start from block 0 and go to the end of the chain (we don't specify a toBlock).
+        // Start from block 0 and go to the end of the chain (we don't specify a toBlock).
+        //   you can add a "toBlock" to limit the query to a certain range.
         "fromBlock": 0,
         // The logs we want. We will also automatically get transactions and blocks relating to these logs (the query implicitly joins them).
         "logs": [
@@ -21,6 +22,8 @@ async function main() {
           }
         ],
         // Select the fields we are interested in, notice topics are selected as topic0,1,2,3
+        //   Most of the fields below are there for demonstration purposes.
+        //   The only field we use in this example is the 'log.data' + 'log.address' + 'log.topic0' so you could create a faster query by removing others.
         "fieldSelection": {
           "block": [
             "number",
@@ -77,7 +80,7 @@ async function main() {
     const decoder = Decoder.new(abis);
 
     // Decode the log on a background thread so we don't block the event loop.
-    // Can also use decoder.decodeLogsSync if it is more convenient.
+    // Can also use decoder.decodeLogsSync rather than using this promise api if it is more convenient.
     const decodedLogs = await decoder.decodeLogs(res.data.logs);
 
     // Let's count total volume, it is meaningless because of currency differences but good as an example.
@@ -90,7 +93,7 @@ async function main() {
 
     const totalBlocks = res.nextBlock - query.fromBlock;
 
-    console.log(`Total volume was ${total_volume} in ${totalBlocks} blocks`);
+    console.log(`Total volume was ${total_volume} in ${totalBlocks} blocks in ${res.data.logs.length} transfers.`);
 }
 
 main();
