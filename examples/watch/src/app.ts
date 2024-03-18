@@ -37,7 +37,7 @@ async function main() {
           ]
         },
       };
-    
+
     // read json abi file for erc20
     const abi = fs.readFileSync('./erc20.abi.json', 'utf8');
     const parsedAbi = JSON.parse(abi);
@@ -51,7 +51,7 @@ async function main() {
     const decoder = Decoder.new(abis);
 
     let total_dai_volume = BigInt(0);
-    
+ 
     while(true) {
       const res = await client.sendReq(query);
 
