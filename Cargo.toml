@@ -30,6 +30,7 @@ serde_json = "1"
 skar-client = "0.16.3"
 skar-net-types = "0.2"
 skar-format = "0.2"
+hex = "0.4.3"
 
 [build-dependencies]
 napi-build = "2.0.1"
