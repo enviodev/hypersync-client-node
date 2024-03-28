@@ -276,6 +276,47 @@ impl HypersyncClient {
         .map_err(|e| napi::Error::from_reason(format!("{:?}", e)))?;
         Ok(query)
     }
+
+    /// Returns a query for all Logs within the block range from the given address with a
+    /// matching topic0 event signature.  Topic0 is the keccak256 hash of the event signature.
+    /// If to_block is None then query runs to the head of the chain.
+    #[napi]
+    pub fn preset_query_logs_of_event(
+        &self,
+        contract_address: String,
+        topic0: String,
+        from_block: u32,
+        to_block: Option<u32>,
+    ) -> napi::Result<Query> {
+        // cut the "0x" off the address
+        let address: &str = if &contract_address[..2] == "0x" {
+            &contract_address[2..]
+        } else {
+            &contract_address
+        };
+        let address = hex_str_address_to_byte_array(address)
+            .map_err(|e| napi::Error::from_reason(format!("{:?}", e)))?;
+
+        // cut the "0x" off the topic0
+        let topic0: &str = if &topic0[..2] == "0x" {
+            &topic0[2..]
+        } else {
+            &topic0
+        };
+        let topic0 = hex_str_topic0_to_byte_array(topic0)
+            .map_err(|e| napi::Error::from_reason(format!("{:?}", e)))?;
+
+        let query: Query = skar_client::Client::preset_query_logs_of_event(
+            from_block.into(),
+            to_block.map(|u| u.into()),
+            topic0,
+            address,
+        )
+        .map_err(|e| napi::Error::from_reason(format!("{:?}", e)))?
+        .try_into()
+        .map_err(|e| napi::Error::from_reason(format!("{:?}", e)))?;
+        Ok(query)
+    }
 }
 
 // helper function to decode hex string as address
