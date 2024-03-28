@@ -330,7 +330,7 @@ export class HypersyncClient {
    * Returns a query for all Blocks and Transactions within the block range (from_block, to_block]
    * If to_block is None then query runs to the head of the chain.
    */
-  static presetQueryBlocksAndTransactions(fromBlock: number, toBlock?: number | undefined | null): Query
+  presetQueryBlocksAndTransactions(fromBlock: number, toBlock?: number | undefined | null): Query
 }
 export class QueryResponseStream {
   recv(): Promise<Error | QueryResponse | null>
