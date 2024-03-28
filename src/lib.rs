@@ -211,6 +211,23 @@ impl HypersyncClient {
 
         Ok(res)
     }
+
+    /// Returns a query for all Blocks and Transactions within the block range (from_block, to_block]
+    /// If to_block is None then query runs to the head of the chain.
+    #[napi]
+    pub fn preset_query_blocks_and_transactions(
+        from_block: u32,
+        to_block: Option<u32>,
+    ) -> napi::Result<Query> {
+        let query: Query = skar_client::Client::preset_query_blocks_and_transactions(
+            from_block.into(),
+            to_block.map(|u| u.into()),
+        )
+        .try_into()
+        .map_err(|e| napi::Error::from_reason(format!("{:?}", e)))?;
+
+        Ok(query)
+    }
 }
 
 #[napi]
