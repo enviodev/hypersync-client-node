@@ -12,6 +12,7 @@ async function main() {
     url: "https://eth.hypersync.xyz"
   });
 
+  // query is inclusive of from_block, exclusive of to_block so this will return 49 blocks
   let query = client.presetQueryBlocksAndTransactions(17_000_000, 17_000_050);
 
   console.log("Running the query...");
@@ -21,7 +22,7 @@ async function main() {
   // res.nextBlock is equal to res.archiveHeight or query.toBlock in case we specified an end block.
   const res = await client.sendReq(query);
 
-  console.log(`Query returned ${res.data.blocks.length} blocks and ${res.data.transactions.length}`)
+  console.log(`Query returned ${res.data.blocks.length} blocks and ${res.data.transactions.length} transactions`)
 }
 
 main();
