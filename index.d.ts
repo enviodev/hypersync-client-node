@@ -326,6 +326,28 @@ export class HypersyncClient {
    * it groups data for each event(log) so it is easier to process it.
    */
   sendEventsReq(query: Query): Promise<Events>
+  /**
+   * Returns a query for all Blocks and Transactions within the block range (from_block, to_block]
+   * If to_block is None then query runs to the head of the chain.
+   */
+  presetQueryBlocksAndTransactions(fromBlock: number, toBlock?: number | undefined | null): Query
+  /**
+   * Returns a query object for all Blocks and hashes of the Transactions within the block range
+   * (from_block, to_block].  Also returns the block_hash and block_number fields on each Transaction
+   * so it can be mapped to a block.  If to_block is None then query runs to the head of the chain.
+   */
+  presetQueryBlocksAndTransactionHashes(fromBlock: number, toBlock?: number | undefined | null): Query
+  /**
+   * Returns a query object for all Logs within the block range from the given address.
+   * If to_block is None then query runs to the head of the chain.
+   */
+  presetQueryLogs(contractAddress: string, fromBlock: number, toBlock?: number | undefined | null): Query
+  /**
+   * Returns a query for all Logs within the block range from the given address with a
+   * matching topic0 event signature.  Topic0 is the keccak256 hash of the event signature.
+   * If to_block is None then query runs to the head of the chain.
+   */
+  presetQueryLogsOfEvent(contractAddress: string, topic0: string, fromBlock: number, toBlock?: number | undefined | null): Query
 }
 export class QueryResponseStream {
   recv(): Promise<Error | QueryResponse | null>
