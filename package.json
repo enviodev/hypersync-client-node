@@ -37,5 +37,5 @@
     "version": "napi version",
     "docs": "yarn build && npx typedoc --plugin typedoc-plugin-markdown index.d.ts"
   },
-  "packageManager": "yarn@3.7.0"
+  "packageManager": "yarn@3.8.1"
 }
