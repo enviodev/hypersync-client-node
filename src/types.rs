@@ -125,7 +125,7 @@ impl DecodedSolValue {
             }
             DynSolValue::Function(bytes) => Either4::C(prefix_hex::encode(bytes.as_slice())),
             DynSolValue::Bytes(bytes) => Either4::C(prefix_hex::encode(bytes.as_slice())),
-            DynSolValue::String(bytes) => Either4::C(prefix_hex::encode(bytes.as_bytes())),
+            DynSolValue::String(s) => Either4::C(s),
             DynSolValue::Array(vals) => Either4::D(
                 vals.into_iter()
                     .map(|v| DecodedSolValue::new(v, checksummed_addresses))
