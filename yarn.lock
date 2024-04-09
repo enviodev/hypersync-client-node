@@ -1869,11 +1869,11 @@ __metadata:
 
 "typescript@patch:typescript@^5.3.2#~builtin<compat/typescript>":
   version: 5.4.4
-  resolution: "typescript@patch:typescript@npm%3A5.4.4#~builtin<compat/typescript>::version=5.4.4&hash=e012d7"
+  resolution: "typescript@patch:typescript@npm%3A5.4.4#~builtin<compat/typescript>::version=5.4.4&hash=5adc0c"
   bin:
     tsc: bin/tsc
     tsserver: bin/tsserver
-  checksum: 34e8fe6b892736204c6c72ae9e3027fb37f23e34cf748340712101cbe9c55527c379c4d275c407e5c66ff73eca56c7425b1fb4ac5b23dc7a62413cf6a8af98e8
+  checksum: f64e07e11f787a18b5b98cbe7506465a5a92f56bbd4691977cc9c690f4ec49ebce51dfac77728dc792b743f8d89e8d99004370f5c96f7f56947c25c3f90f9350
   languageName: node
   linkType: hard
 
