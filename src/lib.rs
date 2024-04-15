@@ -212,138 +212,138 @@ impl HypersyncClient {
         Ok(res)
     }
 
-    /// Returns a query for all Blocks and Transactions within the block range (from_block, to_block]
-    /// If to_block is None then query runs to the head of the chain.
-    #[napi]
-    pub fn preset_query_blocks_and_transactions(
-        &self,
-        from_block: u32,
-        to_block: Option<u32>,
-    ) -> napi::Result<Query> {
-        let query: Query = skar_client::Client::preset_query_blocks_and_transactions(
-            from_block.into(),
-            to_block.map(|u| u.into()),
-        )
-        .try_into()
-        .map_err(|e| napi::Error::from_reason(format!("{:?}", e)))?;
+    // /// Returns a query for all Blocks and Transactions within the block range (from_block, to_block]
+    // /// If to_block is None then query runs to the head of the chain.
+    // #[napi]
+    // pub fn preset_query_blocks_and_transactions(
+    //     &self,
+    //     from_block: u32,
+    //     to_block: Option<u32>,
+    // ) -> napi::Result<Query> {
+    //     let query: Query = skar_client::Client::preset_query_blocks_and_transactions(
+    //         from_block.into(),
+    //         to_block.map(|u| u.into()),
+    //     )
+    //     .try_into()
+    //     .map_err(|e| napi::Error::from_reason(format!("{:?}", e)))?;
 
-        Ok(query)
-    }
+    //     Ok(query)
+    // }
 
-    /// Returns a query object for all Blocks and hashes of the Transactions within the block range
-    /// (from_block, to_block].  Also returns the block_hash and block_number fields on each Transaction
-    /// so it can be mapped to a block.  If to_block is None then query runs to the head of the chain.
-    #[napi]
-    pub fn preset_query_blocks_and_transaction_hashes(
-        &self,
-        from_block: u32,
-        to_block: Option<u32>,
-    ) -> napi::Result<Query> {
-        let query: Query = skar_client::Client::preset_query_blocks_and_transaction_hashes(
-            from_block.into(),
-            to_block.map(|u| u.into()),
-        )
-        .try_into()
-        .map_err(|e| napi::Error::from_reason(format!("{:?}", e)))?;
+    // /// Returns a query object for all Blocks and hashes of the Transactions within the block range
+    // /// (from_block, to_block].  Also returns the block_hash and block_number fields on each Transaction
+    // /// so it can be mapped to a block.  If to_block is None then query runs to the head of the chain.
+    // #[napi]
+    // pub fn preset_query_blocks_and_transaction_hashes(
+    //     &self,
+    //     from_block: u32,
+    //     to_block: Option<u32>,
+    // ) -> napi::Result<Query> {
+    //     let query: Query = skar_client::Client::preset_query_blocks_and_transaction_hashes(
+    //         from_block.into(),
+    //         to_block.map(|u| u.into()),
+    //     )
+    //     .try_into()
+    //     .map_err(|e| napi::Error::from_reason(format!("{:?}", e)))?;
 
-        Ok(query)
-    }
+    //     Ok(query)
+    // }
 
-    /// Returns a query object for all Logs within the block range from the given address.
-    /// If to_block is None then query runs to the head of the chain.
-    #[napi]
-    pub fn preset_query_logs(
-        &self,
-        contract_address: String,
-        from_block: u32,
-        to_block: Option<u32>,
-    ) -> napi::Result<Query> {
-        // cut the "0x" off the address
-        let address: &str = if &contract_address[..2] == "0x" {
-            &contract_address[2..]
-        } else {
-            &contract_address
-        };
-        let address = hex_str_address_to_byte_array(address)
-            .map_err(|e| napi::Error::from_reason(format!("{:?}", e)))?;
-        let query: Query = skar_client::Client::preset_query_logs(
-            from_block.into(),
-            to_block.map(|u| u.into()),
-            address,
-        )
-        .map_err(|e| napi::Error::from_reason(format!("{:?}", e)))?
-        .try_into()
-        .map_err(|e| napi::Error::from_reason(format!("{:?}", e)))?;
-        Ok(query)
-    }
+    // /// Returns a query object for all Logs within the block range from the given address.
+    // /// If to_block is None then query runs to the head of the chain.
+    // #[napi]
+    // pub fn preset_query_logs(
+    //     &self,
+    //     contract_address: String,
+    //     from_block: u32,
+    //     to_block: Option<u32>,
+    // ) -> napi::Result<Query> {
+    //     // cut the "0x" off the address
+    //     let address: &str = if &contract_address[..2] == "0x" {
+    //         &contract_address[2..]
+    //     } else {
+    //         &contract_address
+    //     };
+    //     let address = hex_str_address_to_byte_array(address)
+    //         .map_err(|e| napi::Error::from_reason(format!("{:?}", e)))?;
+    //     let query: Query = skar_client::Client::preset_query_logs(
+    //         from_block.into(),
+    //         to_block.map(|u| u.into()),
+    //         address,
+    //     )
+    //     .map_err(|e| napi::Error::from_reason(format!("{:?}", e)))?
+    //     .try_into()
+    //     .map_err(|e| napi::Error::from_reason(format!("{:?}", e)))?;
+    //     Ok(query)
+    // }
 
-    /// Returns a query for all Logs within the block range from the given address with a
-    /// matching topic0 event signature.  Topic0 is the keccak256 hash of the event signature.
-    /// If to_block is None then query runs to the head of the chain.
-    #[napi]
-    pub fn preset_query_logs_of_event(
-        &self,
-        contract_address: String,
-        topic0: String,
-        from_block: u32,
-        to_block: Option<u32>,
-    ) -> napi::Result<Query> {
-        // cut the "0x" off the address
-        let address: &str = if &contract_address[..2] == "0x" {
-            &contract_address[2..]
-        } else {
-            &contract_address
-        };
-        let address = hex_str_address_to_byte_array(address)
-            .map_err(|e| napi::Error::from_reason(format!("{:?}", e)))?;
+    // /// Returns a query for all Logs within the block range from the given address with a
+    // /// matching topic0 event signature.  Topic0 is the keccak256 hash of the event signature.
+    // /// If to_block is None then query runs to the head of the chain.
+    // #[napi]
+    // pub fn preset_query_logs_of_event(
+    //     &self,
+    //     contract_address: String,
+    //     topic0: String,
+    //     from_block: u32,
+    //     to_block: Option<u32>,
+    // ) -> napi::Result<Query> {
+    //     // cut the "0x" off the address
+    //     let address: &str = if &contract_address[..2] == "0x" {
+    //         &contract_address[2..]
+    //     } else {
+    //         &contract_address
+    //     };
+    //     let address = hex_str_address_to_byte_array(address)
+    //         .map_err(|e| napi::Error::from_reason(format!("{:?}", e)))?;
 
-        // cut the "0x" off the topic0
-        let topic0: &str = if &topic0[..2] == "0x" {
-            &topic0[2..]
-        } else {
-            &topic0
-        };
-        let topic0 = hex_str_topic0_to_byte_array(topic0)
-            .map_err(|e| napi::Error::from_reason(format!("{:?}", e)))?;
+    //     // cut the "0x" off the topic0
+    //     let topic0: &str = if &topic0[..2] == "0x" {
+    //         &topic0[2..]
+    //     } else {
+    //         &topic0
+    //     };
+    //     let topic0 = hex_str_topic0_to_byte_array(topic0)
+    //         .map_err(|e| napi::Error::from_reason(format!("{:?}", e)))?;
 
-        let query: Query = skar_client::Client::preset_query_logs_of_event(
-            from_block.into(),
-            to_block.map(|u| u.into()),
-            topic0,
-            address,
-        )
-        .map_err(|e| napi::Error::from_reason(format!("{:?}", e)))?
-        .try_into()
-        .map_err(|e| napi::Error::from_reason(format!("{:?}", e)))?;
-        Ok(query)
-    }
+    //     let query: Query = skar_client::Client::preset_query_logs_of_event(
+    //         from_block.into(),
+    //         to_block.map(|u| u.into()),
+    //         topic0,
+    //         address,
+    //     )
+    //     .map_err(|e| napi::Error::from_reason(format!("{:?}", e)))?
+    //     .try_into()
+    //     .map_err(|e| napi::Error::from_reason(format!("{:?}", e)))?;
+    //     Ok(query)
+    // }
 }
 
-// helper function to decode hex string as address
-fn hex_str_address_to_byte_array(hex_str: &str) -> Result<[u8; 20], String> {
-    if hex_str.len() != 40 {
-        return Err(format!("address must be 40 hex characters"));
-    }
+// // helper function to decode hex string as address
+// fn hex_str_address_to_byte_array(hex_str: &str) -> Result<[u8; 20], String> {
+//     if hex_str.len() != 40 {
+//         return Err(format!("address must be 40 hex characters"));
+//     }
 
-    let mut dst = [0u8; 20];
-    match faster_hex::hex_decode(hex_str.as_bytes(), &mut dst) {
-        Ok(()) => Ok(dst),
-        Err(e) => Err(format!("Failed to decode hex string: {}", e)),
-    }
-}
+//     let mut dst = [0u8; 20];
+//     match faster_hex::hex_decode(hex_str.as_bytes(), &mut dst) {
+//         Ok(()) => Ok(dst),
+//         Err(e) => Err(format!("Failed to decode hex string: {}", e)),
+//     }
+// }
 
-// helper function to decode hex string as topic0
-fn hex_str_topic0_to_byte_array(hex_str: &str) -> Result<[u8; 32], String> {
-    if hex_str.len() != 64 {
-        return Err(format!("topic0 must be 64 hex characters"));
-    }
+// // helper function to decode hex string as topic0
+// fn hex_str_topic0_to_byte_array(hex_str: &str) -> Result<[u8; 32], String> {
+//     if hex_str.len() != 64 {
+//         return Err(format!("topic0 must be 64 hex characters"));
+//     }
 
-    let mut dst = [0u8; 32];
-    match faster_hex::hex_decode(hex_str.as_bytes(), &mut dst) {
-        Ok(()) => Ok(dst),
-        Err(e) => Err(format!("Failed to decode hex string: {}", e)),
-    }
-}
+//     let mut dst = [0u8; 32];
+//     match faster_hex::hex_decode(hex_str.as_bytes(), &mut dst) {
+//         Ok(()) => Ok(dst),
+//         Err(e) => Err(format!("Failed to decode hex string: {}", e)),
+//     }
+// }
 
 #[napi]
 pub struct QueryResponseStream {
