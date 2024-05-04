@@ -126,7 +126,19 @@ impl Decoder {
             .context("decode log")?
         {
             Some(decoded) => decoded,
-            None => return Ok(None),
+            None => {
+                let address = Address::decode_hex("0x0000000000000000000000000000000000000000")
+                    .context("decode address")?;
+
+                match self
+                    .inner
+                    .decode(address.as_slice(), topic0, &topics, &data)
+                    .context("decode log")?
+                {
+                    Some(decoded) => decoded,
+                    None => return Ok(None),
+                }
+            }
         };
 
         Ok(Some(DecodedEvent {
