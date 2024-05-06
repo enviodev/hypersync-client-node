@@ -129,7 +129,27 @@ pub struct Query {
 impl Query {
     pub fn try_convert(&self) -> Result<net_types::Query> {
         let json = serde_json::to_vec(self).context("serialize to json")?;
-        serde_json::from_slice(&json).context("parse json")
+        let query_result: Result<net_types::Query> =
+            serde_json::from_slice(&json).context("parse json");
+        match query_result {
+            Ok(query) => {
+                let mut query = query.clone();
+                query.logs = query
+                    .logs
+                    .into_iter()
+                    .map(|log| {
+                        let mut log = log;
+                        let address = log.address.clone();
+                        if address.into_iter().all(|v| v.as_ref() == [0u8; 20]) {
+                            log.address = vec![];
+                        }
+                        log
+                    })
+                    .collect();
+                Ok(query)
+            }
+            Err(e) => Err(e),
+        }
     }
 }
 
