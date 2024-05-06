@@ -158,7 +158,7 @@ impl HypersyncClient {
             .map(|log| {
                 let mut log = log;
                 let address = log.address.clone();
-                if address.into_iter().all(|v| v.as_ref() == [0u8; 20]) {
+                if address.into_iter().all(|v| v.as_ref()[0..19] == [0u8; 19]) {
                     log.address = vec![];
                 }
                 log

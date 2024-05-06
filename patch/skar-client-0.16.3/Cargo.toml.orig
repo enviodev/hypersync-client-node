@@ -1,0 +1,58 @@
+[package]
+name = "skar-client"
+version = "0.16.3"
+edition = "2021"
+description = "client library for skar"
+license = "MIT"
+
+[dependencies]
+anyhow = "1"
+url = { version = "2", features = ["serde"] }
+arrow2 = { version = "0.18", features = [
+    "io_json",
+    "io_ipc",
+    "io_ipc_compression",
+    "io_parquet_zstd",
+    "io_parquet_lz4",
+    "io_parquet",
+    "compute_cast",
+] }
+parquet2 = { version = "0.17", features = ["async"] }
+serde_json = "1"
+capnp = "0.19"
+serde = { version = "1", features = ["derive"] }
+futures = "0.3"
+arrayvec = { version = "0.7", features = ["serde"] }
+tokio = { version = "1", default-features = false, features = [
+    "rt-multi-thread",
+    "fs",
+    "test-util",
+    "rt",
+    "macros",
+] }
+log = "0.4"
+fastrange-rs = "0.1"
+rand = "0.8"
+tokio-util = { version = "0.7.10", features = ["compat"] }
+alloy-dyn-abi = "0.6"
+alloy-json-abi = "0.6"
+xxhash-rust = { version = "0.8", features = ["xxh3"] }
+num_cpus = "1"
+rayon = "1"
+faster-hex = "0.9"
+ruint = "1"
+
+skar-net-types = { path = "../net-types", version = "0.2.0" }
+skar-format = { path = "../format", version = "0.2.0" }
+skar-schema = { path = "../schema", version = "0.1.0" }
+
+[dependencies.reqwest]
+version = "0.11"
+default-features = false
+features = ["json", "rustls-tls"]
+
+[dev-dependencies]
+maplit = "1"
+hex-literal = "0.4"
+uuid = { version = "1", features = ["v4"] }
+env_logger = "0.11"
