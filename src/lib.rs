@@ -72,8 +72,22 @@ impl HypersyncClient {
     }
 
     async fn stream_impl(&self, query: Query, config: StreamConfig) -> Result<QueryResponseStream> {
-        let query = query.try_convert().context("parse query")?;
+        let mut query = query.try_convert().context("parse query")?;
         let config = config.try_convert().context("parse config")?;
+
+        // 0x0000... is a special address that means no address
+        query.logs = query
+            .logs
+            .into_iter()
+            .map(|log| {
+                let mut log = log;
+                let address = log.address.clone();
+                if address.into_iter().all(|v| v.as_ref() == [0u8; 20]) {
+                    log.address = vec![];
+                }
+                log
+            })
+            .collect();
 
         let rx = self
             .inner
@@ -105,8 +119,22 @@ impl HypersyncClient {
     }
 
     async fn stream_events_impl(&self, query: Query, config: StreamConfig) -> Result<EventsStream> {
-        let query = query.try_convert().context("parse query")?;
+        let mut query = query.try_convert().context("parse query")?;
         let config = config.try_convert().context("parse config")?;
+
+        // 0x0000... is a special address that means no address
+        query.logs = query
+            .logs
+            .into_iter()
+            .map(|log| {
+                let mut log = log;
+                let address = log.address.clone();
+                if address.into_iter().all(|v| v.as_ref() == [0u8; 20]) {
+                    log.address = vec![];
+                }
+                log
+            })
+            .collect();
 
         let rx = self
             .inner
@@ -134,8 +162,22 @@ impl HypersyncClient {
     }
 
     async fn create_parquet_folder_impl(&self, query: Query, config: ParquetConfig) -> Result<()> {
-        let query = query.try_convert().context("parse query")?;
+        let mut query = query.try_convert().context("parse query")?;
         let config = config.try_convert().context("parse parquet config")?;
+
+        // 0x0000... is a special address that means no address
+        query.logs = query
+            .logs
+            .into_iter()
+            .map(|log| {
+                let mut log = log;
+                let address = log.address.clone();
+                if address.into_iter().all(|v| v.as_ref() == [0u8; 20]) {
+                    log.address = vec![];
+                }
+                log
+            })
+            .collect();
 
         self.inner
             .create_parquet_folder(query, config)
@@ -156,7 +198,21 @@ impl HypersyncClient {
     }
 
     async fn send_req_impl(&self, query: Query) -> Result<QueryResponse> {
-        let query = query.try_convert().context("parse query")?;
+        let mut query = query.try_convert().context("parse query")?;
+
+        // 0x0000... is a special address that means no address
+        query.logs = query
+            .logs
+            .into_iter()
+            .map(|log| {
+                let mut log = log;
+                let address = log.address.clone();
+                if address.into_iter().all(|v| v.as_ref() == [0u8; 20]) {
+                    log.address = vec![];
+                }
+                log
+            })
+            .collect();
 
         let res = self
             .inner
@@ -201,6 +257,20 @@ impl HypersyncClient {
                 query.field_selection.log.insert(field.to_string());
             }
         }
+
+        // 0x0000... is a special address that means no address
+        query.logs = query
+            .logs
+            .into_iter()
+            .map(|log| {
+                let mut log = log;
+                let address = log.address.clone();
+                if address.into_iter().all(|v| v.as_ref() == [0u8; 20]) {
+                    log.address = vec![];
+                }
+                log
+            })
+            .collect();
 
         let res = self
             .inner
