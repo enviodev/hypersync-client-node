@@ -575,13 +575,33 @@ fn convert_response_to_events(res: skar_client::QueryResponse) -> Result<Events>
     let mut events = Vec::with_capacity(logs.len());
 
     for log in logs.into_iter() {
-        let transaction = txs.get(&(log.block_number, log.transaction_index)).cloned();
+        let transaction = txs
+            .remove(&(log.block_number, log.transaction_index))
+            .clone();
         let block = blocks.get(&log.block_number).cloned();
 
         events.push(Event {
             log,
             block,
             transaction,
+        })
+    }
+
+    for ((block_number, transaction_index), transaction) in txs.into_iter() {
+        events.push(Event {
+            log: Log {
+                block_hash: transaction.block_hash.clone(),
+                block_number: transaction.block_number,
+                log_index: -1,
+                address: transaction.contract_address.clone(),
+                transaction_index,
+                transaction_hash: transaction.hash.clone(),
+                data: None,
+                topics: vec![],
+                removed: None,
+            },
+            block: blocks.get(&block_number).cloned(),
+            transaction: Some(transaction),
         })
     }
 
