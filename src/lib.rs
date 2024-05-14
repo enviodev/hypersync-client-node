@@ -72,23 +72,49 @@ impl HypersyncClient {
             .map_err(|e| napi::Error::from_reason(format!("{:?}", e)))
     }
 
-    async fn stream_impl(&self, query: Query, config: StreamConfig) -> Result<QueryResponseStream> {
-        let mut query = query.try_convert().context("parse query")?;
-        let config = config.try_convert().context("parse config")?;
+    fn mutate_query(&self, query: &mut skar_net_types::Query) {
+        let mut transactions = Vec::<TransactionSelection>::new();
 
         // 0x0000... is a special address that means no address
         query.logs = query
             .logs
-            .into_iter()
+            .iter()
             .map(|log| {
-                let mut log = log;
+                let mut log = log.clone();
                 let address = log.address.clone();
                 if address.into_iter().all(|v| v.as_ref()[0..19] == [0u8; 19]) {
                     log.address = vec![];
+                } else {
+                    let topics = log.topics.clone();
+                    let sighash: Option<Vec<FixedSizeData<32>>> = topics.first().cloned();
+                    if let Some(sighash) = sighash {
+                        let sighash = sighash
+                            .iter()
+                            .map(|v| {
+                                let mut data = [0u8; 4];
+                                data.copy_from_slice(&v.as_slice()[0..4]);
+                                FixedSizeData::from(data)
+                            })
+                            .collect();
+                        transactions.push(TransactionSelection {
+                            to: log.address.clone(),
+                            from: vec![],
+                            sighash,
+                            status: None,
+                        });
+                    };
                 }
                 log
             })
             .collect();
+        query.transactions = transactions;
+    }
+
+    async fn stream_impl(&self, query: Query, config: StreamConfig) -> Result<QueryResponseStream> {
+        let mut query = query.try_convert().context("parse query")?;
+        let config = config.try_convert().context("parse config")?;
+
+        self.mutate_query(&mut query);
 
         let rx = self
             .inner
@@ -123,19 +149,7 @@ impl HypersyncClient {
         let mut query = query.try_convert().context("parse query")?;
         let config = config.try_convert().context("parse config")?;
 
-        // 0x0000... is a special address that means no address
-        query.logs = query
-            .logs
-            .into_iter()
-            .map(|log| {
-                let mut log = log;
-                let address = log.address.clone();
-                if address.into_iter().all(|v| v.as_ref()[0..19] == [0u8; 19]) {
-                    log.address = vec![];
-                }
-                log
-            })
-            .collect();
+        self.mutate_query(&mut query);
 
         let rx = self
             .inner
@@ -167,19 +181,7 @@ impl HypersyncClient {
         let mut query = query.try_convert().context("parse query")?;
         let config = config.try_convert().context("parse parquet config")?;
 
-        // 0x0000... is a special address that means no address
-        query.logs = query
-            .logs
-            .into_iter()
-            .map(|log| {
-                let mut log = log;
-                let address = log.address.clone();
-                if address.into_iter().all(|v| v.as_ref()[0..19] == [0u8; 19]) {
-                    log.address = vec![];
-                }
-                log
-            })
-            .collect();
+        self.mutate_query(&mut query);
 
         self.inner
             .create_parquet_folder(query, config)
@@ -202,19 +204,7 @@ impl HypersyncClient {
     async fn send_req_impl(&self, query: Query) -> Result<QueryResponse> {
         let mut query = query.try_convert().context("parse query")?;
 
-        // 0x0000... is a special address that means no address
-        query.logs = query
-            .logs
-            .into_iter()
-            .map(|log| {
-                let mut log = log;
-                let address = log.address.clone();
-                if address.into_iter().all(|v| v.as_ref()[0..19] == [0u8; 19]) {
-                    log.address = vec![];
-                }
-                log
-            })
-            .collect();
+        self.mutate_query(&mut query);
 
         let res = self
             .inner
@@ -260,40 +250,7 @@ impl HypersyncClient {
             }
         }
 
-        let mut transactions = Vec::<TransactionSelection>::new();
-
-        // 0x0000... is a special address that means no address
-        query.logs = query
-            .logs
-            .into_iter()
-            .map(|log| {
-                let mut log = log;
-                let address = log.address.clone();
-                if address.into_iter().all(|v| v.as_ref()[0..19] == [0u8; 19]) {
-                    log.address = vec![];
-                } else {
-                    let topics = log.topics.clone();
-                    let sighash: Option<Vec<FixedSizeData<32>>> = topics.first().cloned();
-                    if let Some(sighash) = sighash {
-                        let sighash = sighash
-                            .iter()
-                            .map(|v| {
-                                let mut data = [0u8; 4];
-                                data.copy_from_slice(&v.as_slice()[0..4]);
-                                FixedSizeData::from(data)
-                            })
-                            .collect();
-                        transactions.push(TransactionSelection {
-                            to: log.address.clone(),
-                            from: vec![],
-                            sighash,
-                            status: None,
-                        });
-                    };
-                }
-                log
-            })
-            .collect();
+        self.mutate_query(&mut query);
 
         let original_query = query.clone();
         let res = self

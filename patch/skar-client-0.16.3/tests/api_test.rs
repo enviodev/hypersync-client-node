@@ -152,8 +152,6 @@ async fn test_api_decode_logs() {
     let decoded_logs = decoder.decode_logs(&res.data.logs).unwrap().unwrap();
 
     assert_eq!(decoded_logs.len(), 1);
-
-    println!("{:?}", decoded_logs[0]);
 }
 
 const URL: &str = "https://eth.hypersync.xyz";
