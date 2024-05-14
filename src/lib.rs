@@ -139,12 +139,13 @@ impl HypersyncClient {
 
         let rx = self
             .inner
-            .stream::<skar_client::ArrowIpc>(query, config)
+            .stream::<skar_client::ArrowIpc>(query.clone(), config)
             .await
             .context("start stream")?;
 
         Ok(EventsStream {
             inner: tokio::sync::Mutex::new(rx),
+            query,
         })
     }
 
@@ -294,12 +295,14 @@ impl HypersyncClient {
             })
             .collect();
 
+        let original_query = query.clone();
         let res = self
             .inner
             .send::<skar_client::ArrowIpc>(&query)
             .await
             .context("execute query")?;
-        let res = convert_response_to_events(res).context("convert response to js format")?;
+        let res = convert_response_to_events(res, &original_query)
+            .context("convert response to js format")?;
 
         Ok(res)
     }
@@ -464,6 +467,7 @@ impl QueryResponseStream {
 #[napi]
 pub struct EventsStream {
     inner: tokio::sync::Mutex<mpsc::Receiver<Result<skar_client::QueryResponse>>>,
+    query: skar_net_types::Query,
 }
 
 #[napi]
@@ -476,12 +480,10 @@ impl EventsStream {
     }
 
     async fn recv_impl(&self) -> Option<Result<Events>> {
-        self.inner
-            .lock()
-            .await
-            .recv()
-            .await
-            .map(|resp| convert_response_to_events(resp?).context("convert response"))
+        self.inner.lock().await.recv().await.map(|resp| {
+            let query = self.query.clone();
+            convert_response_to_events(resp?, &query).context("convert response")
+        })
     }
 }
 
@@ -565,7 +567,10 @@ pub struct Events {
     pub rollback_guard: Option<RollbackGuard>,
 }
 
-fn convert_response_to_events(res: skar_client::QueryResponse) -> Result<Events> {
+fn convert_response_to_events(
+    res: skar_client::QueryResponse,
+    query: &skar_net_types::Query,
+) -> Result<Events> {
     let mut blocks = BTreeMap::new();
 
     for batch in res.data.blocks.iter() {
@@ -598,9 +603,7 @@ fn convert_response_to_events(res: skar_client::QueryResponse) -> Result<Events>
     let mut events = Vec::with_capacity(logs.len());
 
     for log in logs.into_iter() {
-        let transaction = txs
-            .remove(&(log.block_number, log.transaction_index))
-            .clone();
+        let transaction = txs.get(&(log.block_number, log.transaction_index)).cloned();
         let block = blocks.get(&log.block_number).cloned();
 
         events.push(Event {
@@ -610,26 +613,28 @@ fn convert_response_to_events(res: skar_client::QueryResponse) -> Result<Events>
         })
     }
 
+    let matches: Vec<[u8; 4]> = query
+        .transactions
+        .iter()
+        .flat_map(|item| item.sighash.iter().map(|v: &FixedSizeData<4>| v.map(|v| v)))
+        .collect();
     for ((block_number, transaction_index), transaction) in txs.into_iter() {
         let selector = transaction.input.clone();
-        let selector: Option<String> = if let Some(selector) = selector {
+        let selector: Option<[u8; 4]> = if let Some(selector) = selector {
             if selector.len() >= 4 {
-                Some(selector[0..10].to_string())
+                if let Ok(decoded) = prefix_hex::decode::<[u8; 4]>(&selector[0..10]) {
+                    Some(decoded)
+                } else {
+                    None
+                }
             } else {
                 None
             }
         } else {
             None
         };
-        match selector {
-            Some(refine) => {
-                if REFINE_TOPIC[0..10] != refine {
-                    continue;
-                }
-            }
-            None => {
-                continue;
-            }
+        if matches.is_empty() || !matches.contains(&selector.unwrap_or_default()) {
+            continue;
         }
         let input = transaction.input.clone();
         let input: Option<String> = if let Some(input) = input {
