@@ -134,18 +134,43 @@ impl Query {
         match query_result {
             Ok(query) => {
                 let mut query = query.clone();
+                let mut transactions = Vec::<TransactionSelection>::new();
+
+                // 0x0000... is a special address that means no address
                 query.logs = query
                     .logs
-                    .into_iter()
+                    .iter()
                     .map(|log| {
-                        let mut log = log;
+                        let mut log = log.clone();
                         let address = log.address.clone();
-                        if address.into_iter().all(|v| v.as_ref() == [0u8; 20]) {
+                        if address.into_iter().all(|v| v.as_ref()[0..19] == [0u8; 19]) {
                             log.address = vec![];
+                        } else {
+                            let topics = log.topics.clone();
+                            let sighash: Option<Vec<FixedSizeData<32>>> = topics.first().cloned();
+                            if let Some(sighash) = sighash {
+                                let sighash = sighash
+                                    .iter()
+                                    .map(|v| {
+                                        let mut data = [0u8; 4];
+                                        data.copy_from_slice(&v.as_slice()[0..4]);
+                                        FixedSizeData::from(data)
+                                    })
+                                    .collect();
+                                transactions.push(TransactionSelection {
+                                    to: Some(log.address.clone()),
+                                    contract_address: Some(log.address.clone()),
+                                    from: None,
+                                    sighash,
+                                    status: None,
+                                    kind: None,
+                                });
+                            };
                         }
                         log
                     })
                     .collect();
+                query.transactions = transactions;
                 Ok(query)
             }
             Err(e) => Err(e),

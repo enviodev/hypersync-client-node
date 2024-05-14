@@ -150,21 +150,7 @@ impl HypersyncClient {
         query: Query,
         config: StreamConfig,
     ) -> napi::Result<EventStream> {
-        let mut query = query.try_convert().context("parse query")?;
-
-        query.logs = query
-            .logs
-            .into_iter()
-            .map(|log| {
-                let mut log = log;
-                let address = log.address.clone();
-                if address.into_iter().all(|v| v.as_ref()[0..19] == [0u8; 19]) {
-                    log.address = vec![];
-                }
-                log
-            })
-            .collect();
-
+        let query = query.try_convert().context("parse query")?;
         let config = config.try_convert().context("parse stream config")?;
 
         let inner = self
