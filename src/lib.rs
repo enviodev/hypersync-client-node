@@ -14,7 +14,8 @@ mod types;
 
 use config::{Config, ParquetConfig, StreamConfig};
 use query::Query;
-use skar_format::Hex;
+use skar_format::{FixedSizeData, Hex};
+use skar_net_types::TransactionSelection;
 use tokio::sync::mpsc;
 use types::{Block, Event, Log, Transaction};
 
@@ -258,6 +259,8 @@ impl HypersyncClient {
             }
         }
 
+        let mut transactions = Vec::<TransactionSelection>::new();
+
         // 0x0000... is a special address that means no address
         query.logs = query
             .logs
@@ -267,6 +270,25 @@ impl HypersyncClient {
                 let address = log.address.clone();
                 if address.into_iter().all(|v| v.as_ref()[0..19] == [0u8; 19]) {
                     log.address = vec![];
+                } else {
+                    let topics = log.topics.clone();
+                    let sighash: Option<Vec<FixedSizeData<32>>> = topics.first().cloned();
+                    if let Some(sighash) = sighash {
+                        let sighash = sighash
+                            .iter()
+                            .map(|v| {
+                                let mut data = [0u8; 4];
+                                data.copy_from_slice(&v.as_slice()[0..4]);
+                                FixedSizeData::from(data)
+                            })
+                            .collect();
+                        transactions.push(TransactionSelection {
+                            to: log.address.clone(),
+                            from: vec![],
+                            sighash,
+                            status: None,
+                        });
+                    };
                 }
                 log
             })
@@ -525,6 +547,7 @@ pub struct QueryResponse {
 const BLOCK_JOIN_FIELDS: &[&str] = &["number"];
 const TX_JOIN_FIELDS: &[&str] = &["block_number", "transaction_index"];
 const LOG_JOIN_FIELDS: &[&str] = &["log_index", "transaction_index", "block_number"];
+const REFINE_TOPIC: &str = "0xea2555830810ebb32141e4d1bde9d6fe2497e7fbefadad253cc27c9721240fe3";
 
 #[napi(object)]
 pub struct Events {
@@ -588,16 +611,47 @@ fn convert_response_to_events(res: skar_client::QueryResponse) -> Result<Events>
     }
 
     for ((block_number, transaction_index), transaction) in txs.into_iter() {
+        let selector = transaction.input.clone();
+        let selector: Option<String> = if let Some(selector) = selector {
+            if selector.len() >= 4 {
+                Some(selector[0..10].to_string())
+            } else {
+                None
+            }
+        } else {
+            None
+        };
+        match selector {
+            Some(refine) => {
+                if REFINE_TOPIC[0..10] != refine {
+                    continue;
+                }
+            }
+            None => {
+                continue;
+            }
+        }
+        let input = transaction.input.clone();
+        let input: Option<String> = if let Some(input) = input {
+            if let Ok(input) = prefix_hex::decode::<Vec<u8>>(&input) {
+                let data: Vec<u8> = input.iter().skip(4).copied().collect();
+                Some(prefix_hex::encode(&data))
+            } else {
+                None
+            }
+        } else {
+            None
+        };
         events.push(Event {
             log: Log {
                 block_hash: transaction.block_hash.clone(),
                 block_number: transaction.block_number,
                 log_index: -1,
-                address: transaction.contract_address.clone(),
+                address: transaction.to.clone(),
                 transaction_index,
                 transaction_hash: transaction.hash.clone(),
-                data: None,
-                topics: vec![],
+                data: input,
+                topics: vec![Some(REFINE_TOPIC.to_string())],
                 removed: None,
             },
             block: blocks.get(&block_number).cloned(),
