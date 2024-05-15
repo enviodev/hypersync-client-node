@@ -1,4 +1,6 @@
 # @envio-dev/hypersync-client-node
+
+```javascript
 import { HypersyncClient, Decoder } from "@envio-dev/hypersync-client";
 import fs from "node:fs";
 
@@ -92,9 +94,7 @@ async function main() {
 
     // read json abi file for erc20
     const abi = fs.readFileSync('./erc20.abi.json', 'utf8');
-    const parsedAbi = JSON.parse(abi);
-
-    //console.log(JSON.stringify(parsedAbi, null, 2));
+    const parsedAbi = JSON.parse(abi); 
 
     let abis = {};
 
@@ -118,3 +118,4 @@ async function main() {
 }
 
 main();
+```
