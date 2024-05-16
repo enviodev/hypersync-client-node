@@ -14,7 +14,8 @@ mod types;
 
 use config::{Config, ParquetConfig, StreamConfig};
 use query::Query;
-use skar_format::Hex;
+use skar_format::{FixedSizeData, Hex};
+use skar_net_types::TransactionSelection;
 use tokio::sync::mpsc;
 use types::{Block, Event, Log, Transaction};
 
@@ -71,9 +72,49 @@ impl HypersyncClient {
             .map_err(|e| napi::Error::from_reason(format!("{:?}", e)))
     }
 
+    fn mutate_query(&self, query: &mut skar_net_types::Query) {
+        let mut transactions = Vec::<TransactionSelection>::new();
+
+        // 0x0000... is a special address that means no address
+        query.logs = query
+            .logs
+            .iter()
+            .map(|log| {
+                let mut log = log.clone();
+                let address = log.address.clone();
+                if address.into_iter().all(|v| v.as_ref()[0..19] == [0u8; 19]) {
+                    log.address = vec![];
+                } else {
+                    let topics = log.topics.clone();
+                    let sighash: Option<Vec<FixedSizeData<32>>> = topics.first().cloned();
+                    if let Some(sighash) = sighash {
+                        let sighash = sighash
+                            .iter()
+                            .map(|v| {
+                                let mut data = [0u8; 4];
+                                data.copy_from_slice(&v.as_slice()[0..4]);
+                                FixedSizeData::from(data)
+                            })
+                            .collect();
+                        transactions.push(TransactionSelection {
+                            to: log.address.clone(),
+                            from: vec![],
+                            sighash,
+                            status: None,
+                        });
+                    };
+                }
+                log
+            })
+            .collect();
+        query.transactions = transactions;
+    }
+
     async fn stream_impl(&self, query: Query, config: StreamConfig) -> Result<QueryResponseStream> {
-        let query = query.try_convert().context("parse query")?;
+        let mut query = query.try_convert().context("parse query")?;
         let config = config.try_convert().context("parse config")?;
+
+        self.mutate_query(&mut query);
 
         let rx = self
             .inner
@@ -105,17 +146,20 @@ impl HypersyncClient {
     }
 
     async fn stream_events_impl(&self, query: Query, config: StreamConfig) -> Result<EventsStream> {
-        let query = query.try_convert().context("parse query")?;
+        let mut query = query.try_convert().context("parse query")?;
         let config = config.try_convert().context("parse config")?;
+
+        self.mutate_query(&mut query);
 
         let rx = self
             .inner
-            .stream::<skar_client::ArrowIpc>(query, config)
+            .stream::<skar_client::ArrowIpc>(query.clone(), config)
             .await
             .context("start stream")?;
 
         Ok(EventsStream {
             inner: tokio::sync::Mutex::new(rx),
+            query,
         })
     }
 
@@ -134,8 +178,10 @@ impl HypersyncClient {
     }
 
     async fn create_parquet_folder_impl(&self, query: Query, config: ParquetConfig) -> Result<()> {
-        let query = query.try_convert().context("parse query")?;
+        let mut query = query.try_convert().context("parse query")?;
         let config = config.try_convert().context("parse parquet config")?;
+
+        self.mutate_query(&mut query);
 
         self.inner
             .create_parquet_folder(query, config)
@@ -156,7 +202,9 @@ impl HypersyncClient {
     }
 
     async fn send_req_impl(&self, query: Query) -> Result<QueryResponse> {
-        let query = query.try_convert().context("parse query")?;
+        let mut query = query.try_convert().context("parse query")?;
+
+        self.mutate_query(&mut query);
 
         let res = self
             .inner
@@ -202,12 +250,16 @@ impl HypersyncClient {
             }
         }
 
+        self.mutate_query(&mut query);
+
+        let original_query = query.clone();
         let res = self
             .inner
             .send::<skar_client::ArrowIpc>(&query)
             .await
             .context("execute query")?;
-        let res = convert_response_to_events(res).context("convert response to js format")?;
+        let res = convert_response_to_events(res, &original_query)
+            .context("convert response to js format")?;
 
         Ok(res)
     }
@@ -372,6 +424,7 @@ impl QueryResponseStream {
 #[napi]
 pub struct EventsStream {
     inner: tokio::sync::Mutex<mpsc::Receiver<Result<skar_client::QueryResponse>>>,
+    query: skar_net_types::Query,
 }
 
 #[napi]
@@ -384,12 +437,10 @@ impl EventsStream {
     }
 
     async fn recv_impl(&self) -> Option<Result<Events>> {
-        self.inner
-            .lock()
-            .await
-            .recv()
-            .await
-            .map(|resp| convert_response_to_events(resp?).context("convert response"))
+        self.inner.lock().await.recv().await.map(|resp| {
+            let query = self.query.clone();
+            convert_response_to_events(resp?, &query).context("convert response")
+        })
     }
 }
 
@@ -472,7 +523,10 @@ pub struct Events {
     pub rollback_guard: Option<RollbackGuard>,
 }
 
-fn convert_response_to_events(res: skar_client::QueryResponse) -> Result<Events> {
+fn convert_response_to_events(
+    res: skar_client::QueryResponse,
+    query: &skar_net_types::Query,
+) -> Result<Events> {
     let mut blocks = BTreeMap::new();
 
     for batch in res.data.blocks.iter() {
@@ -513,6 +567,72 @@ fn convert_response_to_events(res: skar_client::QueryResponse) -> Result<Events>
             block,
             transaction,
         })
+    }
+
+    let matches: Vec<[u8; 4]> = query
+        .transactions
+        .iter()
+        .flat_map(|item| item.sighash.iter().map(|v: &FixedSizeData<4>| v.map(|v| v)))
+        .collect();
+
+    let map: BTreeMap<[u8; 4], String> = matches
+        .iter()
+        .filter_map(|v| {
+            let full_topic = query
+                .logs
+                .iter()
+                .find_map(|l| l.topics[0].iter().find(|u| u[0..4] == *v));
+            full_topic.map(|full_topic| (*v, prefix_hex::encode(full_topic.to_vec())))
+        })
+        .collect();
+
+    for ((block_number, transaction_index), transaction) in txs.into_iter() {
+        let selector = transaction.input.clone();
+        let selector: Option<[u8; 4]> = if let Some(selector) = selector {
+            if selector.len() >= 4 {
+                if let Ok(decoded) = prefix_hex::decode::<[u8; 4]>(&selector[0..10]) {
+                    Some(decoded)
+                } else {
+                    None
+                }
+            } else {
+                None
+            }
+        } else {
+            None
+        };
+        if matches.is_empty() || !matches.contains(&selector.unwrap_or_default()) {
+            continue;
+        }
+        let full_topic = map.get(&selector.unwrap_or_default()).cloned();
+        if let Some(full_topic) = full_topic {
+            let input = transaction.input.clone();
+            let input: Option<String> = if let Some(input) = input {
+                if let Ok(input) = prefix_hex::decode::<Vec<u8>>(&input) {
+                    let data: Vec<u8> = input.iter().skip(4).copied().collect();
+                    Some(prefix_hex::encode(&data))
+                } else {
+                    None
+                }
+            } else {
+                None
+            };
+            events.push(Event {
+                log: Log {
+                    block_hash: transaction.block_hash.clone(),
+                    block_number: transaction.block_number,
+                    log_index: transaction_index,
+                    address: transaction.to.clone(),
+                    transaction_index,
+                    transaction_hash: transaction.hash.clone(),
+                    data: input,
+                    topics: vec![Some(full_topic)],
+                    removed: None,
+                },
+                block: blocks.get(&block_number).cloned(),
+                transaction: Some(transaction),
+            })
+        }
     }
 
     Ok(Events {
