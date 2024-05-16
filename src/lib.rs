@@ -621,7 +621,7 @@ fn convert_response_to_events(
                 log: Log {
                     block_hash: transaction.block_hash.clone(),
                     block_number: transaction.block_number,
-                    log_index: -1,
+                    log_index: transaction_index,
                     address: transaction.to.clone(),
                     transaction_index,
                     transaction_hash: transaction.hash.clone(),
