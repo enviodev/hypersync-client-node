@@ -506,7 +506,6 @@ pub struct QueryResponse {
 const BLOCK_JOIN_FIELDS: &[&str] = &["number"];
 const TX_JOIN_FIELDS: &[&str] = &["block_number", "transaction_index"];
 const LOG_JOIN_FIELDS: &[&str] = &["log_index", "transaction_index", "block_number"];
-const REFINE_TOPIC: &str = "0xea2555830810ebb32141e4d1bde9d6fe2497e7fbefadad253cc27c9721240fe3";
 
 #[napi(object)]
 pub struct Events {
@@ -575,6 +574,18 @@ fn convert_response_to_events(
         .iter()
         .flat_map(|item| item.sighash.iter().map(|v: &FixedSizeData<4>| v.map(|v| v)))
         .collect();
+
+    let map: BTreeMap<[u8; 4], String> = matches
+        .iter()
+        .filter_map(|v| {
+            let full_topic = query
+                .logs
+                .iter()
+                .find_map(|l| l.topics[0].iter().find(|u| u[0..4] == *v));
+            full_topic.map(|full_topic| (*v, prefix_hex::encode(full_topic.to_vec())))
+        })
+        .collect();
+
     for ((block_number, transaction_index), transaction) in txs.into_iter() {
         let selector = transaction.input.clone();
         let selector: Option<[u8; 4]> = if let Some(selector) = selector {
@@ -593,32 +604,35 @@ fn convert_response_to_events(
         if matches.is_empty() || !matches.contains(&selector.unwrap_or_default()) {
             continue;
         }
-        let input = transaction.input.clone();
-        let input: Option<String> = if let Some(input) = input {
-            if let Ok(input) = prefix_hex::decode::<Vec<u8>>(&input) {
-                let data: Vec<u8> = input.iter().skip(4).copied().collect();
-                Some(prefix_hex::encode(&data))
+        let full_topic = map.get(&selector.unwrap_or_default()).cloned();
+        if let Some(full_topic) = full_topic {
+            let input = transaction.input.clone();
+            let input: Option<String> = if let Some(input) = input {
+                if let Ok(input) = prefix_hex::decode::<Vec<u8>>(&input) {
+                    let data: Vec<u8> = input.iter().skip(4).copied().collect();
+                    Some(prefix_hex::encode(&data))
+                } else {
+                    None
+                }
             } else {
                 None
-            }
-        } else {
-            None
-        };
-        events.push(Event {
-            log: Log {
-                block_hash: transaction.block_hash.clone(),
-                block_number: transaction.block_number,
-                log_index: -1,
-                address: transaction.to.clone(),
-                transaction_index,
-                transaction_hash: transaction.hash.clone(),
-                data: input,
-                topics: vec![Some(REFINE_TOPIC.to_string())],
-                removed: None,
-            },
-            block: blocks.get(&block_number).cloned(),
-            transaction: Some(transaction),
-        })
+            };
+            events.push(Event {
+                log: Log {
+                    block_hash: transaction.block_hash.clone(),
+                    block_number: transaction.block_number,
+                    log_index: -1,
+                    address: transaction.to.clone(),
+                    transaction_index,
+                    transaction_hash: transaction.hash.clone(),
+                    data: input,
+                    topics: vec![Some(full_topic)],
+                    removed: None,
+                },
+                block: blocks.get(&block_number).cloned(),
+                transaction: Some(transaction),
+            })
+        }
     }
 
     Ok(Events {
