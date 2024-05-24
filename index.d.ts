@@ -43,6 +43,28 @@ export interface ClientConfig {
   retryBaseMs?: number
   retryCeilingMs?: number
 }
+/**
+ * Returns a query for all Blocks and Transactions within the block range (from_block, to_block]
+ * If to_block is None then query runs to the head of the chain.
+ */
+export function presetQueryBlocksAndTransactions(fromBlock: number, toBlock?: number | undefined | null): Query
+/**
+ * Returns a query object for all Blocks and hashes of the Transactions within the block range
+ * (from_block, to_block].  Also returns the block_hash and block_number fields on each Transaction
+ * so it can be mapped to a block.  If to_block is None then query runs to the head of the chain.
+ */
+export function presetQueryBlocksAndTransactionHashes(fromBlock: number, toBlock?: number | undefined | null): Query
+/**
+ * Returns a query object for all Logs within the block range from the given address.
+ * If to_block is None then query runs to the head of the chain.
+ */
+export function presetQueryLogs(contractAddress: string, fromBlock: number, toBlock?: number | undefined | null): Query
+/**
+ * Returns a query for all Logs within the block range from the given address with a
+ * matching topic0 event signature.  Topic0 is the keccak256 hash of the event signature.
+ * If to_block is None then query runs to the head of the chain.
+ */
+export function presetQueryLogsOfEvent(contractAddress: string, topic0: string, fromBlock: number, toBlock?: number | undefined | null): Query
 export interface LogSelection {
   /**
    * Address of the contract, any logs that has any of these addresses will be returned.
@@ -392,7 +414,7 @@ export class Decoder {
 }
 export class HypersyncClient {
   /** Create a new client with given config */
-  static new(cfg: ClientConfig): HypersyncClient
+  static new(cfg?: ClientConfig | undefined | null): HypersyncClient
   /** Get the height of the source hypersync instance */
   getHeight(): Promise<number>
   collect(query: Query, config: StreamConfig): Promise<QueryResponse>

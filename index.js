@@ -295,11 +295,15 @@ if (!nativeBinding) {
   throw new Error(`Failed to load native binding`)
 }
 
-const { HexOutput, DataType, Decoder, HypersyncClient, QueryResponseStream, EventStream } = nativeBinding
+const { HexOutput, DataType, Decoder, presetQueryBlocksAndTransactions, presetQueryBlocksAndTransactionHashes, presetQueryLogs, presetQueryLogsOfEvent, HypersyncClient, QueryResponseStream, EventStream } = nativeBinding
 
 module.exports.HexOutput = HexOutput
 module.exports.DataType = DataType
 module.exports.Decoder = Decoder
+module.exports.presetQueryBlocksAndTransactions = presetQueryBlocksAndTransactions
+module.exports.presetQueryBlocksAndTransactionHashes = presetQueryBlocksAndTransactionHashes
+module.exports.presetQueryLogs = presetQueryLogs
+module.exports.presetQueryLogsOfEvent = presetQueryLogsOfEvent
 module.exports.HypersyncClient = HypersyncClient
 module.exports.QueryResponseStream = QueryResponseStream
 module.exports.EventStream = EventStream
