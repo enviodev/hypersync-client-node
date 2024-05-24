@@ -12,25 +12,21 @@ napi = { version = "2", default-features = false, features = [
   "napi9",
   "async",
   "serde-json",
+  "error_anyhow",
 ] }
 napi-derive = "2"
-arrow2 = { version = "0.18" }
-prefix-hex = "0.7.1"
-arrayvec = "0.7"
+polars-arrow = { version = "0.39" }
 serde = { version = "1", features = ["derive"] }
-alloy-json-abi = "0.6"
-alloy-dyn-abi = "0.6"
+alloy-json-abi = "0.7"
+alloy-dyn-abi = "0.7"
 tokio = { version = "1", features = ["rt-multi-thread"] }
 env_logger = "0.11"
-
-anyhow = "1"
-
-serde_json = "1"
-
-skar-client = "0.16"
-skar-net-types = "0.2"
-skar-format = "0.2"
 faster-hex = "0.9.0"
+anyhow = "1"
+serde_json = "1"
+ruint = "1"
+
+hypersync-client = "0.6"
 
 [build-dependencies]
 napi-build = "2.0.1"

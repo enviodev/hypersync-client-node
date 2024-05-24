@@ -1,48 +1,74 @@
-use std::{collections::HashMap, num::NonZeroU64};
+use std::collections::HashMap;
 
 use anyhow::{Context, Result};
 use serde::Serialize;
 
 #[napi(object)]
 #[derive(Default, Clone, Serialize)]
-pub struct ParquetConfig {
-    /// Path to write parquet files to
-    pub path: String,
+pub struct StreamConfig {
     #[serde(skip_serializing_if = "Option::is_none")]
-    /// Convert binary output columns to hex
-    pub hex_output: Option<bool>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    /// Block range size to use when making individual requests.
-    pub batch_size: Option<i64>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    /// Controls the number of concurrent requests made to hypersync server.
-    pub concurrency: Option<i64>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    /// Requests are retried forever internally if this param is set to true.
-    pub retry: Option<bool>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    /// Define type mapping for output columns
     pub column_mapping: Option<ColumnMapping>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    /// Event signature for decoding logs
     pub event_signature: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub hex_output: Option<HexOutput>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub batch_size: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub concurrency: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_num_blocks: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_num_transactions: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_num_logs: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_num_traces: Option<i64>,
+}
+
+#[napi(string_enum)]
+#[derive(Debug, Serialize)]
+pub enum HexOutput {
+    NoEncode,
+    Prefixed,
+    NonPrefixed,
+}
+
+#[napi(string_enum)]
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum DataType {
+    Float64,
+    Float32,
+    UInt64,
+    UInt32,
+    Int64,
+    Int32,
+}
+
+impl Default for HexOutput {
+    fn default() -> Self {
+        Self::NoEncode
+    }
 }
 
 #[napi(object)]
 #[derive(Default, Clone, Serialize)]
 pub struct ColumnMapping {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub block: Option<HashMap<String, String>>,
+    pub block: Option<HashMap<String, DataType>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub transaction: Option<HashMap<String, String>>,
+    pub transaction: Option<HashMap<String, DataType>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub log: Option<HashMap<String, String>>,
+    pub log: Option<HashMap<String, DataType>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub decoded_log: Option<HashMap<String, String>>,
+    pub trace: Option<HashMap<String, DataType>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub decoded_log: Option<HashMap<String, DataType>>,
 }
 
-impl ParquetConfig {
-    pub fn try_convert(&self) -> Result<skar_client::ParquetConfig> {
+impl StreamConfig {
+    pub fn try_convert(&self) -> Result<hypersync_client::StreamConfig> {
         let json = serde_json::to_vec(self).context("serialize to json")?;
         serde_json::from_slice(&json).context("parse json")
     }
@@ -50,46 +76,26 @@ impl ParquetConfig {
 
 #[napi(object)]
 #[derive(Default, Clone, Serialize)]
-pub struct StreamConfig {
+pub struct ClientConfig {
     #[serde(skip_serializing_if = "Option::is_none")]
-    /// Block range size to use when making individual requests.
-    pub batch_size: Option<i64>,
+    pub url: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    /// Controls the number of concurrent requests made to hypersync server.
-    pub concurrency: Option<i64>,
+    pub bearer_token: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    /// Requests are retried forever internally if this param is set to true.
-    pub retry: Option<bool>,
+    pub http_req_timeout_millis: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_num_retries: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub retry_backoff_ms: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub retry_base_ms: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub retry_ceiling_ms: Option<i64>,
 }
 
-impl StreamConfig {
-    pub fn try_convert(&self) -> Result<skar_client::StreamConfig> {
+impl ClientConfig {
+    pub fn try_convert(&self) -> Result<hypersync_client::ClientConfig> {
         let json = serde_json::to_vec(self).context("serialize to json")?;
         serde_json::from_slice(&json).context("parse json")
-    }
-}
-
-#[napi(object)]
-#[derive(Default, Clone)]
-pub struct Config {
-    /// Url of the source hypersync instance
-    pub url: String,
-    /// Optional bearer_token to put into http requests made to source hypersync instance
-    pub bearer_token: Option<String>,
-    /// Timout treshold for a single http request in milliseconds, default is 30 seconds (30_000ms)
-    pub http_req_timeout_millis: Option<i64>,
-}
-
-impl Config {
-    pub fn try_convert(&self) -> Result<skar_client::Config> {
-        Ok(skar_client::Config {
-            url: self.url.parse().context("parse url")?,
-            bearer_token: self.bearer_token.clone(),
-            http_req_timeout_millis: match self.http_req_timeout_millis {
-                Some(c) => NonZeroU64::new(c.try_into().context("parse timeout")?)
-                    .context("parse timeout")?,
-                None => NonZeroU64::new(30000).unwrap(),
-            },
-        })
     }
 }

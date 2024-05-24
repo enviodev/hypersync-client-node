@@ -1,4 +1,5 @@
 use anyhow::{Context, Result};
+use hypersync_client::net_types;
 use serde::{Deserialize, Serialize};
 
 #[napi(object)]
@@ -33,6 +34,13 @@ pub struct TransactionSelection {
     /// If tx.status matches this it will be returned.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub status: Option<i64>,
+    /// If transaction.type matches any of these values, the transaction will be returned
+    #[serde(rename = "type")]
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub kind: Option<Vec<u8>>,
+    // If transaction.contract_address matches any of these values, the transaction will be returned.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub contract_address: Option<Vec<String>>,
 }
 
 #[napi(object)]
@@ -44,6 +52,26 @@ pub struct FieldSelection {
     pub transaction: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub log: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub trace: Option<Vec<String>>,
+}
+
+#[napi(object)]
+#[derive(Default, Clone, Serialize, Deserialize)]
+pub struct TraceSelection {
+    #[serde(default)]
+    pub from: Option<Vec<String>>,
+    #[serde(default)]
+    pub to: Option<Vec<String>>,
+    #[serde(default)]
+    pub call_type: Option<Vec<String>>,
+    #[serde(default)]
+    pub reward_type: Option<Vec<String>>,
+    #[serde(default)]
+    #[serde(rename = "type")]
+    pub kind: Option<Vec<String>>,
+    #[serde(default)]
+    pub sighash: Option<Vec<String>>,
 }
 
 #[napi(object)]
@@ -68,6 +96,10 @@ pub struct Query {
     ///  it will return transactions that are related to the returned logs.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub transactions: Option<Vec<TransactionSelection>>,
+    /// List of trace selections, the query will return traces that match any of these selections and
+    ///  it will re turn traces that are related to the returned logs.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub traces: Option<Vec<TraceSelection>>,
     /// Weather to include all blocks regardless of if they are related to a returned transaction or log. Normally
     ///  the server will return only the blocks that are related to the transaction or logs in the response. But if this
     ///  is set to true, the server will return data for all blocks in the requested range [from_block, to_block).
@@ -88,19 +120,23 @@ pub struct Query {
     ///  it won't overshoot by too much.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub max_num_logs: Option<i64>,
+    /// Maximum number of traces that should be returned, the server might return more traces than this number but
+    ///  it won't overshoot by too much.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_num_traces: Option<i64>,
 }
 
 impl Query {
-    pub fn try_convert(&self) -> Result<skar_net_types::Query> {
+    pub fn try_convert(&self) -> Result<net_types::Query> {
         let json = serde_json::to_vec(self).context("serialize to json")?;
         serde_json::from_slice(&json).context("parse json")
     }
 }
 
-impl TryFrom<skar_net_types::Query> for Query {
+impl TryFrom<net_types::Query> for Query {
     type Error = anyhow::Error;
 
-    fn try_from(skar_query: skar_net_types::Query) -> Result<Self> {
+    fn try_from(skar_query: net_types::Query) -> Result<Self> {
         let json = serde_json::to_vec(&skar_query).context("serialize query to json")?;
         serde_json::from_slice(&json).context("parse json")
     }
