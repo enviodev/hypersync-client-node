@@ -3,9 +3,8 @@ import fs from "node:fs";
 
 async function main() {
     // Create hypersync client using the mainnet hypersync endpoint
-    const client = HypersyncClient.new({
-        url: "https://eth.hypersync.xyz"
-    });
+    // Passing null config makes it use default
+    const client = HypersyncClient.new(null);
 
     // The query to run
     const query = {
@@ -59,25 +58,14 @@ async function main() {
     // Run the query once, the query is automatically paginated so it will return when it reaches some limit (time, response size etc.)
     //  there is a nextBlock field on the response object so we can set the fromBlock of our query to this value and continue our query until
     // res.nextBlock is equal to res.archiveHeight or query.toBlock in case we specified an end block.
-    const res = await client.sendReq(query);
+    const res = await client.get(query);
 
     console.log(`Ran the query once. Next block to query is ${res.nextBlock}`);
 
-    // read json abi file for erc20
-    const abi = fs.readFileSync('./erc20.abi.json', 'utf8');
-    const parsedAbi = JSON.parse(abi);
-
-    // Map of contract_address -> ABI
-    let abis = {};
-
-    // every log we get should be decodable by this abi but we don't know
-    //  the specific contract addresses since we are indexing all erc20 transfers.
-    for (const log of res.data.logs) {
-      abis[log.address] = parsedAbi;
-    }
-
     // Create a decoder with our mapping
-    const decoder = Decoder.new(abis);
+    const decoder = Decoder.fromSignatures([
+      "Transfer(address indexed from, address indexed to, uint amount)"
+    ]);
 
     // Decode the log on a background thread so we don't block the event loop.
     // Can also use decoder.decodeLogsSync rather than using this promise api if it is more convenient.
@@ -87,7 +75,11 @@ async function main() {
     let total_volume = BigInt(0);
 
     for (const log of decodedLogs) {
-      // We know it is a bigint because of ABI
+      // skip invalid logs
+      if(log === null) {
+        continue;
+      }
+      // We know it is a bigint because of the signature
       total_volume += log.body[0].val as bigint;
     }
 

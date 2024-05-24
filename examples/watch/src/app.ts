@@ -9,10 +9,12 @@ async function main() {
       url: "https://eth.hypersync.xyz"
     });
 
+    const height = await client.getHeight();
+
     // The query to run
     const query = {
-        // start from block 0 and go to the end of the chain (we don't specify a toBlock).
-        "fromBlock": 0,
+        // start from tip of the chain
+        "fromBlock": height,
         "logs": [
           {
             "address": [DAI_ADDRESS],
@@ -38,22 +40,14 @@ async function main() {
         },
       };
 
-    // read json abi file for erc20
-    const abi = fs.readFileSync('./erc20.abi.json', 'utf8');
-    const parsedAbi = JSON.parse(abi);
-
-    // Map of contract_address -> ABI
-    let abis = {
-      [DAI_ADDRESS]: parsedAbi,
-    };
-
-    // Create a decoder with our mapping
-    const decoder = Decoder.new(abis);
+    const decoder = Decoder.fromSignatures([
+      "Transfer(address indexed from, address indexed to, uint amount)"
+    ]);
 
     let total_dai_volume = BigInt(0);
  
     while(true) {
-      const res = await client.sendReq(query);
+      const res = await client.get(query);
 
       if(res.data.logs.length !== 0) {
         // Decode the log on a background thread so we don't block the event loop.
@@ -61,14 +55,20 @@ async function main() {
         const decodedLogs = await decoder.decodeLogs(res.data.logs);
 
         for (const log of decodedLogs) {
+          if (log === null) {
+            continue;
+          }
           total_dai_volume += log.body[0].val as bigint;
         }
       }
 
       console.log(`scanned up to ${res.nextBlock} and total DAI transfer volume is ${total_dai_volume / BigInt(1e18)} USD`);
 
-      if (res.archiveHeight == res.nextBlock) {
+      let height = res.archiveHeight;
+      while (height < res.nextBlock) {
         // wait if we are at the head
+        console.log(`waiting for chain to advance. Height is ${height}`);
+        height = await client.getHeight();
         await new Promise(resolve => setTimeout(resolve, 1000));
       }
 

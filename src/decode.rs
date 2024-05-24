@@ -35,42 +35,34 @@ impl Decoder {
     }
 
     #[napi]
-    pub async fn decode_logs(&self, logs: Vec<Log>) -> napi::Result<Vec<Option<DecodedEvent>>> {
+    pub async fn decode_logs(&self, logs: Vec<Log>) -> Vec<Option<DecodedEvent>> {
         let decoder = self.clone();
         tokio::task::spawn_blocking(move || decoder.decode_logs_sync(logs))
             .await
-            .map_err(|e| napi::Error::from_reason(format!("{:?}", e)))?
+            .unwrap()
     }
 
     #[napi]
-    pub fn decode_logs_sync(&self, logs: Vec<Log>) -> napi::Result<Vec<Option<DecodedEvent>>> {
+    pub fn decode_logs_sync(&self, logs: Vec<Log>) -> Vec<Option<DecodedEvent>> {
         logs.iter()
-            .map(|log| self.decode_impl(log))
-            .collect::<Result<Vec<_>>>()
-            .map_err(|e| napi::Error::from_reason(format!("{:?}", e)))
+            .flat_map(|log| self.decode_impl(log).ok())
+            .collect::<Vec<_>>()
     }
 
     #[napi]
-    pub async fn decode_events(
-        &self,
-        events: Vec<Event>,
-    ) -> napi::Result<Vec<Option<DecodedEvent>>> {
+    pub async fn decode_events(&self, events: Vec<Event>) -> Vec<Option<DecodedEvent>> {
         let decoder = self.clone();
         tokio::task::spawn_blocking(move || decoder.decode_events_sync(events))
             .await
-            .map_err(|e| napi::Error::from_reason(format!("{:?}", e)))?
+            .unwrap()
     }
 
     #[napi]
-    pub fn decode_events_sync(
-        &self,
-        events: Vec<Event>,
-    ) -> napi::Result<Vec<Option<DecodedEvent>>> {
+    pub fn decode_events_sync(&self, events: Vec<Event>) -> Vec<Option<DecodedEvent>> {
         events
             .iter()
-            .map(|event| self.decode_impl(&event.log))
-            .collect::<Result<Vec<_>>>()
-            .map_err(|e| napi::Error::from_reason(format!("{:?}", e)))
+            .flat_map(|event| self.decode_impl(&event.log).ok())
+            .collect::<Vec<_>>()
     }
 
     fn decode_impl(&self, log: &Log) -> Result<Option<DecodedEvent>> {

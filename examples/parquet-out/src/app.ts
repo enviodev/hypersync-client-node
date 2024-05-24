@@ -1,4 +1,4 @@
-import { HypersyncClient } from "@envio-dev/hypersync-client";
+import { DataType, HexOutput, HypersyncClient } from "@envio-dev/hypersync-client";
 
 async function main() {
     // Create hypersync client using the mainnet hypersync endpoint
@@ -33,15 +33,12 @@ async function main() {
 
     console.log("Writing to parquet... This might take some time depending on connection speed");
 
-    await client.createParquetFolder(query, {
-      path: "data",
-      /// retry internal requests forever so we don't fail on a bad connection
-      retry: true,
+    await client.collectParquet("data", query, {
       /// Convert binary columns to prefixed hex format like '0x1ab..'
-      hexOutput: true,
+      hexOutput: HexOutput.Prefixed,
       columnMapping: {
         decodedLog: {
-          "value": "float64",
+          "value": DataType.Float64,
         },
       },
       eventSignature: "Transfer(address indexed from, address indexed to, uint256 value)",
