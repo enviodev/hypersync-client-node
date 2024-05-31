@@ -8,11 +8,15 @@ export interface StreamConfig {
   eventSignature?: string
   hexOutput?: HexOutput
   batchSize?: number
+  maxBatchSize?: number
+  minBatchSize?: number
   concurrency?: number
   maxNumBlocks?: number
   maxNumTransactions?: number
   maxNumLogs?: number
   maxNumTraces?: number
+  responseBytesCeiling?: number
+  responseBytesFloor?: number
 }
 export const enum HexOutput {
   NoEncode = 'NoEncode',
