@@ -59,18 +59,18 @@ pub struct FieldSelection {
 #[napi(object)]
 #[derive(Default, Clone, Serialize, Deserialize)]
 pub struct TraceSelection {
-    #[serde(default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub from: Option<Vec<String>>,
-    #[serde(default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub to: Option<Vec<String>>,
-    #[serde(default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub call_type: Option<Vec<String>>,
-    #[serde(default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub reward_type: Option<Vec<String>>,
-    #[serde(default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
     #[serde(rename = "type")]
     pub kind: Option<Vec<String>>,
-    #[serde(default)]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub sighash: Option<Vec<String>>,
 }
 
