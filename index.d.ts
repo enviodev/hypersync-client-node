@@ -111,6 +111,7 @@ export interface FieldSelection {
 export interface TraceSelection {
   from?: Array<string>
   to?: Array<string>
+  address?: Array<string>
   callType?: Array<string>
   rewardType?: Array<string>
   kind?: Array<string>
