@@ -24,7 +24,7 @@ anyhow = "1"
 serde_json = "1"
 ruint = "1"
 
-hypersync-client = "0.7"
+hypersync-client = "0.8"
 
 [build-dependencies]
 napi-build = "2.0.1"
