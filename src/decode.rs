@@ -45,7 +45,7 @@ impl Decoder {
     #[napi]
     pub fn decode_logs_sync(&self, logs: Vec<Log>) -> Vec<Option<DecodedEvent>> {
         logs.iter()
-            .flat_map(|log| self.decode_impl(log).ok())
+            .map(|log| self.decode_impl(log).ok().flatten())
             .collect::<Vec<_>>()
     }
 
@@ -61,7 +61,7 @@ impl Decoder {
     pub fn decode_events_sync(&self, events: Vec<Event>) -> Vec<Option<DecodedEvent>> {
         events
             .iter()
-            .flat_map(|event| self.decode_impl(&event.log).ok())
+            .map(|event| self.decode_impl(&event.log).ok().flatten())
             .collect::<Vec<_>>()
     }
 
