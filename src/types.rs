@@ -1,4 +1,5 @@
 use alloy_dyn_abi::DynSolValue;
+use alloy_primitives::{Signed, U256};
 use anyhow::{Context, Result};
 use hypersync_client::{
     format::{self, Hex},
@@ -205,14 +206,8 @@ impl DecodedSolValue {
     pub fn new(val: DynSolValue, checksummed_addresses: bool) -> Self {
         let val = match val {
             DynSolValue::Bool(b) => Either4::A(b),
-            DynSolValue::Int(v, _) => Either4::B(BigInt {
-                sign_bit: v.is_negative(),
-                words: v.into_limbs().to_vec(),
-            }),
-            DynSolValue::Uint(v, _) => Either4::B(BigInt {
-                sign_bit: false,
-                words: v.into_limbs().to_vec(),
-            }),
+            DynSolValue::Int(v, _) => Either4::B(convert_bigint_signed(v)),
+            DynSolValue::Uint(v, _) => Either4::B(convert_bigint_unsigned(v)),
             DynSolValue::FixedBytes(bytes, _) => Either4::C(encode_prefix_hex(bytes.as_slice())),
             DynSolValue::Address(addr) => {
                 if !checksummed_addresses {
@@ -436,5 +431,51 @@ impl RollbackGuard {
                 .context("convert first_block_number")?,
             first_parent_hash: arg.first_parent_hash.encode_hex(),
         })
+    }
+}
+
+fn convert_bigint_signed(v: Signed<256, 4>) -> BigInt {
+    let (sign, abs) = v.into_sign_and_abs();
+    BigInt {
+        sign_bit: sign.is_negative(),
+        words: abs.into_limbs().to_vec(),
+    }
+}
+
+fn convert_bigint_unsigned(v: U256) -> BigInt {
+    BigInt {
+        sign_bit: false,
+        words: v.into_limbs().to_vec(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_bigint_convert_signed() {
+        for i in (i128::from(i64::MIN)..i128::from(u64::MAX))
+            .step_by(usize::try_from(u64::MAX / 31).unwrap())
+            .take(1024)
+        {
+            let v = Signed::<256, 4>::try_from(i).unwrap();
+            let out = convert_bigint_signed(v);
+
+            assert_eq!(i128::try_from(v).unwrap(), out.get_i128().0);
+        }
+    }
+
+    #[test]
+    fn test_bigint_convert_unsigned() {
+        for i in (u128::from(u64::MIN)..u128::MAX)
+            .step_by(usize::try_from(u64::MAX / 31).unwrap())
+            .take(1024)
+        {
+            let v = U256::from(i);
+            let out = convert_bigint_unsigned(v);
+
+            assert_eq!(u128::try_from(v).unwrap(), out.get_u128().1);
+        }
     }
 }

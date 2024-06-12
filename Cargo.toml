@@ -23,6 +23,7 @@ faster-hex = "0.9.0"
 anyhow = "1"
 serde_json = "1"
 ruint = "1"
+alloy-primitives = "0.7"
 
 hypersync-client = "0.8"
 
