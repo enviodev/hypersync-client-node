@@ -240,7 +240,7 @@ export interface Transaction {
   l1Fee?: string
   l1GasPrice?: string
   l1GasUsed?: string
-  l1FeeScalar?: string
+  l1FeeScalar?: number
   gasUsedForL1?: string
 }
 /**
