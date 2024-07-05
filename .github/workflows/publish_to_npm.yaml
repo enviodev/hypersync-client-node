@@ -26,7 +26,8 @@ jobs:
             build: |
               brew install capnp
               yarn set version 3
-              yarn build
+              rustup target install x86_64-apple-darwin
+              yarn build --target x86_64-apple-darwin
               strip -x *.node
           - host: windows-latest
             build: |
