@@ -1,6 +1,6 @@
 {
   "name": "@envio-dev/hypersync-client-linux-x64-musl",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "os": [
     "linux"
   ],
