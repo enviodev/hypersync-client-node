@@ -4,7 +4,7 @@ use hypersync_client::{
     preset_query,
 };
 
-use crate::query::Query;
+use crate::{map_err, query::Query};
 
 /// Returns a query for all Blocks and Transactions within the block range (from_block, to_block]
 /// If to_block is None then query runs to the head of the chain.
@@ -13,12 +13,18 @@ pub fn preset_query_blocks_and_transactions(
     from_block: i64,
     to_block: Option<i64>,
 ) -> napi::Result<Query> {
-    let from_block = from_block.try_into().context("convert from_block")?;
+    let from_block = from_block
+        .try_into()
+        .context("convert from_block")
+        .map_err(map_err)?;
     let to_block = to_block
         .map(|t| t.try_into().context("convert to_block"))
-        .transpose()?;
+        .transpose()
+        .map_err(map_err)?;
 
-    let query: Query = preset_query::blocks_and_transactions(from_block, to_block).try_into()?;
+    let query: Query = preset_query::blocks_and_transactions(from_block, to_block)
+        .try_into()
+        .map_err(map_err)?;
 
     Ok(query)
 }
@@ -31,13 +37,18 @@ pub fn preset_query_blocks_and_transaction_hashes(
     from_block: i64,
     to_block: Option<i64>,
 ) -> napi::Result<Query> {
-    let from_block = from_block.try_into().context("convert from_block")?;
+    let from_block = from_block
+        .try_into()
+        .context("convert from_block")
+        .map_err(map_err)?;
     let to_block = to_block
         .map(|t| t.try_into().context("convert to_block"))
-        .transpose()?;
+        .transpose()
+        .map_err(map_err)?;
 
-    let query: Query =
-        preset_query::blocks_and_transaction_hashes(from_block, to_block).try_into()?;
+    let query: Query = preset_query::blocks_and_transaction_hashes(from_block, to_block)
+        .try_into()
+        .map_err(map_err)?;
 
     Ok(query)
 }
@@ -50,14 +61,22 @@ pub fn preset_query_logs(
     from_block: i64,
     to_block: Option<i64>,
 ) -> napi::Result<Query> {
-    let address = Address::decode_hex(&contract_address).context("parse address")?;
+    let address = Address::decode_hex(&contract_address)
+        .context("parse address")
+        .map_err(map_err)?;
 
-    let from_block = from_block.try_into().context("convert from_block")?;
+    let from_block = from_block
+        .try_into()
+        .context("convert from_block")
+        .map_err(map_err)?;
     let to_block = to_block
         .map(|t| t.try_into().context("convert to_block"))
-        .transpose()?;
+        .transpose()
+        .map_err(map_err)?;
 
-    Ok(preset_query::logs(from_block, to_block, address).try_into()?)
+    preset_query::logs(from_block, to_block, address)
+        .try_into()
+        .map_err(map_err)
 }
 
 /// Returns a query for all Logs within the block range from the given address with a
@@ -70,14 +89,24 @@ pub fn preset_query_logs_of_event(
     from_block: i64,
     to_block: Option<i64>,
 ) -> napi::Result<Query> {
-    let address = Address::decode_hex(&contract_address).context("parse address")?;
-    let topic0 = LogArgument::decode_hex(&topic0).context("parse topic0")?;
+    let address = Address::decode_hex(&contract_address)
+        .context("parse address")
+        .map_err(map_err)?;
+    let topic0 = LogArgument::decode_hex(&topic0)
+        .context("parse topic0")
+        .map_err(map_err)?;
 
-    let from_block = from_block.try_into().context("convert from_block")?;
+    let from_block = from_block
+        .try_into()
+        .context("convert from_block")
+        .map_err(map_err)?;
     let to_block = to_block
         .map(|t| t.try_into().context("convert to_block"))
-        .transpose()?;
+        .transpose()
+        .map_err(map_err)?;
 
-    let query = preset_query::logs_of_event(from_block, to_block, topic0, address).try_into()?;
+    let query = preset_query::logs_of_event(from_block, to_block, topic0, address)
+        .try_into()
+        .map_err(map_err)?;
     Ok(query)
 }

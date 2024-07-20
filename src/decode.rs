@@ -3,7 +3,10 @@ use std::sync::Arc;
 use anyhow::{Context, Result};
 use hypersync_client::format::{Data, Hex, LogArgument};
 
-use crate::types::{DecodedEvent, DecodedSolValue, Event, Log};
+use crate::{
+    map_err,
+    types::{DecodedEvent, DecodedSolValue, Event, Log},
+};
 
 #[napi]
 #[derive(Clone)]
@@ -15,9 +18,10 @@ pub struct Decoder {
 #[napi]
 impl Decoder {
     #[napi]
-    pub fn from_signatures(signatures: Vec<String>) -> Result<Decoder> {
+    pub fn from_signatures(signatures: Vec<String>) -> napi::Result<Decoder> {
         let inner = hypersync_client::Decoder::from_signatures(&signatures)
-            .context("create inner decoder")?;
+            .context("create inner decoder")
+            .map_err(map_err)?;
         Ok(Self {
             inner: Arc::new(inner),
             checksummed_addresses: false,

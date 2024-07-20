@@ -25,15 +25,18 @@ pub struct HypersyncClient {
 impl HypersyncClient {
     /// Create a new client with given config
     #[napi]
-    pub fn new(cfg: Option<ClientConfig>) -> Result<HypersyncClient> {
+    pub fn new(cfg: Option<ClientConfig>) -> napi::Result<HypersyncClient> {
         env_logger::try_init().ok();
 
         let cfg = cfg
             .unwrap_or_default()
             .try_convert()
-            .context("parse config")?;
+            .context("parse config")
+            .map_err(map_err)?;
 
-        let inner = hypersync_client::Client::new(cfg).context("build client")?;
+        let inner = hypersync_client::Client::new(cfg)
+            .context("build client")
+            .map_err(map_err)?;
         let inner = Arc::new(inner);
 
         Ok(HypersyncClient { inner })
@@ -42,26 +45,33 @@ impl HypersyncClient {
     /// Get the height of the source hypersync instance
     #[napi]
     pub async fn get_height(&self) -> napi::Result<i64> {
-        let height = self.inner.get_height().await.map_err(napi::Error::from)?;
+        let height = self.inner.get_height().await.map_err(map_err)?;
 
         Ok(height.try_into().unwrap())
     }
 
     #[napi]
     pub async fn collect(&self, query: Query, config: StreamConfig) -> napi::Result<QueryResponse> {
-        let query = query.try_convert().context("parse query")?;
-        let config = config.try_convert().context("parse stream config")?;
+        let query = query
+            .try_convert()
+            .context("parse query")
+            .map_err(map_err)?;
+        let config = config
+            .try_convert()
+            .context("parse stream config")
+            .map_err(map_err)?;
 
         let resp = self
             .inner
             .clone()
             .collect(query, config)
             .await
-            .context("run inner collect")?;
+            .context("run inner collect")
+            .map_err(map_err)?;
 
         convert_response(resp)
             .context("convert response")
-            .map_err(napi::Error::from)
+            .map_err(map_err)
     }
 
     #[napi]
@@ -70,19 +80,26 @@ impl HypersyncClient {
         query: Query,
         config: StreamConfig,
     ) -> napi::Result<EventResponse> {
-        let query = query.try_convert().context("parse query")?;
-        let config = config.try_convert().context("parse stream config")?;
+        let query = query
+            .try_convert()
+            .context("parse query")
+            .map_err(map_err)?;
+        let config = config
+            .try_convert()
+            .context("parse stream config")
+            .map_err(map_err)?;
 
         let resp = self
             .inner
             .clone()
             .collect_events(query, config)
             .await
-            .context("run inner collect")?;
+            .context("run inner collect")
+            .map_err(map_err)?;
 
         convert_event_response(resp)
             .context("convert response")
-            .map_err(napi::Error::from)
+            .map_err(map_err)
     }
 
     #[napi]
@@ -92,34 +109,54 @@ impl HypersyncClient {
         query: Query,
         config: StreamConfig,
     ) -> napi::Result<()> {
-        let query = query.try_convert().context("parse query")?;
-        let config = config.try_convert().context("parse stream config")?;
+        let query = query
+            .try_convert()
+            .context("parse query")
+            .map_err(map_err)?;
+        let config = config
+            .try_convert()
+            .context("parse stream config")
+            .map_err(map_err)?;
 
         self.inner
             .clone()
             .collect_parquet(&path, query, config)
             .await
-            .map_err(napi::Error::from)
+            .map_err(map_err)
     }
 
     #[napi]
     pub async fn get(&self, query: Query) -> napi::Result<QueryResponse> {
-        let query = query.try_convert().context("parse query")?;
-        let res = self.inner.get(&query).await.context("run inner query")?;
+        let query = query
+            .try_convert()
+            .context("parse query")
+            .map_err(map_err)?;
+        let res = self
+            .inner
+            .get(&query)
+            .await
+            .context("run inner query")
+            .map_err(map_err)?;
         convert_response(res)
             .context("convert response")
-            .map_err(napi::Error::from)
+            .map_err(map_err)
     }
 
     #[napi]
     pub async fn get_events(&self, query: Query) -> napi::Result<EventResponse> {
-        let query = query.try_convert().context("parse query")?;
+        let query = query
+            .try_convert()
+            .context("parse query")
+            .map_err(map_err)?;
         let res = self
             .inner
             .get_events(query)
             .await
-            .context("run inner query")?;
-        let r = convert_event_response(res).context("convert response")?;
+            .context("run inner query")
+            .map_err(map_err)?;
+        let r = convert_event_response(res)
+            .context("convert response")
+            .map_err(map_err)?;
         Ok(r)
     }
 
@@ -129,15 +166,22 @@ impl HypersyncClient {
         query: Query,
         config: StreamConfig,
     ) -> napi::Result<QueryResponseStream> {
-        let query = query.try_convert().context("parse query")?;
-        let config = config.try_convert().context("parse stream config")?;
+        let query = query
+            .try_convert()
+            .context("parse query")
+            .map_err(map_err)?;
+        let config = config
+            .try_convert()
+            .context("parse stream config")
+            .map_err(map_err)?;
 
         let inner = self
             .inner
             .clone()
             .stream(query, config)
             .await
-            .context("start stream")?;
+            .context("start stream")
+            .map_err(map_err)?;
 
         Ok(QueryResponseStream {
             inner: tokio::sync::Mutex::new(inner),
@@ -150,15 +194,22 @@ impl HypersyncClient {
         query: Query,
         config: StreamConfig,
     ) -> napi::Result<EventStream> {
-        let query = query.try_convert().context("parse query")?;
-        let config = config.try_convert().context("parse stream config")?;
+        let query = query
+            .try_convert()
+            .context("parse query")
+            .map_err(map_err)?;
+        let config = config
+            .try_convert()
+            .context("parse stream config")
+            .map_err(map_err)?;
 
         let inner = self
             .inner
             .clone()
             .stream_events(query, config)
             .await
-            .context("start stream")?;
+            .context("start stream")
+            .map_err(map_err)?;
 
         Ok(EventStream {
             inner: tokio::sync::Mutex::new(inner),
@@ -184,7 +235,7 @@ impl QueryResponseStream {
 
         resp.map(|r| convert_response(r?).context("convert response"))
             .transpose()
-            .map_err(Into::into)
+            .map_err(map_err)
     }
 }
 
@@ -209,7 +260,7 @@ impl EventStream {
 
         resp.map(|r| convert_event_response(r?).context("convert response"))
             .transpose()
-            .map_err(Into::into)
+            .map_err(map_err)
     }
 }
 
@@ -348,4 +399,8 @@ fn convert_event_response(
             .map(|rg| RollbackGuard::try_convert(rg).context("convert rollback guard"))
             .transpose()?,
     })
+}
+
+fn map_err(e: anyhow::Error) -> napi::Error {
+    napi::Error::from_reason(format!("{:?}", e))
 }
