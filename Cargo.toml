@@ -24,7 +24,7 @@ serde_json = "1"
 ruint = "1"
 alloy-primitives = "0.7"
 
-hypersync-client = "0.10"
+hypersync-client = "0.12"
 
 [build-dependencies]
 napi-build = "2.0.1"

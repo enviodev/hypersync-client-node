@@ -117,6 +117,11 @@ export interface TraceSelection {
   kind?: Array<string>
   sighash?: Array<string>
 }
+export const enum JoinMode {
+  Default = 0,
+  JoinAll = 1,
+  JoinNothing = 2
+}
 export interface Query {
   /** The block to start the query from */
   fromBlock: number
@@ -176,6 +181,15 @@ export interface Query {
    *  it won't overshoot by too much.
    */
   maxNumTraces?: number
+  /**
+   * Selects join mode for the query,
+   * Default: join in this order logs -> transactions -> traces -> blocks
+   * JoinAll: join everything to everything. For example if logSelection matches log0, we get the
+   * associated transaction of log0 and then we get associated logs of that transaction as well. Applites similarly
+   * to blocks, traces.
+   * JoinNothing: join nothing.
+   */
+  joinMode?: JoinMode
 }
 /** Data relating to a single event (log) */
 export interface Event {
