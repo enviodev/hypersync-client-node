@@ -1,11 +1,15 @@
 use alloy_dyn_abi::DynSolValue;
-use alloy_primitives::{Signed, U256};
+use alloy_primitives::{hex::FromHex, Signed, U256};
 use anyhow::{Context, Result};
 use hypersync_client::{
     format::{self, Hex},
     net_types, simple_types,
 };
 use napi::bindgen_prelude::{BigInt, Either4};
+
+pub trait ToChecksummed: Sized {
+    fn to_checksummed(self) -> Result<Self>;
+}
 
 /// Data relating to a single event (log)
 #[napi(object)]
@@ -17,6 +21,16 @@ pub struct Event {
     pub block: Option<Block>,
     /// Evm log data
     pub log: Log,
+}
+
+impl ToChecksummed for Event {
+    fn to_checksummed(self) -> Result<Self> {
+        Ok(Self {
+            transaction: self.transaction.to_checksummed().context("transaction")?,
+            block: self.block.to_checksummed().context("block")?,
+            log: self.log.to_checksummed().context("log")?,
+        })
+    }
 }
 
 /// Evm log object
@@ -34,6 +48,15 @@ pub struct Log {
     pub address: Option<String>,
     pub data: Option<String>,
     pub topics: Vec<Option<String>>,
+}
+
+impl ToChecksummed for Log {
+    fn to_checksummed(self) -> Result<Self> {
+        Ok(Self {
+            address: self.address.to_checksummed().context("address")?,
+            ..self
+        })
+    }
 }
 
 /// Evm transaction object
@@ -78,6 +101,19 @@ pub struct Transaction {
     pub gas_used_for_l1: Option<String>,
 }
 
+impl ToChecksummed for Transaction {
+    fn to_checksummed(self) -> Result<Self> {
+        Ok(Self {
+            from: self.from.to_checksummed().context("from")?,
+            to: self.to.to_checksummed().context("to")?,
+            contract_address: self
+                .contract_address
+                .to_checksummed()
+                .context("contract_address")?,
+            ..self
+        })
+    }
+}
 /// Evm withdrawal object
 ///
 /// See ethereum rpc spec for the meaning of fields
@@ -159,6 +195,46 @@ pub struct Block {
     pub mix_hash: Option<String>,
 }
 
+impl ToChecksummed for Block {
+    fn to_checksummed(self) -> Result<Self> {
+        Ok(Block {
+            miner: self.miner.to_checksummed().context("miner")?,
+            ..self
+        })
+    }
+}
+
+impl<T: ToChecksummed> ToChecksummed for Option<T> {
+    fn to_checksummed(self) -> Result<Self> {
+        Ok(match self {
+            Some(v) => Some(v.to_checksummed()?),
+            None => None,
+        })
+    }
+}
+
+impl ToChecksummed for String {
+    fn to_checksummed(self) -> Result<Self> {
+        Ok(alloy_primitives::Address::from_hex(self)
+            .context("creating address from hex string")?
+            .to_checksum(None))
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use alloy_primitives::hex::FromHex;
+
+    #[test]
+    fn alloy_addr() {
+        let checksum =
+            alloy_primitives::Address::from_hex("0xd8da6bf26964af9d7eed9e03e53415d37aa96045")
+                .unwrap()
+                .to_checksum(None);
+        assert_eq!(checksum, "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045");
+    }
+}
+
 /// Evm trace object
 ///
 /// See ethereum rpc spec for the meaning of fields
@@ -186,6 +262,18 @@ pub struct Trace {
     pub transaction_position: Option<i64>,
     pub kind: Option<String>,
     pub error: Option<String>,
+}
+
+impl ToChecksummed for Trace {
+    fn to_checksummed(self) -> Result<Self> {
+        Ok(Self {
+            from: self.from.to_checksummed().context("from")?,
+            to: self.to.to_checksummed().context("to")?,
+            author: self.author.to_checksummed().context("author")?,
+            address: self.address.to_checksummed().context("address")?,
+            ..self
+        })
+    }
 }
 
 /// Decoded EVM log
