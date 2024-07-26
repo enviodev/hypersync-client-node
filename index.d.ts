@@ -17,6 +17,7 @@ export interface StreamConfig {
   maxNumTraces?: number
   responseBytesCeiling?: number
   responseBytesFloor?: number
+  reverse?: boolean
 }
 export const enum HexOutput {
   NoEncode = 'NoEncode',
@@ -117,6 +118,18 @@ export interface TraceSelection {
   kind?: Array<string>
   sighash?: Array<string>
 }
+export interface BlockSelection {
+  /**
+   * Hash of a block, any blocks that have one of these hashes will be returned.
+   * Empty means match all.
+   */
+  hash?: Array<string>
+  /**
+   * Miner address of a block, any blocks that have one of these miners will be returned.
+   * Empty means match all.
+   */
+  miner?: Array<string>
+}
 export const enum JoinMode {
   Default = 0,
   JoinAll = 1,
@@ -150,6 +163,8 @@ export interface Query {
    *  it will re turn traces that are related to the returned logs.
    */
   traces?: Array<TraceSelection>
+  /** List of block selections, the query will return blocks that match any of these selections */
+  blocks?: Array<BlockSelection>
   /**
    * Weather to include all blocks regardless of if they are related to a returned transaction or log. Normally
    *  the server will return only the blocks that are related to the transaction or logs in the response. But if this

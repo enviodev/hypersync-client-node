@@ -32,6 +32,8 @@ pub struct StreamConfig {
     pub response_bytes_ceiling: Option<i64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub response_bytes_floor: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reverse: Option<bool>,
 }
 
 #[napi(string_enum)]

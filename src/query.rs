@@ -76,6 +76,19 @@ pub struct TraceSelection {
     pub sighash: Option<Vec<String>>,
 }
 
+#[napi(object)]
+#[derive(Default, Clone, Serialize, Deserialize)]
+pub struct BlockSelection {
+    /// Hash of a block, any blocks that have one of these hashes will be returned.
+    /// Empty means match all.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub hash: Option<Vec<String>>,
+    /// Miner address of a block, any blocks that have one of these miners will be returned.
+    /// Empty means match all.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub miner: Option<Vec<String>>,
+}
+
 #[napi]
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub enum JoinMode {
@@ -116,6 +129,9 @@ pub struct Query {
     ///  it will re turn traces that are related to the returned logs.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub traces: Option<Vec<TraceSelection>>,
+    /// List of block selections, the query will return blocks that match any of these selections
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub blocks: Option<Vec<BlockSelection>>,
     /// Weather to include all blocks regardless of if they are related to a returned transaction or log. Normally
     ///  the server will return only the blocks that are related to the transaction or logs in the response. But if this
     ///  is set to true, the server will return data for all blocks in the requested range [from_block, to_block).
