@@ -70,7 +70,7 @@ impl HypersyncClient {
             .context("run inner collect")
             .map_err(map_err)?;
 
-        convert_response(resp, ShouldChecksum(self.enable_checksum_addresses))
+        convert_response(resp, self.enable_checksum_addresses)
             .context("convert response")
             .map_err(map_err)
     }
@@ -98,7 +98,7 @@ impl HypersyncClient {
             .context("run inner collect")
             .map_err(map_err)?;
 
-        convert_event_response(resp, ShouldChecksum(self.enable_checksum_addresses))
+        convert_event_response(resp, self.enable_checksum_addresses)
             .context("convert response")
             .map_err(map_err)
     }
@@ -138,7 +138,7 @@ impl HypersyncClient {
             .await
             .context("run inner query")
             .map_err(map_err)?;
-        convert_response(res, ShouldChecksum(self.enable_checksum_addresses))
+        convert_response(res, self.enable_checksum_addresses)
             .context("convert response")
             .map_err(map_err)
     }
@@ -155,7 +155,7 @@ impl HypersyncClient {
             .await
             .context("run inner query")
             .map_err(map_err)?;
-        let r = convert_event_response(res, ShouldChecksum(self.enable_checksum_addresses))
+        let r = convert_event_response(res, self.enable_checksum_addresses)
             .context("convert response")
             .map_err(map_err)?;
         Ok(r)
@@ -238,8 +238,7 @@ impl QueryResponseStream {
         let resp = self.inner.lock().await.recv().await;
 
         resp.map(|r| {
-            convert_response(r?, ShouldChecksum(self.enable_checksum_addresses))
-                .context("convert response")
+            convert_response(r?, self.enable_checksum_addresses).context("convert response")
         })
         .transpose()
         .map_err(map_err)
@@ -267,8 +266,7 @@ impl EventStream {
         let resp = self.inner.lock().await.recv().await;
 
         resp.map(|r| {
-            convert_event_response(r?, ShouldChecksum(self.enable_checksum_addresses))
-                .context("convert response")
+            convert_event_response(r?, self.enable_checksum_addresses).context("convert response")
         })
         .transpose()
         .map_err(map_err)
@@ -331,11 +329,9 @@ pub struct Events {
     pub rollback_guard: Option<RollbackGuard>,
 }
 
-pub struct ShouldChecksum(bool);
-
 fn convert_response(
     res: hypersync_client::QueryResponse,
-    should_checksum: ShouldChecksum,
+    should_checksum: bool,
 ) -> Result<QueryResponse> {
     let blocks = res
         .data
@@ -344,7 +340,7 @@ fn convert_response(
         .flat_map(|b| {
             b.iter().map(|b| {
                 let block = Block::from(b);
-                if should_checksum.0 {
+                if should_checksum {
                     block
                         .to_checksummed()
                         .context("checksumming block address fields")
@@ -362,7 +358,7 @@ fn convert_response(
         .flat_map(|b| {
             b.iter().map(|tx| {
                 let tx = Transaction::from(tx);
-                if should_checksum.0 {
+                if should_checksum {
                     tx.to_checksummed()
                         .context("checksumming transaction address fields")
                 } else {
@@ -379,7 +375,7 @@ fn convert_response(
         .flat_map(|b| {
             b.iter().map(|l| {
                 let log = Log::from(l);
-                if should_checksum.0 {
+                if should_checksum {
                     log.to_checksummed()
                         .context("checksumming log address fields")
                 } else {
@@ -396,7 +392,7 @@ fn convert_response(
         .flat_map(|b| {
             b.iter().map(|tr| {
                 let trace = Trace::from(tr);
-                if should_checksum.0 {
+                if should_checksum {
                     trace
                         .to_checksummed()
                         .context("checksumming trace address fields")
@@ -434,7 +430,7 @@ fn convert_response(
 
 fn convert_event_response(
     resp: hypersync_client::QueryResponse<Vec<Vec<hypersync_client::simple_types::Event>>>,
-    should_checksum: ShouldChecksum,
+    should_checksum: bool,
 ) -> Result<EventResponse> {
     let mut data = Vec::new();
 
@@ -445,7 +441,7 @@ fn convert_event_response(
                 block: event.block.map(|v| Block::from(&*v)),
                 log: Log::from(&event.log),
             };
-            let event = if should_checksum.0 {
+            let event = if should_checksum {
                 event
                     .to_checksummed()
                     .context("checksumming address fields in event")?
