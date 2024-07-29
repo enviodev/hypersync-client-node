@@ -101,10 +101,7 @@ pub struct ClientConfig {
     pub retry_base_ms: Option<i64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub retry_ceiling_ms: Option<i64>,
-    //Note this field does not belong in the hypersync_client::ClientConfig
-    //however the convert function will still work so long as deny_unknown_fields
-    //is not implemented in the deserializer
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(skip)]
     pub enable_checksum_addresses: Option<bool>,
 }
 

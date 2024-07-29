@@ -221,20 +221,6 @@ impl ToChecksummed for String {
     }
 }
 
-#[cfg(test)]
-mod test {
-    use alloy_primitives::hex::FromHex;
-
-    #[test]
-    fn alloy_addr() {
-        let checksum =
-            alloy_primitives::Address::from_hex("0xd8da6bf26964af9d7eed9e03e53415d37aa96045")
-                .unwrap()
-                .to_checksum(None);
-        assert_eq!(checksum, "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045");
-    }
-}
-
 /// Evm trace object
 ///
 /// See ethereum rpc spec for the meaning of fields

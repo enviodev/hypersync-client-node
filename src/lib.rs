@@ -39,7 +39,7 @@ impl HypersyncClient {
 
         Ok(HypersyncClient {
             inner,
-            enable_checksum_addresses: cfg.enable_checksum_addresses.unwrap_or(false),
+            enable_checksum_addresses: cfg.enable_checksum_addresses.unwrap_or_default(),
         })
     }
 
