@@ -101,6 +101,8 @@ pub struct ClientConfig {
     pub retry_base_ms: Option<i64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub retry_ceiling_ms: Option<i64>,
+    #[serde(skip)]
+    pub enable_checksum_addresses: Option<bool>,
 }
 
 impl ClientConfig {
