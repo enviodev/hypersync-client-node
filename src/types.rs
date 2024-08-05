@@ -1,15 +1,11 @@
 use alloy_dyn_abi::DynSolValue;
-use alloy_primitives::{hex::FromHex, Signed, U256};
+use alloy_primitives::{Signed, U256};
 use anyhow::{Context, Result};
 use hypersync_client::{
-    format::{self, Hex},
+    format::{self, FixedSizeData, Hex},
     net_types, simple_types,
 };
 use napi::bindgen_prelude::{BigInt, Either4};
-
-pub trait ToChecksummed: Sized {
-    fn to_checksummed(self) -> Result<Self>;
-}
 
 /// Data relating to a single event (log)
 #[napi(object)]
@@ -21,16 +17,6 @@ pub struct Event {
     pub block: Option<Block>,
     /// Evm log data
     pub log: Log,
-}
-
-impl ToChecksummed for Event {
-    fn to_checksummed(self) -> Result<Self> {
-        Ok(Self {
-            transaction: self.transaction.to_checksummed().context("transaction")?,
-            block: self.block.to_checksummed().context("block")?,
-            log: self.log.to_checksummed().context("log")?,
-        })
-    }
 }
 
 /// Evm log object
@@ -48,15 +34,6 @@ pub struct Log {
     pub address: Option<String>,
     pub data: Option<String>,
     pub topics: Vec<Option<String>>,
-}
-
-impl ToChecksummed for Log {
-    fn to_checksummed(self) -> Result<Self> {
-        Ok(Self {
-            address: self.address.to_checksummed().context("address")?,
-            ..self
-        })
-    }
 }
 
 /// Evm transaction object
@@ -101,19 +78,6 @@ pub struct Transaction {
     pub gas_used_for_l1: Option<String>,
 }
 
-impl ToChecksummed for Transaction {
-    fn to_checksummed(self) -> Result<Self> {
-        Ok(Self {
-            from: self.from.to_checksummed().context("from")?,
-            to: self.to.to_checksummed().context("to")?,
-            contract_address: self
-                .contract_address
-                .to_checksummed()
-                .context("contract_address")?,
-            ..self
-        })
-    }
-}
 /// Evm withdrawal object
 ///
 /// See ethereum rpc spec for the meaning of fields
@@ -195,32 +159,6 @@ pub struct Block {
     pub mix_hash: Option<String>,
 }
 
-impl ToChecksummed for Block {
-    fn to_checksummed(self) -> Result<Self> {
-        Ok(Block {
-            miner: self.miner.to_checksummed().context("miner")?,
-            ..self
-        })
-    }
-}
-
-impl<T: ToChecksummed> ToChecksummed for Option<T> {
-    fn to_checksummed(self) -> Result<Self> {
-        Ok(match self {
-            Some(v) => Some(v.to_checksummed()?),
-            None => None,
-        })
-    }
-}
-
-impl ToChecksummed for String {
-    fn to_checksummed(self) -> Result<Self> {
-        Ok(alloy_primitives::Address::from_hex(self)
-            .context("creating address from hex string")?
-            .to_checksum(None))
-    }
-}
-
 /// Evm trace object
 ///
 /// See ethereum rpc spec for the meaning of fields
@@ -248,18 +186,6 @@ pub struct Trace {
     pub transaction_position: Option<i64>,
     pub kind: Option<String>,
     pub error: Option<String>,
-}
-
-impl ToChecksummed for Trace {
-    fn to_checksummed(self) -> Result<Self> {
-        Ok(Self {
-            from: self.from.to_checksummed().context("from")?,
-            to: self.to.to_checksummed().context("to")?,
-            author: self.author.to_checksummed().context("author")?,
-            address: self.address.to_checksummed().context("address")?,
-            ..self
-        })
-    }
 }
 
 /// Decoded EVM log
@@ -322,12 +248,22 @@ fn encode_prefix_hex(bytes: &[u8]) -> String {
     format!("0x{}", faster_hex::hex_string(bytes))
 }
 
+fn map_address_from_binary(v: &Option<FixedSizeData<20>>, should_checksum: bool) -> Option<String> {
+    v.as_ref().map(|v| {
+        if should_checksum {
+            alloy_primitives::Address(alloy_primitives::FixedBytes(***v)).to_checksum(None)
+        } else {
+            v.encode_hex()
+        }
+    })
+}
+
 fn map_binary<T: Hex>(v: &Option<T>) -> Option<String> {
     v.as_ref().map(|v| v.encode_hex())
 }
 
-impl From<&simple_types::Block> for Block {
-    fn from(b: &simple_types::Block) -> Self {
+impl Block {
+    pub fn from_simple(b: &simple_types::Block, should_checksum: bool) -> Self {
         Self {
             number: b.number.map(|n| n.try_into().unwrap()),
             hash: map_binary(&b.hash),
@@ -338,7 +274,7 @@ impl From<&simple_types::Block> for Block {
             transactions_root: map_binary(&b.transactions_root),
             state_root: map_binary(&b.state_root),
             receipts_root: map_binary(&b.receipts_root),
-            miner: map_binary(&b.miner),
+            miner: map_address_from_binary(&b.miner, should_checksum),
             difficulty: map_binary(&b.difficulty),
             total_difficulty: map_binary(&b.total_difficulty),
             extra_data: map_binary(&b.extra_data),
@@ -367,18 +303,18 @@ impl From<&simple_types::Block> for Block {
     }
 }
 
-impl From<&simple_types::Transaction> for Transaction {
-    fn from(t: &simple_types::Transaction) -> Self {
+impl Transaction {
+    pub fn from_simple(t: &simple_types::Transaction, should_checksum: bool) -> Self {
         Self {
             block_hash: map_binary(&t.block_hash),
             block_number: t.block_number.map(|n| u64::from(n).try_into().unwrap()),
-            from: map_binary(&t.from),
+            from: map_address_from_binary(&t.from, should_checksum),
             gas: map_binary(&t.gas),
             gas_price: map_binary(&t.gas_price),
             hash: map_binary(&t.hash),
             input: map_binary(&t.input),
             nonce: map_binary(&t.nonce),
-            to: map_binary(&t.to),
+            to: map_address_from_binary(&t.to, should_checksum),
             transaction_index: t
                 .transaction_index
                 .map(|n| u64::from(n).try_into().unwrap()),
@@ -405,7 +341,7 @@ impl From<&simple_types::Transaction> for Transaction {
             cumulative_gas_used: map_binary(&t.cumulative_gas_used),
             effective_gas_price: map_binary(&t.effective_gas_price),
             gas_used: map_binary(&t.gas_used),
-            contract_address: map_binary(&t.contract_address),
+            contract_address: map_address_from_binary(&t.contract_address, should_checksum),
             logs_bloom: map_binary(&t.logs_bloom),
             kind: t.kind.map(|v| u8::from(v).into()),
             root: map_binary(&t.root),
@@ -419,8 +355,8 @@ impl From<&simple_types::Transaction> for Transaction {
     }
 }
 
-impl From<&simple_types::Log> for Log {
-    fn from(l: &simple_types::Log) -> Self {
+impl Log {
+    pub fn from_simple(l: &simple_types::Log, should_checksum: bool) -> Self {
         Self {
             removed: l.removed,
             log_index: l.log_index.map(|n| u64::from(n).try_into().unwrap()),
@@ -430,7 +366,7 @@ impl From<&simple_types::Log> for Log {
             transaction_hash: map_binary(&l.transaction_hash),
             block_hash: map_binary(&l.block_hash),
             block_number: l.block_number.map(|n| u64::from(n).try_into().unwrap()),
-            address: map_binary(&l.address),
+            address: map_address_from_binary(&l.address, should_checksum),
             data: map_binary(&l.data),
             topics: l
                 .topics
@@ -441,21 +377,21 @@ impl From<&simple_types::Log> for Log {
     }
 }
 
-impl From<&simple_types::Trace> for Trace {
-    fn from(t: &simple_types::Trace) -> Self {
+impl Trace {
+    pub fn from_simple(t: &simple_types::Trace, should_checksum: bool) -> Self {
         Self {
-            from: map_binary(&t.from),
-            to: map_binary(&t.to),
+            from: map_address_from_binary(&t.from, should_checksum),
+            to: map_address_from_binary(&t.to, should_checksum),
             call_type: t.call_type.clone(),
             gas: map_binary(&t.gas),
             input: map_binary(&t.input),
             init: map_binary(&t.init),
             value: map_binary(&t.value),
-            author: map_binary(&t.author),
+            author: map_address_from_binary(&t.author, should_checksum),
             reward_type: t.reward_type.clone(),
             block_hash: map_binary(&t.block_hash),
             block_number: t.block_number.map(|n| n.try_into().unwrap()),
-            address: map_binary(&t.address),
+            address: map_address_from_binary(&t.address, should_checksum),
             code: map_binary(&t.code),
             gas_used: map_binary(&t.gas_used),
             output: map_binary(&t.output),

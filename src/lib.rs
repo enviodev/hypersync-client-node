@@ -14,7 +14,7 @@ mod types;
 use config::{ClientConfig, StreamConfig};
 use query::Query;
 use tokio::sync::mpsc;
-use types::{Block, Event, Log, RollbackGuard, ToChecksummed, Trace, Transaction};
+use types::{Block, Event, Log, RollbackGuard, Trace, Transaction};
 
 #[napi]
 pub struct HypersyncClient {
@@ -337,71 +337,32 @@ fn convert_response(
         .data
         .blocks
         .iter()
-        .flat_map(|b| {
-            b.iter().map(|b| {
-                let block = Block::from(b);
-                if should_checksum {
-                    block
-                        .to_checksummed()
-                        .context("checksumming block address fields")
-                } else {
-                    Ok(block)
-                }
-            })
-        })
-        .collect::<Result<Vec<_>>>()?;
+        .flat_map(|b| b.iter().map(|b| Block::from_simple(b, should_checksum)))
+        .collect::<Vec<_>>();
 
     let transactions = res
         .data
         .transactions
         .iter()
         .flat_map(|b| {
-            b.iter().map(|tx| {
-                let tx = Transaction::from(tx);
-                if should_checksum {
-                    tx.to_checksummed()
-                        .context("checksumming transaction address fields")
-                } else {
-                    Ok(tx)
-                }
-            })
+            b.iter()
+                .map(|tx| Transaction::from_simple(tx, should_checksum))
         })
-        .collect::<Result<Vec<_>>>()?;
+        .collect::<Vec<_>>();
 
     let logs = res
         .data
         .logs
         .iter()
-        .flat_map(|b| {
-            b.iter().map(|l| {
-                let log = Log::from(l);
-                if should_checksum {
-                    log.to_checksummed()
-                        .context("checksumming log address fields")
-                } else {
-                    Ok(log)
-                }
-            })
-        })
-        .collect::<Result<Vec<_>>>()?;
+        .flat_map(|b| b.iter().map(|l| Log::from_simple(l, should_checksum)))
+        .collect::<Vec<_>>();
 
     let traces = res
         .data
         .traces
         .iter()
-        .flat_map(|b| {
-            b.iter().map(|tr| {
-                let trace = Trace::from(tr);
-                if should_checksum {
-                    trace
-                        .to_checksummed()
-                        .context("checksumming trace address fields")
-                } else {
-                    Ok(trace)
-                }
-            })
-        })
-        .collect::<Result<Vec<_>>>()?;
+        .flat_map(|b| b.iter().map(|tr| Trace::from_simple(tr, should_checksum)))
+        .collect::<Vec<_>>();
 
     Ok(QueryResponse {
         archive_height: res
@@ -432,25 +393,21 @@ fn convert_event_response(
     resp: hypersync_client::QueryResponse<Vec<Vec<hypersync_client::simple_types::Event>>>,
     should_checksum: bool,
 ) -> Result<EventResponse> {
-    let mut data = Vec::new();
-
-    for batch in resp.data {
-        for event in batch {
-            let event = Event {
-                transaction: event.transaction.map(|v| Transaction::from(&*v)),
-                block: event.block.map(|v| Block::from(&*v)),
-                log: Log::from(&event.log),
-            };
-            let event = if should_checksum {
-                event
-                    .to_checksummed()
-                    .context("checksumming address fields in event")?
-            } else {
-                event
-            };
-            data.push(event);
-        }
-    }
+    let data = resp
+        .data
+        .into_iter()
+        .flat_map(|batch| {
+            batch.into_iter().map(|event| Event {
+                transaction: event
+                    .transaction
+                    .map(|v| Transaction::from_simple(&*v, should_checksum)),
+                block: event
+                    .block
+                    .map(|v| Block::from_simple(&*v, should_checksum)),
+                log: Log::from_simple(&event.log, should_checksum),
+            })
+        })
+        .collect();
 
     Ok(EventResponse {
         archive_height: resp.archive_height.map(|v| v.try_into().unwrap()),
