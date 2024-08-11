@@ -19,6 +19,7 @@ use types::{Block, Event, Log, RollbackGuard, Trace, Transaction};
 #[napi]
 pub struct HypersyncClient {
     inner: Arc<hypersync_client::Client>,
+    enable_checksum_addresses: bool,
 }
 
 #[napi]
@@ -28,18 +29,18 @@ impl HypersyncClient {
     pub fn new(cfg: Option<ClientConfig>) -> napi::Result<HypersyncClient> {
         env_logger::try_init().ok();
 
-        let cfg = cfg
-            .unwrap_or_default()
-            .try_convert()
-            .context("parse config")
-            .map_err(map_err)?;
+        let cfg = cfg.unwrap_or_default();
+        let converted_cfg = cfg.try_convert().context("parse config").map_err(map_err)?;
 
-        let inner = hypersync_client::Client::new(cfg)
+        let inner = hypersync_client::Client::new(converted_cfg)
             .context("build client")
             .map_err(map_err)?;
         let inner = Arc::new(inner);
 
-        Ok(HypersyncClient { inner })
+        Ok(HypersyncClient {
+            inner,
+            enable_checksum_addresses: cfg.enable_checksum_addresses.unwrap_or_default(),
+        })
     }
 
     /// Get the height of the source hypersync instance
@@ -69,7 +70,7 @@ impl HypersyncClient {
             .context("run inner collect")
             .map_err(map_err)?;
 
-        convert_response(resp)
+        convert_response(resp, self.enable_checksum_addresses)
             .context("convert response")
             .map_err(map_err)
     }
@@ -97,7 +98,7 @@ impl HypersyncClient {
             .context("run inner collect")
             .map_err(map_err)?;
 
-        convert_event_response(resp)
+        convert_event_response(resp, self.enable_checksum_addresses)
             .context("convert response")
             .map_err(map_err)
     }
@@ -137,7 +138,7 @@ impl HypersyncClient {
             .await
             .context("run inner query")
             .map_err(map_err)?;
-        convert_response(res)
+        convert_response(res, self.enable_checksum_addresses)
             .context("convert response")
             .map_err(map_err)
     }
@@ -154,7 +155,7 @@ impl HypersyncClient {
             .await
             .context("run inner query")
             .map_err(map_err)?;
-        let r = convert_event_response(res)
+        let r = convert_event_response(res, self.enable_checksum_addresses)
             .context("convert response")
             .map_err(map_err)?;
         Ok(r)
@@ -185,6 +186,7 @@ impl HypersyncClient {
 
         Ok(QueryResponseStream {
             inner: tokio::sync::Mutex::new(inner),
+            enable_checksum_addresses: self.enable_checksum_addresses,
         })
     }
 
@@ -213,6 +215,7 @@ impl HypersyncClient {
 
         Ok(EventStream {
             inner: tokio::sync::Mutex::new(inner),
+            enable_checksum_addresses: self.enable_checksum_addresses,
         })
     }
 }
@@ -220,6 +223,7 @@ impl HypersyncClient {
 #[napi]
 pub struct QueryResponseStream {
     inner: tokio::sync::Mutex<mpsc::Receiver<Result<hypersync_client::QueryResponse>>>,
+    enable_checksum_addresses: bool,
 }
 
 #[napi]
@@ -233,9 +237,11 @@ impl QueryResponseStream {
     pub async fn recv(&self) -> napi::Result<Option<QueryResponse>> {
         let resp = self.inner.lock().await.recv().await;
 
-        resp.map(|r| convert_response(r?).context("convert response"))
-            .transpose()
-            .map_err(map_err)
+        resp.map(|r| {
+            convert_response(r?, self.enable_checksum_addresses).context("convert response")
+        })
+        .transpose()
+        .map_err(map_err)
     }
 }
 
@@ -245,6 +251,7 @@ type HSEventResponse =
 #[napi]
 pub struct EventStream {
     inner: tokio::sync::Mutex<mpsc::Receiver<Result<HSEventResponse>>>,
+    enable_checksum_addresses: bool,
 }
 
 #[napi]
@@ -258,9 +265,11 @@ impl EventStream {
     pub async fn recv(&self) -> napi::Result<Option<EventResponse>> {
         let resp = self.inner.lock().await.recv().await;
 
-        resp.map(|r| convert_event_response(r?).context("convert response"))
-            .transpose()
-            .map_err(map_err)
+        resp.map(|r| {
+            convert_event_response(r?, self.enable_checksum_addresses).context("convert response")
+        })
+        .transpose()
+        .map_err(map_err)
     }
 }
 
@@ -320,33 +329,39 @@ pub struct Events {
     pub rollback_guard: Option<RollbackGuard>,
 }
 
-fn convert_response(res: hypersync_client::QueryResponse) -> Result<QueryResponse> {
+fn convert_response(
+    res: hypersync_client::QueryResponse,
+    should_checksum: bool,
+) -> Result<QueryResponse> {
     let blocks = res
         .data
         .blocks
         .iter()
-        .flat_map(|b| b.iter().map(Block::from))
+        .flat_map(|b| b.iter().map(|b| Block::from_simple(b, should_checksum)))
         .collect::<Vec<_>>();
 
     let transactions = res
         .data
         .transactions
         .iter()
-        .flat_map(|b| b.iter().map(Transaction::from))
+        .flat_map(|b| {
+            b.iter()
+                .map(|tx| Transaction::from_simple(tx, should_checksum))
+        })
         .collect::<Vec<_>>();
 
     let logs = res
         .data
         .logs
         .iter()
-        .flat_map(|b| b.iter().map(Log::from))
+        .flat_map(|b| b.iter().map(|l| Log::from_simple(l, should_checksum)))
         .collect::<Vec<_>>();
 
     let traces = res
         .data
         .traces
         .iter()
-        .flat_map(|b| b.iter().map(Trace::from))
+        .flat_map(|b| b.iter().map(|tr| Trace::from_simple(tr, should_checksum)))
         .collect::<Vec<_>>();
 
     Ok(QueryResponse {
@@ -376,18 +391,23 @@ fn convert_response(res: hypersync_client::QueryResponse) -> Result<QueryRespons
 
 fn convert_event_response(
     resp: hypersync_client::QueryResponse<Vec<Vec<hypersync_client::simple_types::Event>>>,
+    should_checksum: bool,
 ) -> Result<EventResponse> {
-    let mut data = Vec::new();
-
-    for batch in resp.data {
-        for event in batch {
-            data.push(Event {
-                transaction: event.transaction.map(|v| Transaction::from(&*v)),
-                block: event.block.map(|v| Block::from(&*v)),
-                log: Log::from(&event.log),
-            });
-        }
-    }
+    let data = resp
+        .data
+        .into_iter()
+        .flat_map(|batch| {
+            batch.into_iter().map(|event| Event {
+                transaction: event
+                    .transaction
+                    .map(|v| Transaction::from_simple(&*v, should_checksum)),
+                block: event
+                    .block
+                    .map(|v| Block::from_simple(&*v, should_checksum)),
+                log: Log::from_simple(&event.log, should_checksum),
+            })
+        })
+        .collect();
 
     Ok(EventResponse {
         archive_height: resp.archive_height.map(|v| v.try_into().unwrap()),
