@@ -105,10 +105,96 @@ export interface TransactionSelection {
   contractAddress?: Array<string>
 }
 export interface FieldSelection {
-  block?: Array<string>
-  transaction?: Array<string>
-  log?: Array<string>
-  trace?: Array<string>
+  block?: Array<BlockField>
+  transaction?: Array<TransactionField>
+  log?: Array<LogField>
+  trace?: Array<TraceField>
+}
+export const enum BlockField {
+  Number = 'Number',
+  Hash = 'Hash',
+  ParentHash = 'ParentHash',
+  Nonce = 'Nonce',
+  Sha3Uncles = 'Sha3Uncles',
+  LogsBloom = 'LogsBloom',
+  TransactionsRoot = 'TransactionsRoot',
+  StateRoot = 'StateRoot',
+  ReceiptsRoot = 'ReceiptsRoot',
+  Miner = 'Miner',
+  Difficulty = 'Difficulty',
+  TotalDifficulty = 'TotalDifficulty',
+  ExtraData = 'ExtraData',
+  Size = 'Size',
+  GasLimit = 'GasLimit',
+  GasUsed = 'GasUsed',
+  Timestamp = 'Timestamp',
+  Uncles = 'Uncles',
+  BaseFeePerGas = 'BaseFeePerGas'
+}
+export const enum TransactionField {
+  BlockHash = 'BlockHash',
+  BlockNumber = 'BlockNumber',
+  From = 'From',
+  Gas = 'Gas',
+  GasPrice = 'GasPrice',
+  Hash = 'Hash',
+  Input = 'Input',
+  Nonce = 'Nonce',
+  To = 'To',
+  TransactionIndex = 'TransactionIndex',
+  Value = 'Value',
+  V = 'V',
+  R = 'R',
+  S = 'S',
+  MaxPriorityFeePerGas = 'MaxPriorityFeePerGas',
+  MaxFeePerGas = 'MaxFeePerGas',
+  ChainId = 'ChainId',
+  CumulativeGasUsed = 'CumulativeGasUsed',
+  EffectiveGasPrice = 'EffectiveGasPrice',
+  GasUsed = 'GasUsed',
+  ContractAddress = 'ContractAddress',
+  LogsBloom = 'LogsBloom',
+  Type = 'Type',
+  Root = 'Root',
+  Status = 'Status',
+  Sighash = 'Sighash'
+}
+export const enum LogField {
+  Removed = 'Removed',
+  LogIndex = 'LogIndex',
+  TransactionIndex = 'TransactionIndex',
+  TransactionHash = 'TransactionHash',
+  BlockHash = 'BlockHash',
+  BlockNumber = 'BlockNumber',
+  Address = 'Address',
+  Data = 'Data',
+  Topic0 = 'Topic0',
+  Topic1 = 'Topic1',
+  Topic2 = 'Topic2',
+  Topic3 = 'Topic3'
+}
+export const enum TraceField {
+  From = 'From',
+  To = 'To',
+  CallType = 'CallType',
+  Gas = 'Gas',
+  Input = 'Input',
+  Init = 'Init',
+  Value = 'Value',
+  Author = 'Author',
+  RewardType = 'RewardType',
+  BlockHash = 'BlockHash',
+  BlockNumber = 'BlockNumber',
+  Address = 'Address',
+  Code = 'Code',
+  GasUsed = 'GasUsed',
+  Output = 'Output',
+  Subtraces = 'Subtraces',
+  TraceAddress = 'TraceAddress',
+  TransactionHash = 'TransactionHash',
+  TransactionPosition = 'TransactionPosition',
+  Kind = 'Kind',
+  Error = 'Error'
 }
 export interface TraceSelection {
   from?: Array<string>

@@ -47,13 +47,115 @@ pub struct TransactionSelection {
 #[derive(Default, Clone, Serialize, Deserialize)]
 pub struct FieldSelection {
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub block: Option<Vec<String>>,
+    pub block: Option<Vec<BlockField>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub transaction: Option<Vec<String>>,
+    pub transaction: Option<Vec<TransactionField>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub log: Option<Vec<String>>,
+    pub log: Option<Vec<LogField>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub trace: Option<Vec<String>>,
+    pub trace: Option<Vec<TraceField>>,
+}
+
+#[napi(string_enum)]
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum BlockField {
+    Number,
+    Hash,
+    ParentHash,
+    Nonce,
+    Sha3Uncles,
+    LogsBloom,
+    TransactionsRoot,
+    StateRoot,
+    ReceiptsRoot,
+    Miner,
+    Difficulty,
+    TotalDifficulty,
+    ExtraData,
+    Size,
+    GasLimit,
+    GasUsed,
+    Timestamp,
+    Uncles,
+    BaseFeePerGas,
+}
+
+#[napi(string_enum)]
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum TransactionField {
+    BlockHash,
+    BlockNumber,
+    From,
+    Gas,
+    GasPrice,
+    Hash,
+    Input,
+    Nonce,
+    To,
+    TransactionIndex,
+    Value,
+    V,
+    R,
+    S,
+    MaxPriorityFeePerGas,
+    MaxFeePerGas,
+    ChainId,
+    CumulativeGasUsed,
+    EffectiveGasPrice,
+    GasUsed,
+    ContractAddress,
+    LogsBloom,
+    Type,
+    Root,
+    Status,
+    Sighash,
+}
+
+#[napi(string_enum)]
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum LogField {
+    Removed,
+    LogIndex,
+    TransactionIndex,
+    TransactionHash,
+    BlockHash,
+    BlockNumber,
+    Address,
+    Data,
+    Topic0,
+    Topic1,
+    Topic2,
+    Topic3,
+}
+
+#[napi(string_enum)]
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum TraceField {
+    From,
+    To,
+    CallType,
+    Gas,
+    Input,
+    Init,
+    Value,
+    Author,
+    RewardType,
+    BlockHash,
+    BlockNumber,
+    Address,
+    Code,
+    GasUsed,
+    Output,
+    Subtraces,
+    TraceAddress,
+    TransactionHash,
+    TransactionPosition,
+    Kind,
+    Error,
 }
 
 #[napi(object)]
