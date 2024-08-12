@@ -250,7 +250,7 @@ fn encode_prefix_hex(bytes: &[u8]) -> String {
     format!("0x{}", faster_hex::hex_string(bytes))
 }
 
-fn map_address_from_binary(v: &Option<FixedSizeData<20>>, should_checksum: bool) -> Option<String> {
+fn map_address_string(v: &Option<FixedSizeData<20>>, should_checksum: bool) -> Option<String> {
     v.as_ref().map(|v| {
         if should_checksum {
             alloy_primitives::Address(alloy_primitives::FixedBytes(***v)).to_checksum(None)
@@ -258,6 +258,10 @@ fn map_address_from_binary(v: &Option<FixedSizeData<20>>, should_checksum: bool)
             v.encode_hex()
         }
     })
+}
+
+fn map_hex_string<T: Hex>(v: &Option<T>) -> Option<String> {
+    v.as_ref().map(|v| v.encode_hex())
 }
 
 pub(crate) fn map_opt_result<T, V, F>(v: Option<T>, f: F) -> Result<Option<V>>
@@ -270,16 +274,9 @@ where
     }
 }
 
-fn map_hex_string<T: Hex>(v: &Option<T>) -> Option<String> {
-    v.as_ref().map(|v| v.encode_hex())
-}
-
 fn map_i64_from_u64(v: Option<u64>) -> Result<Option<i64>> {
     map_opt_result(v, |v| i64::try_from(v).context("converting u64 to i64"))
 }
-// fn map_i64_from_uint(v: Option<UInt>) -> Result<Option<i64>> {
-//     map_opt_result(v, |v| i64::try_from(v).context("converting u64 to i64"))
-// }
 
 fn map_i64<T: AsRef<[u8]>>(v: &Option<T>) -> Result<Option<i64>> {
     map_opt_result(v.as_ref(), |v| {
@@ -322,7 +319,7 @@ impl Block {
             transactions_root: map_hex_string(&b.transactions_root),
             state_root: map_hex_string(&b.state_root),
             receipts_root: map_hex_string(&b.receipts_root),
-            miner: map_address_from_binary(&b.miner, should_checksum),
+            miner: map_address_string(&b.miner, should_checksum),
             difficulty: map_bigint_u128(&b.difficulty).context("mapping block.difficulty")?,
             total_difficulty: map_bigint_u128(&b.total_difficulty)
                 .context("mapping block.total_difficulty")?,
@@ -360,13 +357,13 @@ impl Transaction {
         Ok(Self {
             block_hash: map_hex_string(&t.block_hash),
             block_number: t.block_number.map(|n| u64::from(n).try_into().unwrap()),
-            from: map_address_from_binary(&t.from, should_checksum),
+            from: map_address_string(&t.from, should_checksum),
             gas: map_bigint_u64(&t.gas).context("mapping transaction.gas")?,
             gas_price: map_bigint_u64(&t.gas_price).context("mapping transaction.gas_price")?,
             hash: map_hex_string(&t.hash),
             input: map_hex_string(&t.input),
             nonce: map_bigint_u64(&t.nonce).context("mapping transaction.nonce")?,
-            to: map_address_from_binary(&t.to, should_checksum),
+            to: map_address_string(&t.to, should_checksum),
             transaction_index: t
                 .transaction_index
                 .map(|n| u64::from(n).try_into().unwrap()),
@@ -398,7 +395,7 @@ impl Transaction {
             effective_gas_price: map_bigint_u128(&t.effective_gas_price)
                 .context("mapping transaction.effective_gas_price")?,
             gas_used: map_bigint_u128(&t.gas_used).context("mapping transaction.gas_used")?,
-            contract_address: map_address_from_binary(&t.contract_address, should_checksum),
+            contract_address: map_address_string(&t.contract_address, should_checksum),
             logs_bloom: map_hex_string(&t.logs_bloom),
             kind: t.kind.map(|v| u8::from(v).into()),
             root: map_hex_string(&t.root),
@@ -426,7 +423,7 @@ impl Log {
             transaction_hash: map_hex_string(&l.transaction_hash),
             block_hash: map_hex_string(&l.block_hash),
             block_number: l.block_number.map(|n| u64::from(n).try_into().unwrap()),
-            address: map_address_from_binary(&l.address, should_checksum),
+            address: map_address_string(&l.address, should_checksum),
             data: map_hex_string(&l.data),
             topics: l
                 .topics
@@ -440,18 +437,18 @@ impl Log {
 impl Trace {
     pub fn from_simple(t: &simple_types::Trace, should_checksum: bool) -> Result<Self> {
         Ok(Self {
-            from: map_address_from_binary(&t.from, should_checksum),
-            to: map_address_from_binary(&t.to, should_checksum),
+            from: map_address_string(&t.from, should_checksum),
+            to: map_address_string(&t.to, should_checksum),
             call_type: t.call_type.clone(),
             gas: map_bigint_u64(&t.gas).context("mapping trace.gas")?,
             input: map_hex_string(&t.input),
             init: map_hex_string(&t.init),
             value: map_bigint_u64(&t.value).context("mapping trace.value")?,
-            author: map_address_from_binary(&t.author, should_checksum),
+            author: map_address_string(&t.author, should_checksum),
             reward_type: t.reward_type.clone(),
             block_hash: map_hex_string(&t.block_hash),
             block_number: t.block_number.map(|n| n.try_into().unwrap()),
-            address: map_address_from_binary(&t.address, should_checksum),
+            address: map_address_string(&t.address, should_checksum),
             code: map_hex_string(&t.code),
             gas_used: map_bigint_u128(&t.gas_used).context("mapping trace.gas_used")?,
             output: map_hex_string(&t.output),
