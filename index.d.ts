@@ -423,17 +423,17 @@ export interface Trace {
   from?: string
   to?: string
   callType?: string
-  gas?: string
+  gas?: bigint
   input?: string
   init?: string
-  value?: string
+  value?: bigint
   author?: string
   rewardType?: string
   blockHash?: string
   blockNumber?: number
   address?: string
   code?: string
-  gasUsed?: string
+  gasUsed?: bigint
   output?: string
   subtraces?: number
   traceAddress?: Array<number>

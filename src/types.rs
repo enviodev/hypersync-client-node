@@ -170,17 +170,17 @@ pub struct Trace {
     pub from: Option<String>,
     pub to: Option<String>,
     pub call_type: Option<String>,
-    pub gas: Option<String>,
+    pub gas: Option<BigInt>,
     pub input: Option<String>,
     pub init: Option<String>,
-    pub value: Option<String>,
+    pub value: Option<BigInt>,
     pub author: Option<String>,
     pub reward_type: Option<String>,
     pub block_hash: Option<String>,
     pub block_number: Option<i64>,
     pub address: Option<String>,
     pub code: Option<String>,
-    pub gas_used: Option<String>,
+    pub gas_used: Option<BigInt>,
     pub output: Option<String>,
     pub subtraces: Option<i64>,
     pub trace_address: Option<Vec<i64>>,
@@ -438,22 +438,22 @@ impl Log {
 }
 
 impl Trace {
-    pub fn from_simple(t: &simple_types::Trace, should_checksum: bool) -> Self {
-        Self {
+    pub fn from_simple(t: &simple_types::Trace, should_checksum: bool) -> Result<Self> {
+        Ok(Self {
             from: map_address_from_binary(&t.from, should_checksum),
             to: map_address_from_binary(&t.to, should_checksum),
             call_type: t.call_type.clone(),
-            gas: map_hex_string(&t.gas),
+            gas: map_bigint_u64(&t.gas).context("mapping trace.gas")?,
             input: map_hex_string(&t.input),
             init: map_hex_string(&t.init),
-            value: map_hex_string(&t.value),
+            value: map_bigint_u64(&t.value).context("mapping trace.value")?,
             author: map_address_from_binary(&t.author, should_checksum),
             reward_type: t.reward_type.clone(),
             block_hash: map_hex_string(&t.block_hash),
             block_number: t.block_number.map(|n| n.try_into().unwrap()),
             address: map_address_from_binary(&t.address, should_checksum),
             code: map_hex_string(&t.code),
-            gas_used: map_hex_string(&t.gas_used),
+            gas_used: map_bigint_u128(&t.gas_used).context("mapping trace.gas_used")?,
             output: map_hex_string(&t.output),
             subtraces: t.subtraces.map(|n| n.try_into().unwrap()),
             trace_address: t
@@ -464,7 +464,7 @@ impl Trace {
             transaction_position: t.transaction_position.map(|n| n.try_into().unwrap()),
             kind: t.kind.clone(),
             error: t.error.clone(),
-        }
+        })
     }
 }
 

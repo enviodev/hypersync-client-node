@@ -364,7 +364,8 @@ fn convert_response(
         .traces
         .iter()
         .flat_map(|b| b.iter().map(|tr| Trace::from_simple(tr, should_checksum)))
-        .collect::<Vec<_>>();
+        .collect::<Result<Vec<_>>>()
+        .context("mapping traces")?;
 
     Ok(QueryResponse {
         archive_height: res
