@@ -47,37 +47,37 @@ pub struct Transaction {
     pub block_hash: Option<String>,
     pub block_number: Option<i64>,
     pub from: Option<String>,
-    pub gas: Option<String>,
-    pub gas_price: Option<String>,
+    pub gas: Option<BigInt>,
+    pub gas_price: Option<BigInt>,
     pub hash: Option<String>,
     pub input: Option<String>,
-    pub nonce: Option<String>,
+    pub nonce: Option<BigInt>,
     pub to: Option<String>,
     pub transaction_index: Option<i64>,
-    pub value: Option<String>,
+    pub value: Option<BigInt>,
     pub v: Option<String>,
     pub r: Option<String>,
     pub s: Option<String>,
     pub y_parity: Option<String>,
-    pub max_priority_fee_per_gas: Option<String>,
-    pub max_fee_per_gas: Option<String>,
+    pub max_priority_fee_per_gas: Option<BigInt>,
+    pub max_fee_per_gas: Option<BigInt>,
     pub chain_id: Option<i64>,
     pub access_list: Option<Vec<AccessList>>,
-    pub max_fee_per_blob_gas: Option<String>,
+    pub max_fee_per_blob_gas: Option<BigInt>,
     pub blob_versioned_hashes: Option<Vec<String>>,
-    pub cumulative_gas_used: Option<String>,
-    pub effective_gas_price: Option<String>,
-    pub gas_used: Option<String>,
+    pub cumulative_gas_used: Option<BigInt>,
+    pub effective_gas_price: Option<BigInt>,
+    pub gas_used: Option<BigInt>,
     pub contract_address: Option<String>,
     pub logs_bloom: Option<String>,
     pub kind: Option<i64>,
     pub root: Option<String>,
     pub status: Option<i64>,
-    pub l1_fee: Option<String>,
-    pub l1_gas_price: Option<String>,
-    pub l1_gas_used: Option<String>,
+    pub l1_fee: Option<BigInt>,
+    pub l1_gas_price: Option<BigInt>,
+    pub l1_gas_used: Option<BigInt>,
     pub l1_fee_scalar: Option<f64>,
-    pub gas_used_for_l1: Option<String>,
+    pub gas_used_for_l1: Option<BigInt>,
 }
 
 /// Evm withdrawal object
@@ -356,27 +356,29 @@ impl Block {
 }
 
 impl Transaction {
-    pub fn from_simple(t: &simple_types::Transaction, should_checksum: bool) -> Self {
-        Self {
+    pub fn from_simple(t: &simple_types::Transaction, should_checksum: bool) -> Result<Self> {
+        Ok(Self {
             block_hash: map_hex_string(&t.block_hash),
             block_number: t.block_number.map(|n| u64::from(n).try_into().unwrap()),
             from: map_address_from_binary(&t.from, should_checksum),
-            gas: map_hex_string(&t.gas),
-            gas_price: map_hex_string(&t.gas_price),
+            gas: map_bigint_u64(&t.gas).context("mapping transaction.gas")?,
+            gas_price: map_bigint_u64(&t.gas_price).context("mapping transaction.gas_price")?,
             hash: map_hex_string(&t.hash),
             input: map_hex_string(&t.input),
-            nonce: map_hex_string(&t.nonce),
+            nonce: map_bigint_u64(&t.nonce).context("mapping transaction.nonce")?,
             to: map_address_from_binary(&t.to, should_checksum),
             transaction_index: t
                 .transaction_index
                 .map(|n| u64::from(n).try_into().unwrap()),
-            value: map_hex_string(&t.value),
+            value: map_bigint_u64(&t.value).context("mapping transaction.value")?,
             v: map_hex_string(&t.v),
             r: map_hex_string(&t.r),
             s: map_hex_string(&t.s),
             y_parity: map_hex_string(&t.y_parity),
-            max_priority_fee_per_gas: map_hex_string(&t.max_priority_fee_per_gas),
-            max_fee_per_gas: map_hex_string(&t.max_fee_per_gas),
+            max_priority_fee_per_gas: map_bigint_u128(&t.max_priority_fee_per_gas)
+                .context("mapping transaction.max_priority_fee_per_gas")?,
+            max_fee_per_gas: map_bigint_u128(&t.max_fee_per_gas)
+                .context("mapping transaction.max_fee_per_gas")?,
             chain_id: t
                 .chain_id
                 .as_ref()
@@ -385,25 +387,31 @@ impl Transaction {
                 .access_list
                 .as_ref()
                 .map(|arr| arr.iter().map(AccessList::from).collect()),
-            max_fee_per_blob_gas: map_hex_string(&t.max_fee_per_blob_gas),
+            max_fee_per_blob_gas: map_bigint_u128(&t.max_fee_per_blob_gas)
+                .context("mapping transaction.max_fee_per_blob_gas")?,
             blob_versioned_hashes: t
                 .blob_versioned_hashes
                 .as_ref()
                 .map(|arr| arr.iter().map(|h| h.encode_hex()).collect()),
-            cumulative_gas_used: map_hex_string(&t.cumulative_gas_used),
-            effective_gas_price: map_hex_string(&t.effective_gas_price),
-            gas_used: map_hex_string(&t.gas_used),
+            cumulative_gas_used: map_bigint_u128(&t.cumulative_gas_used)
+                .context("mapping transaction.cumulative_gas_used")?,
+            effective_gas_price: map_bigint_u128(&t.effective_gas_price)
+                .context("mapping transaction.effective_gas_price")?,
+            gas_used: map_bigint_u128(&t.gas_used).context("mapping transaction.gas_used")?,
             contract_address: map_address_from_binary(&t.contract_address, should_checksum),
             logs_bloom: map_hex_string(&t.logs_bloom),
             kind: t.kind.map(|v| u8::from(v).into()),
             root: map_hex_string(&t.root),
             status: t.status.map(|v| v.to_u8().into()),
-            l1_fee: map_hex_string(&t.l1_fee),
-            l1_gas_price: map_hex_string(&t.l1_gas_price),
-            l1_gas_used: map_hex_string(&t.l1_gas_used),
+            l1_fee: map_bigint_u128(&t.l1_fee).context("mapping transaction.l1_fee")?,
+            l1_gas_price: map_bigint_u128(&t.l1_gas_price)
+                .context("mapping transaction.l1_gas_price")?,
+            l1_gas_used: map_bigint_u128(&t.l1_gas_used)
+                .context("mapping transaction.l1_gas_used")?,
             l1_fee_scalar: t.l1_fee_scalar,
-            gas_used_for_l1: map_hex_string(&t.gas_used_for_l1),
-        }
+            gas_used_for_l1: map_bigint_u128(&t.gas_used_for_l1)
+                .context("mapping transaction.gas_used_for_l1")?,
+        })
     }
 }
 

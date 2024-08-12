@@ -327,37 +327,37 @@ export interface Transaction {
   blockHash?: string
   blockNumber?: number
   from?: string
-  gas?: string
-  gasPrice?: string
+  gas?: bigint
+  gasPrice?: bigint
   hash?: string
   input?: string
-  nonce?: string
+  nonce?: bigint
   to?: string
   transactionIndex?: number
-  value?: string
+  value?: bigint
   v?: string
   r?: string
   s?: string
   yParity?: string
-  maxPriorityFeePerGas?: string
-  maxFeePerGas?: string
+  maxPriorityFeePerGas?: bigint
+  maxFeePerGas?: bigint
   chainId?: number
   accessList?: Array<AccessList>
-  maxFeePerBlobGas?: string
+  maxFeePerBlobGas?: bigint
   blobVersionedHashes?: Array<string>
-  cumulativeGasUsed?: string
-  effectiveGasPrice?: string
-  gasUsed?: string
+  cumulativeGasUsed?: bigint
+  effectiveGasPrice?: bigint
+  gasUsed?: bigint
   contractAddress?: string
   logsBloom?: string
   kind?: number
   root?: string
   status?: number
-  l1Fee?: string
-  l1GasPrice?: string
-  l1GasUsed?: string
+  l1Fee?: bigint
+  l1GasPrice?: bigint
+  l1GasUsed?: bigint
   l1FeeScalar?: number
-  gasUsedForL1?: string
+  gasUsedForL1?: bigint
 }
 /**
  * Evm withdrawal object

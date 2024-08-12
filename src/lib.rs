@@ -349,7 +349,8 @@ fn convert_response(
             b.iter()
                 .map(|tx| Transaction::from_simple(tx, should_checksum))
         })
-        .collect::<Vec<_>>();
+        .collect::<Result<Vec<_>>>()
+        .context("mapping transactions")?;
 
     let logs = res
         .data
@@ -400,9 +401,10 @@ fn convert_event_response(
         .flat_map(|batch| {
             batch.into_iter().map(|event| {
                 Ok(Event {
-                    transaction: event
-                        .transaction
-                        .map(|v| Transaction::from_simple(&*v, should_checksum)),
+                    transaction: map_opt_result(event.transaction, |v| {
+                        Transaction::from_simple(&*v, should_checksum)
+                    })
+                    .context("mapping transaction")?,
                     block: map_opt_result(event.block, |v| {
                         Block::from_simple(&*v, should_checksum)
                     })
