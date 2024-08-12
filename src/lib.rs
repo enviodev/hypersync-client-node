@@ -14,7 +14,7 @@ mod types;
 use config::{ClientConfig, StreamConfig};
 use query::Query;
 use tokio::sync::mpsc;
-use types::{Block, Event, Log, RollbackGuard, Trace, Transaction};
+use types::{map_opt_result, Block, Event, Log, RollbackGuard, Trace, Transaction};
 
 #[napi]
 pub struct HypersyncClient {
@@ -338,7 +338,8 @@ fn convert_response(
         .blocks
         .iter()
         .flat_map(|b| b.iter().map(|b| Block::from_simple(b, should_checksum)))
-        .collect::<Vec<_>>();
+        .collect::<Result<Vec<_>>>()
+        .context("mapping blocks")?;
 
     let transactions = res
         .data
@@ -397,17 +398,21 @@ fn convert_event_response(
         .data
         .into_iter()
         .flat_map(|batch| {
-            batch.into_iter().map(|event| Event {
-                transaction: event
-                    .transaction
-                    .map(|v| Transaction::from_simple(&*v, should_checksum)),
-                block: event
-                    .block
-                    .map(|v| Block::from_simple(&*v, should_checksum)),
-                log: Log::from_simple(&event.log, should_checksum),
+            batch.into_iter().map(|event| {
+                Ok(Event {
+                    transaction: event
+                        .transaction
+                        .map(|v| Transaction::from_simple(&*v, should_checksum)),
+                    block: map_opt_result(event.block, |v| {
+                        Block::from_simple(&*v, should_checksum)
+                    })
+                    .context("mapping block")?,
+                    log: Log::from_simple(&event.log, should_checksum),
+                })
             })
         })
-        .collect();
+        .collect::<Result<Vec<_>>>()
+        .context("mapping response data")?;
 
     Ok(EventResponse {
         archive_height: resp.archive_height.map(|v| v.try_into().unwrap()),

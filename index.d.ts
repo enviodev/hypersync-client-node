@@ -388,24 +388,24 @@ export interface Block {
   number?: number
   hash?: string
   parentHash?: string
-  nonce?: string
+  nonce?: bigint
   sha3Uncles?: string
   logsBloom?: string
   transactionsRoot?: string
   stateRoot?: string
   receiptsRoot?: string
   miner?: string
-  difficulty?: string
-  totalDifficulty?: string
+  difficulty?: bigint
+  totalDifficulty?: bigint
   extraData?: string
   size?: string
-  gasLimit?: string
-  gasUsed?: string
-  timestamp?: string
+  gasLimit?: bigint
+  gasUsed?: bigint
+  timestamp?: number
   uncles?: Array<string>
-  baseFeePerGas?: string
-  blobGasUsed?: string
-  excessBlobGas?: string
+  baseFeePerGas?: bigint
+  blobGasUsed?: bigint
+  excessBlobGas?: bigint
   parentBeaconBlockRoot?: string
   withdrawalsRoot?: string
   withdrawals?: Array<Withdrawal>
