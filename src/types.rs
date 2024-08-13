@@ -264,9 +264,9 @@ fn map_hex_string<T: Hex>(v: &Option<T>) -> Option<String> {
     v.as_ref().map(|v| v.encode_hex())
 }
 
-pub(crate) fn map_opt_result<T, V, F>(v: Option<T>, f: F) -> Result<Option<V>>
+pub(crate) fn map_opt_result<T, V, F, E>(v: Option<T>, f: F) -> std::result::Result<Option<V>, E>
 where
-    F: Fn(T) -> Result<V>,
+    F: Fn(T) -> std::result::Result<V, E>,
 {
     match v {
         Some(v) => Ok(Some(f(v)?)),
@@ -274,77 +274,53 @@ where
     }
 }
 
-fn map_i64_from_u64(v: Option<u64>) -> Result<Option<i64>> {
-    map_opt_result(v, |v| i64::try_from(v).context("converting u64 to i64"))
-}
-
-fn map_i64<T: AsRef<[u8]>>(v: &Option<T>) -> Result<Option<i64>> {
-    map_opt_result(v.as_ref(), |v| {
-        v.as_ref()
-            .try_into()
-            .context("converting to fixed size bytes i64")
-            .map(i64::from_be_bytes)
+fn map_i64<T: AsRef<[u8]>>(opt: &Option<T>) -> Result<Option<i64>> {
+    map_opt_result(opt.as_ref(), |v| {
+        i64::try_from(ruint::aliases::U256::from_be_slice(v.as_ref()))
+            .context("converting U256 to i64")
     })
 }
 
-fn map_bigint_u64<T: AsRef<[u8]>>(v: &Option<T>) -> Result<Option<BigInt>> {
-    map_opt_result(v.as_ref(), |v| {
-        v.as_ref()
-            .try_into()
-            .context("converting to fixed size bytes u64")
-            .map(u64::from_be_bytes)
-            .map(BigInt::from)
-    })
-}
-
-fn map_bigint_u128<T: AsRef<[u8]>>(v: &Option<T>) -> Result<Option<BigInt>> {
-    map_opt_result(v.as_ref(), |v| {
-        v.as_ref()
-            .try_into()
-            .context("converting to fixed size bytes u128")
-            .map(u128::from_be_bytes)
-            .map(BigInt::from)
-    })
+fn map_bigint<T: AsRef<[u8]>>(opt: &Option<T>) -> Option<BigInt> {
+    opt.as_ref()
+        .map(|v| convert_bigint_unsigned(ruint::aliases::U256::from_be_slice(v.as_ref())))
 }
 
 impl Block {
     pub fn from_simple(b: &simple_types::Block, should_checksum: bool) -> Result<Self> {
         Ok(Self {
-            number: map_i64_from_u64(b.number).context("mapping block.number")?,
+            number: map_opt_result(b.number, i64::try_from).context("mapping block.number")?,
             hash: map_hex_string(&b.hash),
             parent_hash: map_hex_string(&b.parent_hash),
-            nonce: map_bigint_u64(&b.nonce).context("mapping block.nonce")?,
+            nonce: map_bigint(&b.nonce),
             sha3_uncles: map_hex_string(&b.sha3_uncles),
             logs_bloom: map_hex_string(&b.logs_bloom),
             transactions_root: map_hex_string(&b.transactions_root),
             state_root: map_hex_string(&b.state_root),
             receipts_root: map_hex_string(&b.receipts_root),
             miner: map_address_string(&b.miner, should_checksum),
-            difficulty: map_bigint_u128(&b.difficulty).context("mapping block.difficulty")?,
-            total_difficulty: map_bigint_u128(&b.total_difficulty)
-                .context("mapping block.total_difficulty")?,
+            difficulty: map_bigint(&b.difficulty),
+            total_difficulty: map_bigint(&b.total_difficulty),
             extra_data: map_hex_string(&b.extra_data),
             size: map_hex_string(&b.size),
-            gas_limit: map_bigint_u128(&b.gas_limit).context("mapping block.gas_limit")?,
-            gas_used: map_bigint_u128(&b.gas_used).context("mapping block.gas_used")?,
+            gas_limit: map_bigint(&b.gas_limit),
+            gas_used: map_bigint(&b.gas_used),
             timestamp: map_i64(&b.timestamp).context("mapping block.timestamp")?,
             uncles: b
                 .uncles
                 .as_ref()
                 .map(|arr| arr.iter().map(|u| u.encode_hex()).collect()),
-            base_fee_per_gas: map_bigint_u128(&b.base_fee_per_gas)
-                .context("mapping block.base_fee_per_gas")?,
-            blob_gas_used: map_bigint_u128(&b.blob_gas_used)
-                .context("mapping block.blob_gas_used")?,
-            excess_blob_gas: map_bigint_u128(&b.excess_blob_gas)
-                .context("mapping block.excess_blob_gas")?,
+            base_fee_per_gas: map_bigint(&b.base_fee_per_gas),
+            blob_gas_used: map_bigint(&b.blob_gas_used),
+            excess_blob_gas: map_bigint(&b.excess_blob_gas),
             parent_beacon_block_root: map_hex_string(&b.parent_beacon_block_root),
             withdrawals_root: map_hex_string(&b.withdrawals_root),
             withdrawals: b
                 .withdrawals
                 .as_ref()
                 .map(|w| w.iter().map(Withdrawal::from).collect()),
-            l1_block_number: b.l1_block_number.map(|n| u64::from(n).try_into().unwrap()),
+            l1_block_number: map_opt_result(b.l1_block_number, |n| u64::from(n).try_into())
+                .context("mapping l1_block_number")?,
             send_count: map_hex_string(&b.transactions_root),
             send_root: map_hex_string(&b.transactions_root),
             mix_hash: map_hex_string(&b.transactions_root),
@@ -356,58 +332,50 @@ impl Transaction {
     pub fn from_simple(t: &simple_types::Transaction, should_checksum: bool) -> Result<Self> {
         Ok(Self {
             block_hash: map_hex_string(&t.block_hash),
-            block_number: t.block_number.map(|n| u64::from(n).try_into().unwrap()),
+            block_number: map_opt_result(t.block_number, |n| u64::from(n).try_into())
+                .context("mapping transaction.block_number")?,
             from: map_address_string(&t.from, should_checksum),
-            gas: map_bigint_u64(&t.gas).context("mapping transaction.gas")?,
-            gas_price: map_bigint_u64(&t.gas_price).context("mapping transaction.gas_price")?,
+            gas: map_bigint(&t.gas),
+            gas_price: map_bigint(&t.gas_price),
             hash: map_hex_string(&t.hash),
             input: map_hex_string(&t.input),
-            nonce: map_bigint_u64(&t.nonce).context("mapping transaction.nonce")?,
+            nonce: map_bigint(&t.nonce),
             to: map_address_string(&t.to, should_checksum),
-            transaction_index: t
-                .transaction_index
-                .map(|n| u64::from(n).try_into().unwrap()),
-            value: map_bigint_u64(&t.value).context("mapping transaction.value")?,
+            transaction_index: map_opt_result(t.transaction_index, |n| u64::from(n).try_into())
+                .context("mapping transaction.transaction_index")?,
+            value: map_bigint(&t.value),
             v: map_hex_string(&t.v),
             r: map_hex_string(&t.r),
             s: map_hex_string(&t.s),
             y_parity: map_hex_string(&t.y_parity),
-            max_priority_fee_per_gas: map_bigint_u128(&t.max_priority_fee_per_gas)
-                .context("mapping transaction.max_priority_fee_per_gas")?,
-            max_fee_per_gas: map_bigint_u128(&t.max_fee_per_gas)
-                .context("mapping transaction.max_fee_per_gas")?,
-            chain_id: t
-                .chain_id
-                .as_ref()
-                .map(|n| ruint::aliases::U256::from_be_slice(n).try_into().unwrap()),
+            max_priority_fee_per_gas: map_bigint(&t.max_priority_fee_per_gas),
+            max_fee_per_gas: map_bigint(&t.max_fee_per_gas),
+            chain_id: map_opt_result(t.chain_id.as_ref(), |n| {
+                ruint::aliases::U256::from_be_slice(n).try_into()
+            })
+            .context("mapping transaction.chain_id")?,
             access_list: t
                 .access_list
                 .as_ref()
                 .map(|arr| arr.iter().map(AccessList::from).collect()),
-            max_fee_per_blob_gas: map_bigint_u128(&t.max_fee_per_blob_gas)
-                .context("mapping transaction.max_fee_per_blob_gas")?,
+            max_fee_per_blob_gas: map_bigint(&t.max_fee_per_blob_gas),
             blob_versioned_hashes: t
                 .blob_versioned_hashes
                 .as_ref()
                 .map(|arr| arr.iter().map(|h| h.encode_hex()).collect()),
-            cumulative_gas_used: map_bigint_u128(&t.cumulative_gas_used)
-                .context("mapping transaction.cumulative_gas_used")?,
-            effective_gas_price: map_bigint_u128(&t.effective_gas_price)
-                .context("mapping transaction.effective_gas_price")?,
-            gas_used: map_bigint_u128(&t.gas_used).context("mapping transaction.gas_used")?,
+            cumulative_gas_used: map_bigint(&t.cumulative_gas_used),
+            effective_gas_price: map_bigint(&t.effective_gas_price),
+            gas_used: map_bigint(&t.gas_used),
             contract_address: map_address_string(&t.contract_address, should_checksum),
             logs_bloom: map_hex_string(&t.logs_bloom),
             kind: t.kind.map(|v| u8::from(v).into()),
             root: map_hex_string(&t.root),
             status: t.status.map(|v| v.to_u8().into()),
-            l1_fee: map_bigint_u128(&t.l1_fee).context("mapping transaction.l1_fee")?,
-            l1_gas_price: map_bigint_u128(&t.l1_gas_price)
-                .context("mapping transaction.l1_gas_price")?,
-            l1_gas_used: map_bigint_u128(&t.l1_gas_used)
-                .context("mapping transaction.l1_gas_used")?,
+            l1_fee: map_bigint(&t.l1_fee),
+            l1_gas_price: map_bigint(&t.l1_gas_price),
+            l1_gas_used: map_bigint(&t.l1_gas_used),
             l1_fee_scalar: t.l1_fee_scalar,
-            gas_used_for_l1: map_bigint_u128(&t.gas_used_for_l1)
-                .context("mapping transaction.gas_used_for_l1")?,
+            gas_used_for_l1: map_bigint(&t.gas_used_for_l1),
         })
     }
 }
@@ -440,17 +408,17 @@ impl Trace {
             from: map_address_string(&t.from, should_checksum),
             to: map_address_string(&t.to, should_checksum),
             call_type: t.call_type.clone(),
-            gas: map_bigint_u64(&t.gas).context("mapping trace.gas")?,
+            gas: map_bigint(&t.gas),
             input: map_hex_string(&t.input),
             init: map_hex_string(&t.init),
-            value: map_bigint_u64(&t.value).context("mapping trace.value")?,
+            value: map_bigint(&t.value),
             author: map_address_string(&t.author, should_checksum),
             reward_type: t.reward_type.clone(),
             block_hash: map_hex_string(&t.block_hash),
             block_number: t.block_number.map(|n| n.try_into().unwrap()),
             address: map_address_string(&t.address, should_checksum),
             code: map_hex_string(&t.code),
-            gas_used: map_bigint_u128(&t.gas_used).context("mapping trace.gas_used")?,
+            gas_used: map_bigint(&t.gas_used),
             output: map_hex_string(&t.output),
             subtraces: t.subtraces.map(|n| n.try_into().unwrap()),
             trace_address: t
