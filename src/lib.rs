@@ -14,7 +14,7 @@ mod types;
 use config::{ClientConfig, StreamConfig};
 use query::Query;
 use tokio::sync::mpsc;
-use types::{map_opt_result, Block, Event, Log, RollbackGuard, Trace, Transaction};
+use types::{Block, Event, Log, RollbackGuard, Trace, Transaction};
 
 #[napi]
 pub struct HypersyncClient {
@@ -357,7 +357,8 @@ fn convert_response(
         .logs
         .iter()
         .flat_map(|b| b.iter().map(|l| Log::from_simple(l, should_checksum)))
-        .collect::<Vec<_>>();
+        .collect::<Result<Vec<_>>>()
+        .context("mapping logs")?;
 
     let traces = res
         .data
@@ -402,13 +403,17 @@ fn convert_event_response(
         .flat_map(|batch| {
             batch.into_iter().map(|event| {
                 Ok(Event {
-                    transaction: map_opt_result(event.transaction, |v| {
-                        Transaction::from_simple(&v, should_checksum)
-                    })
-                    .context("mapping transaction")?,
-                    block: map_opt_result(event.block, |v| Block::from_simple(&v, should_checksum))
+                    transaction: event
+                        .transaction
+                        .map(|v| Transaction::from_simple(&v, should_checksum))
+                        .transpose()
+                        .context("mapping transaction")?,
+                    block: event
+                        .block
+                        .map(|v| Block::from_simple(&v, should_checksum))
+                        .transpose()
                         .context("mapping block")?,
-                    log: Log::from_simple(&event.log, should_checksum),
+                    log: Log::from_simple(&event.log, should_checksum).context("mapping log")?,
                 })
             })
         })
@@ -416,9 +421,16 @@ fn convert_event_response(
         .context("mapping response data")?;
 
     Ok(EventResponse {
-        archive_height: resp.archive_height.map(|v| v.try_into().unwrap()),
-        next_block: resp.next_block.try_into().unwrap(),
-        total_execution_time: resp.total_execution_time.try_into().unwrap(),
+        archive_height: resp
+            .archive_height
+            .map(|v| v.try_into())
+            .transpose()
+            .context("mapping archive_height")?,
+        next_block: resp.next_block.try_into().context("mapping next_block")?,
+        total_execution_time: resp
+            .total_execution_time
+            .try_into()
+            .context("mapping total_execution_time")?,
         data,
         rollback_guard: resp
             .rollback_guard
