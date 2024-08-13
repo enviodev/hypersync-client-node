@@ -129,7 +129,16 @@ export const enum BlockField {
   GasUsed = 'GasUsed',
   Timestamp = 'Timestamp',
   Uncles = 'Uncles',
-  BaseFeePerGas = 'BaseFeePerGas'
+  BaseFeePerGas = 'BaseFeePerGas',
+  BlobGasUsed = 'BlobGasUsed',
+  ExcessBlobGas = 'ExcessBlobGas',
+  ParentBeaconBlockRoot = 'ParentBeaconBlockRoot',
+  WithdrawalsRoot = 'WithdrawalsRoot',
+  Withdrawals = 'Withdrawals',
+  L1BlockNumber = 'L1BlockNumber',
+  SendCount = 'SendCount',
+  SendRoot = 'SendRoot',
+  MixHash = 'MixHash'
 }
 export const enum TransactionField {
   BlockHash = 'BlockHash',
@@ -146,18 +155,26 @@ export const enum TransactionField {
   V = 'V',
   R = 'R',
   S = 'S',
+  YParity = 'YParity',
   MaxPriorityFeePerGas = 'MaxPriorityFeePerGas',
   MaxFeePerGas = 'MaxFeePerGas',
   ChainId = 'ChainId',
+  AccessList = 'AccessList',
+  MaxFeePerBlobGas = 'MaxFeePerBlobGas',
+  BlobVersionedHashes = 'BlobVersionedHashes',
   CumulativeGasUsed = 'CumulativeGasUsed',
   EffectiveGasPrice = 'EffectiveGasPrice',
   GasUsed = 'GasUsed',
   ContractAddress = 'ContractAddress',
   LogsBloom = 'LogsBloom',
-  Type = 'Type',
+  Kind = 'Kind',
   Root = 'Root',
   Status = 'Status',
-  Sighash = 'Sighash'
+  L1Fee = 'L1Fee',
+  L1GasPrice = 'L1GasPrice',
+  L1GasUsed = 'L1GasUsed',
+  L1FeeScalar = 'L1FeeScalar',
+  GasUsedForL1 = 'GasUsedForL1'
 }
 export const enum LogField {
   Removed = 'Removed',
@@ -524,7 +541,7 @@ export interface Events {
   /** Rollback guard, supposed to be used to detect rollbacks */
   rollbackGuard?: RollbackGuard
 }
-export class Decoder {
+export declare class Decoder {
   static fromSignatures(signatures: Array<string>): Decoder
   enableChecksummedAddresses(): void
   disableChecksummedAddresses(): void
@@ -533,7 +550,7 @@ export class Decoder {
   decodeEvents(events: Array<Event>): Promise<Array<DecodedEvent | undefined | null>>
   decodeEventsSync(events: Array<Event>): Array<DecodedEvent | undefined | null>
 }
-export class HypersyncClient {
+export declare class HypersyncClient {
   /** Create a new client with given config */
   static new(cfg?: ClientConfig | undefined | null): HypersyncClient
   /** Get the height of the source hypersync instance */
@@ -546,11 +563,11 @@ export class HypersyncClient {
   stream(query: Query, config: StreamConfig): Promise<QueryResponseStream>
   streamEvents(query: Query, config: StreamConfig): Promise<EventStream>
 }
-export class QueryResponseStream {
+export declare class QueryResponseStream {
   close(): Promise<void>
   recv(): Promise<QueryResponse | null>
 }
-export class EventStream {
+export declare class EventStream {
   close(): Promise<void>
   recv(): Promise<EventResponse | null>
 }
