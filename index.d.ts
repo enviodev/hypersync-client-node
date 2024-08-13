@@ -327,37 +327,37 @@ export interface Transaction {
   blockHash?: string
   blockNumber?: number
   from?: string
-  gas?: string
-  gasPrice?: string
+  gas?: bigint
+  gasPrice?: bigint
   hash?: string
   input?: string
-  nonce?: string
+  nonce?: bigint
   to?: string
   transactionIndex?: number
-  value?: string
+  value?: bigint
   v?: string
   r?: string
   s?: string
   yParity?: string
-  maxPriorityFeePerGas?: string
-  maxFeePerGas?: string
+  maxPriorityFeePerGas?: bigint
+  maxFeePerGas?: bigint
   chainId?: number
   accessList?: Array<AccessList>
-  maxFeePerBlobGas?: string
+  maxFeePerBlobGas?: bigint
   blobVersionedHashes?: Array<string>
-  cumulativeGasUsed?: string
-  effectiveGasPrice?: string
-  gasUsed?: string
+  cumulativeGasUsed?: bigint
+  effectiveGasPrice?: bigint
+  gasUsed?: bigint
   contractAddress?: string
   logsBloom?: string
   kind?: number
   root?: string
   status?: number
-  l1Fee?: string
-  l1GasPrice?: string
-  l1GasUsed?: string
+  l1Fee?: bigint
+  l1GasPrice?: bigint
+  l1GasUsed?: bigint
   l1FeeScalar?: number
-  gasUsedForL1?: string
+  gasUsedForL1?: bigint
 }
 /**
  * Evm withdrawal object
@@ -388,24 +388,24 @@ export interface Block {
   number?: number
   hash?: string
   parentHash?: string
-  nonce?: string
+  nonce?: bigint
   sha3Uncles?: string
   logsBloom?: string
   transactionsRoot?: string
   stateRoot?: string
   receiptsRoot?: string
   miner?: string
-  difficulty?: string
-  totalDifficulty?: string
+  difficulty?: bigint
+  totalDifficulty?: bigint
   extraData?: string
   size?: string
-  gasLimit?: string
-  gasUsed?: string
-  timestamp?: string
+  gasLimit?: bigint
+  gasUsed?: bigint
+  timestamp?: number
   uncles?: Array<string>
-  baseFeePerGas?: string
-  blobGasUsed?: string
-  excessBlobGas?: string
+  baseFeePerGas?: bigint
+  blobGasUsed?: bigint
+  excessBlobGas?: bigint
   parentBeaconBlockRoot?: string
   withdrawalsRoot?: string
   withdrawals?: Array<Withdrawal>
@@ -423,17 +423,17 @@ export interface Trace {
   from?: string
   to?: string
   callType?: string
-  gas?: string
+  gas?: bigint
   input?: string
   init?: string
-  value?: string
+  value?: bigint
   author?: string
   rewardType?: string
   blockHash?: string
   blockNumber?: number
   address?: string
   code?: string
-  gasUsed?: string
+  gasUsed?: bigint
   output?: string
   subtraces?: number
   traceAddress?: Array<number>
