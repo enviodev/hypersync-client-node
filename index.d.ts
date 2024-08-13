@@ -350,7 +350,7 @@ export interface Transaction {
   input?: string
   nonce?: bigint
   to?: string
-  transactionIndex?: number
+  index?: number
   value?: bigint
   v?: string
   r?: string

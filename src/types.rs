@@ -51,7 +51,7 @@ pub struct Transaction {
     pub input: Option<String>,
     pub nonce: Option<BigInt>,
     pub to: Option<String>,
-    pub transaction_index: Option<i64>,
+    pub index: Option<i64>,
     pub value: Option<BigInt>,
     pub v: Option<String>,
     pub r: Option<String>,
@@ -341,7 +341,7 @@ impl Transaction {
             input: map_hex_string(&t.input),
             nonce: map_bigint(&t.nonce),
             to: map_address_string(&t.to, should_checksum),
-            transaction_index: t
+            index: t
                 .transaction_index
                 .map(|n| u64::from(n).try_into())
                 .transpose()
