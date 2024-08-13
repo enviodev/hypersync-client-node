@@ -403,13 +403,11 @@ fn convert_event_response(
             batch.into_iter().map(|event| {
                 Ok(Event {
                     transaction: map_opt_result(event.transaction, |v| {
-                        Transaction::from_simple(&*v, should_checksum)
+                        Transaction::from_simple(&v, should_checksum)
                     })
                     .context("mapping transaction")?,
-                    block: map_opt_result(event.block, |v| {
-                        Block::from_simple(&*v, should_checksum)
-                    })
-                    .context("mapping block")?,
+                    block: map_opt_result(event.block, |v| Block::from_simple(&v, should_checksum))
+                        .context("mapping block")?,
                     log: Log::from_simple(&event.log, should_checksum),
                 })
             })
