@@ -415,7 +415,7 @@ export interface Block {
   difficulty?: bigint
   totalDifficulty?: bigint
   extraData?: string
-  size?: string
+  size?: bigint
   gasLimit?: bigint
   gasUsed?: bigint
   timestamp?: number
@@ -541,7 +541,7 @@ export interface Events {
   /** Rollback guard, supposed to be used to detect rollbacks */
   rollbackGuard?: RollbackGuard
 }
-export class Decoder {
+export declare class Decoder {
   static fromSignatures(signatures: Array<string>): Decoder
   enableChecksummedAddresses(): void
   disableChecksummedAddresses(): void
@@ -550,7 +550,7 @@ export class Decoder {
   decodeEvents(events: Array<Event>): Promise<Array<DecodedEvent | undefined | null>>
   decodeEventsSync(events: Array<Event>): Array<DecodedEvent | undefined | null>
 }
-export class HypersyncClient {
+export declare class HypersyncClient {
   /** Create a new client with given config */
   static new(cfg?: ClientConfig | undefined | null): HypersyncClient
   /** Get the height of the source hypersync instance */
@@ -563,11 +563,11 @@ export class HypersyncClient {
   stream(query: Query, config: StreamConfig): Promise<QueryResponseStream>
   streamEvents(query: Query, config: StreamConfig): Promise<EventStream>
 }
-export class QueryResponseStream {
+export declare class QueryResponseStream {
   close(): Promise<void>
   recv(): Promise<QueryResponse | null>
 }
-export class EventStream {
+export declare class EventStream {
   close(): Promise<void>
   recv(): Promise<EventResponse | null>
 }
