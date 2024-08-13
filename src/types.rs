@@ -264,21 +264,13 @@ fn map_hex_string<T: Hex>(v: &Option<T>) -> Option<String> {
     v.as_ref().map(|v| v.encode_hex())
 }
 
-pub(crate) fn map_opt_result<T, V, F, E>(v: Option<T>, f: F) -> std::result::Result<Option<V>, E>
-where
-    F: Fn(T) -> std::result::Result<V, E>,
-{
-    match v {
-        Some(v) => Ok(Some(f(v)?)),
-        None => Ok(None),
-    }
-}
-
 fn map_i64<T: AsRef<[u8]>>(opt: &Option<T>) -> Result<Option<i64>> {
-    map_opt_result(opt.as_ref(), |v| {
-        i64::try_from(ruint::aliases::U256::from_be_slice(v.as_ref()))
-            .context("converting U256 to i64")
-    })
+    opt.as_ref()
+        .map(|v| {
+            i64::try_from(ruint::aliases::U256::from_be_slice(v.as_ref()))
+                .context("converting U256 to i64")
+        })
+        .transpose()
 }
 
 fn map_bigint<T: AsRef<[u8]>>(opt: &Option<T>) -> Option<BigInt> {
@@ -289,7 +281,11 @@ fn map_bigint<T: AsRef<[u8]>>(opt: &Option<T>) -> Option<BigInt> {
 impl Block {
     pub fn from_simple(b: &simple_types::Block, should_checksum: bool) -> Result<Self> {
         Ok(Self {
-            number: map_opt_result(b.number, i64::try_from).context("mapping block.number")?,
+            number: b
+                .number
+                .map(i64::try_from)
+                .transpose()
+                .context("mapping block.number")?,
             hash: map_hex_string(&b.hash),
             parent_hash: map_hex_string(&b.parent_hash),
             nonce: map_bigint(&b.nonce),
@@ -319,7 +315,10 @@ impl Block {
                 .withdrawals
                 .as_ref()
                 .map(|w| w.iter().map(Withdrawal::from).collect()),
-            l1_block_number: map_opt_result(b.l1_block_number, |n| u64::from(n).try_into())
+            l1_block_number: b
+                .l1_block_number
+                .map(|n| u64::from(n).try_into())
+                .transpose()
                 .context("mapping l1_block_number")?,
             send_count: map_hex_string(&b.transactions_root),
             send_root: map_hex_string(&b.transactions_root),
@@ -332,7 +331,10 @@ impl Transaction {
     pub fn from_simple(t: &simple_types::Transaction, should_checksum: bool) -> Result<Self> {
         Ok(Self {
             block_hash: map_hex_string(&t.block_hash),
-            block_number: map_opt_result(t.block_number, |n| u64::from(n).try_into())
+            block_number: t
+                .block_number
+                .map(|n| u64::from(n).try_into())
+                .transpose()
                 .context("mapping transaction.block_number")?,
             from: map_address_string(&t.from, should_checksum),
             gas: map_bigint(&t.gas),
@@ -341,7 +343,10 @@ impl Transaction {
             input: map_hex_string(&t.input),
             nonce: map_bigint(&t.nonce),
             to: map_address_string(&t.to, should_checksum),
-            transaction_index: map_opt_result(t.transaction_index, |n| u64::from(n).try_into())
+            transaction_index: t
+                .transaction_index
+                .map(|n| u64::from(n).try_into())
+                .transpose()
                 .context("mapping transaction.transaction_index")?,
             value: map_bigint(&t.value),
             v: map_hex_string(&t.v),
@@ -350,10 +355,12 @@ impl Transaction {
             y_parity: map_hex_string(&t.y_parity),
             max_priority_fee_per_gas: map_bigint(&t.max_priority_fee_per_gas),
             max_fee_per_gas: map_bigint(&t.max_fee_per_gas),
-            chain_id: map_opt_result(t.chain_id.as_ref(), |n| {
-                ruint::aliases::U256::from_be_slice(n).try_into()
-            })
-            .context("mapping transaction.chain_id")?,
+            chain_id: t
+                .chain_id
+                .as_ref()
+                .map(|n| ruint::aliases::U256::from_be_slice(n).try_into())
+                .transpose()
+                .context("mapping transaction.chain_id")?,
             access_list: t
                 .access_list
                 .as_ref()
@@ -381,16 +388,26 @@ impl Transaction {
 }
 
 impl Log {
-    pub fn from_simple(l: &simple_types::Log, should_checksum: bool) -> Self {
-        Self {
+    pub fn from_simple(l: &simple_types::Log, should_checksum: bool) -> Result<Self> {
+        Ok(Self {
             removed: l.removed,
-            log_index: l.log_index.map(|n| u64::from(n).try_into().unwrap()),
+            log_index: l
+                .log_index
+                .map(|n| u64::from(n).try_into())
+                .transpose()
+                .context("mapping log.log_index")?,
             transaction_index: l
                 .transaction_index
-                .map(|n| u64::from(n).try_into().unwrap()),
+                .map(|n| u64::from(n).try_into())
+                .transpose()
+                .context("mapping log.transaction_index")?,
             transaction_hash: map_hex_string(&l.transaction_hash),
             block_hash: map_hex_string(&l.block_hash),
-            block_number: l.block_number.map(|n| u64::from(n).try_into().unwrap()),
+            block_number: l
+                .block_number
+                .map(|n| u64::from(n).try_into())
+                .transpose()
+                .context("mapping log.block_number")?,
             address: map_address_string(&l.address, should_checksum),
             data: map_hex_string(&l.data),
             topics: l
@@ -398,7 +415,7 @@ impl Log {
                 .iter()
                 .map(|t| t.as_ref().map(|v| v.encode_hex()))
                 .collect(),
-        }
+        })
     }
 }
 
@@ -415,18 +432,36 @@ impl Trace {
             author: map_address_string(&t.author, should_checksum),
             reward_type: t.reward_type.clone(),
             block_hash: map_hex_string(&t.block_hash),
-            block_number: t.block_number.map(|n| n.try_into().unwrap()),
+            block_number: t
+                .block_number
+                .map(|n| n.try_into())
+                .transpose()
+                .context("mapping trace.block_number")?,
             address: map_address_string(&t.address, should_checksum),
             code: map_hex_string(&t.code),
             gas_used: map_bigint(&t.gas_used),
             output: map_hex_string(&t.output),
-            subtraces: t.subtraces.map(|n| n.try_into().unwrap()),
+            subtraces: t
+                .subtraces
+                .map(|n| n.try_into())
+                .transpose()
+                .context("mapping trace.subtraces")?,
             trace_address: t
                 .trace_address
                 .as_ref()
-                .map(|arr| arr.iter().map(|n| (*n).try_into().unwrap()).collect()),
+                .map(|arr| {
+                    arr.iter()
+                        .map(|n| (*n).try_into())
+                        .collect::<std::result::Result<Vec<i64>, _>>()
+                })
+                .transpose()
+                .context("mapping trace.trace_address")?,
             transaction_hash: map_hex_string(&t.transaction_hash),
-            transaction_position: t.transaction_position.map(|n| n.try_into().unwrap()),
+            transaction_position: t
+                .transaction_position
+                .map(|n| n.try_into())
+                .transpose()
+                .context("mapping trace.transaction_position")?,
             kind: t.kind.clone(),
             error: t.error.clone(),
         })
