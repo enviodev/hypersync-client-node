@@ -2,20 +2,19 @@ use crate::map_err;
 use crate::types::DecodedSolValue;
 use anyhow::Context;
 use hypersync_client::format::{Data, Hex};
-use hypersync_client::CallDecoder;
 use std::sync::Arc;
 
 #[napi]
 #[derive(Clone)]
-pub struct Decoder {
-    inner: Arc<CallDecoder>,
+pub struct CallDecoder {
+    inner: Arc<hypersync_client::CallDecoder>,
     checksummed_addresses: bool,
 }
 
 #[napi]
-impl Decoder {
+impl CallDecoder {
     #[napi]
-    pub fn from_signatures(signatures: Vec<String>) -> napi::Result<Decoder> {
+    pub fn from_signatures(signatures: Vec<String>) -> napi::Result<CallDecoder> {
         let inner = hypersync_client::CallDecoder::from_signatures(&signatures)
             .context("build inner decoder")
             .map_err(map_err)?;
