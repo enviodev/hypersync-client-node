@@ -7,6 +7,7 @@ use anyhow::{Context, Result};
 
 mod config;
 mod decode;
+mod decode_call;
 pub mod preset_query;
 mod query;
 mod types;

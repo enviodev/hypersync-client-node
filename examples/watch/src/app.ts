@@ -1,4 +1,4 @@
-import { HypersyncClient, Decoder } from "@envio-dev/hypersync-client";
+import {HypersyncClient, Decoder, LogField} from "@envio-dev/hypersync-client";
 import fs from "node:fs";
 
 const DAI_ADDRESS = "0x6B175474E89094C44Da98b954EedeAC495271d0F";
@@ -30,12 +30,12 @@ async function main() {
         // Select the fields we are interested in, notice topics are selected as topic0,1,2,3
         "fieldSelection": {
           "log": [
-            "data",
-            "address",
-            "topic0",
-            "topic1",
-            "topic2",
-            "topic3"
+                LogField.Data,
+                LogField.Address,
+                LogField.Topic0,
+                LogField.Topic1,
+                LogField.Topic2,
+                LogField.Topic3,
           ]
         },
       };
