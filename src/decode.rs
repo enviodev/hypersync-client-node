@@ -29,6 +29,20 @@ impl Decoder {
     }
 
     #[napi]
+    pub fn from_signatures_with_checksum(
+        signatures: Vec<String>,
+        checksum: bool,
+    ) -> napi::Result<Decoder> {
+        let inner = hypersync_client::Decoder::from_signatures(&signatures)
+            .context("create inner decoder")
+            .map_err(map_err)?;
+        Ok(Self {
+            inner: Arc::new(inner),
+            checksummed_addresses: checksum,
+        })
+    }
+
+    #[napi]
     pub fn enable_checksummed_addresses(&mut self) {
         self.checksummed_addresses = true;
     }

@@ -541,8 +541,9 @@ export interface Events {
   /** Rollback guard, supposed to be used to detect rollbacks */
   rollbackGuard?: RollbackGuard
 }
-export class Decoder {
+export declare class Decoder {
   static fromSignatures(signatures: Array<string>): Decoder
+  static fromSignaturesWithChecksum(signatures: Array<string>, checksum: boolean): Decoder
   enableChecksummedAddresses(): void
   disableChecksummedAddresses(): void
   decodeLogs(logs: Array<Log>): Promise<Array<DecodedEvent | undefined | null>>
@@ -550,12 +551,18 @@ export class Decoder {
   decodeEvents(events: Array<Event>): Promise<Array<DecodedEvent | undefined | null>>
   decodeEventsSync(events: Array<Event>): Array<DecodedEvent | undefined | null>
 }
-export class CallDecoder {
+export declare class CallDecoder {
   static fromSignatures(signatures: Array<string>): CallDecoder
-  decodeInput(input: string): Promise<Array<DecodedSolValue> | null>
-  decodeInputSync(input: string): Array<DecodedSolValue> | null
+  static fromSignaturesWithChecksum(signatures: Array<string>, checksum: boolean): CallDecoder
+  decodeInputs(inputs: Array<string>): Promise<Array<Array<DecodedSolValue> | undefined | null>>
+  decodeTransactionsInput(txs: Array<Transaction>): Promise<Array<Array<DecodedSolValue> | undefined | null>>
+  decodeTracesInput(traces: Array<Trace>): Promise<Array<Array<DecodedSolValue> | undefined | null>>
+  decodeInputsSync(inputs: Array<string>): Array<Array<DecodedSolValue> | undefined | null>
+  decodeTransactionsInputSync(txs: Array<Transaction>): Array<Array<DecodedSolValue> | undefined | null>
+  decodeTracesInputSync(traces: Array<Trace>): Array<Array<DecodedSolValue> | undefined | null>
+  decodeImpl(input: string): Array<DecodedSolValue> | null
 }
-export class HypersyncClient {
+export declare class HypersyncClient {
   /** Create a new client with given config */
   static new(cfg?: ClientConfig | undefined | null): HypersyncClient
   /** Get the height of the source hypersync instance */
@@ -568,11 +575,11 @@ export class HypersyncClient {
   stream(query: Query, config: StreamConfig): Promise<QueryResponseStream>
   streamEvents(query: Query, config: StreamConfig): Promise<EventStream>
 }
-export class QueryResponseStream {
+export declare class QueryResponseStream {
   close(): Promise<void>
   recv(): Promise<QueryResponse | null>
 }
-export class EventStream {
+export declare class EventStream {
   close(): Promise<void>
   recv(): Promise<EventResponse | null>
 }

@@ -41,13 +41,12 @@ async function main() {
         if (res.data.transactions.length !== 0) {
             // Decode the log on a background thread so we don't block the event loop.
             // Can also use decoder.decodeLogsSync if it is more convenient.
-            for (const tx of res.data.transactions) {
-                console.log(`decoding tx`);
-                const decodedInput = await decoder.decodeInput(tx.input);
-                if (tx === null || decodedInput === null) {
+            const decodedInputs = await decoder.decodeTransactionsInput(res.data.transactions);
+            for (const input of decodedInputs) {
+                if (input === null) {
                     continue;
                 }
-                console.log(`Transaction decoded. Hash ${tx.hash}, Addr ${decodedInput[0].val}, Wad ${decodedInput[1].val}`);
+                console.log(`Transaction decoded. Addr ${input[0].val}, Wad ${input[1].val}`);
             }
         } else {
             console.log(`no tx`);
