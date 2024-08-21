@@ -1,4 +1,4 @@
-import { HypersyncClient, Decoder } from "@envio-dev/hypersync-client";
+import { HypersyncClient, Decoder, TransactionField } from "@envio-dev/hypersync-client";
 
 async function main() {
   // Create hypersync client using the mainnet hypersync endpoint
@@ -20,11 +20,11 @@ async function main() {
     ],
     "fieldSelection": {
       "transaction": [
-        "block_number",
-        "hash",
-        "from",
-        "to",
-        "value",
+        TransactionField.BlockNumber,
+        TransactionField.Hash,
+        TransactionField.From,
+        TransactionField.To,
+        TransactionField.Value,
       ]
     }
   };
@@ -40,7 +40,7 @@ async function main() {
       break;
     }
     for (const tx of res.data.transactions) {
-      console.log(JSON.stringify(tx, null, 2));
+      console.log(tx);
     }
   }
 }

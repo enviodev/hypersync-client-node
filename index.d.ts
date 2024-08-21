@@ -541,7 +541,7 @@ export interface Events {
   /** Rollback guard, supposed to be used to detect rollbacks */
   rollbackGuard?: RollbackGuard
 }
-export declare class Decoder {
+export class Decoder {
   static fromSignatures(signatures: Array<string>): Decoder
   static fromSignaturesWithChecksum(signatures: Array<string>, checksum: boolean): Decoder
   enableChecksummedAddresses(): void
@@ -551,7 +551,7 @@ export declare class Decoder {
   decodeEvents(events: Array<Event>): Promise<Array<DecodedEvent | undefined | null>>
   decodeEventsSync(events: Array<Event>): Array<DecodedEvent | undefined | null>
 }
-export declare class CallDecoder {
+export class CallDecoder {
   static fromSignatures(signatures: Array<string>): CallDecoder
   static fromSignaturesWithChecksum(signatures: Array<string>, checksum: boolean): CallDecoder
   decodeInputs(inputs: Array<string>): Promise<Array<Array<DecodedSolValue> | undefined | null>>
@@ -562,7 +562,7 @@ export declare class CallDecoder {
   decodeTracesInputSync(traces: Array<Trace>): Array<Array<DecodedSolValue> | undefined | null>
   decodeImpl(input: string): Array<DecodedSolValue> | null
 }
-export declare class HypersyncClient {
+export class HypersyncClient {
   /** Create a new client with given config */
   static new(cfg?: ClientConfig | undefined | null): HypersyncClient
   /** Get the height of the source hypersync instance */
@@ -575,11 +575,11 @@ export declare class HypersyncClient {
   stream(query: Query, config: StreamConfig): Promise<QueryResponseStream>
   streamEvents(query: Query, config: StreamConfig): Promise<EventStream>
 }
-export declare class QueryResponseStream {
+export class QueryResponseStream {
   close(): Promise<void>
   recv(): Promise<QueryResponse | null>
 }
-export declare class EventStream {
+export class EventStream {
   close(): Promise<void>
   recv(): Promise<EventResponse | null>
 }

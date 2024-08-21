@@ -4,6 +4,11 @@ extern crate napi_derive;
 use std::sync::Arc;
 
 use anyhow::{Context, Result};
+use mimalloc::MiMalloc;
+use tokio::sync::mpsc;
+
+#[global_allocator]
+static GLOBAL: MiMalloc = MiMalloc;
 
 mod config;
 mod decode;
@@ -14,7 +19,6 @@ mod types;
 
 use config::{ClientConfig, StreamConfig};
 use query::Query;
-use tokio::sync::mpsc;
 use types::{Block, Event, Log, RollbackGuard, Trace, Transaction};
 
 #[napi]
