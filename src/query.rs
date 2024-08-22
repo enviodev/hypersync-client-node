@@ -120,6 +120,7 @@ pub enum TransactionField {
     GasUsed,
     ContractAddress,
     LogsBloom,
+    #[serde(rename = "type")]
     Kind,
     Root,
     Status,
