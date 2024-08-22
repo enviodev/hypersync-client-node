@@ -56,6 +56,14 @@ impl HypersyncClient {
         Ok(height.try_into().unwrap())
     }
 
+    /// Get the chain_id of the source hypersync instance
+    #[napi]
+    pub async fn get_chain_id(&self) -> napi::Result<i64> {
+        let chain_id = self.inner.get_chain_id().await.map_err(map_err)?;
+
+        Ok(chain_id.try_into().unwrap())
+    }
+
     #[napi]
     pub async fn collect(&self, query: Query, config: StreamConfig) -> napi::Result<QueryResponse> {
         let query = query

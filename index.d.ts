@@ -567,6 +567,8 @@ export class HypersyncClient {
   static new(cfg?: ClientConfig | undefined | null): HypersyncClient
   /** Get the height of the source hypersync instance */
   getHeight(): Promise<number>
+  /** Get the chain_id of the source hypersync instance */
+  getChainId(): Promise<number>
   collect(query: Query, config: StreamConfig): Promise<QueryResponse>
   collectEvents(query: Query, config: StreamConfig): Promise<EventResponse>
   collectParquet(path: string, query: Query, config: StreamConfig): Promise<void>
