@@ -19,12 +19,12 @@ export interface StreamConfig {
   responseBytesFloor?: number
   reverse?: boolean
 }
-export const enum HexOutput {
+export enum HexOutput {
   NoEncode = 'NoEncode',
   Prefixed = 'Prefixed',
   NonPrefixed = 'NonPrefixed'
 }
-export const enum DataType {
+export enum DataType {
   Float64 = 'Float64',
   Float32 = 'Float32',
   UInt64 = 'UInt64',
@@ -110,7 +110,7 @@ export interface FieldSelection {
   log?: Array<LogField>
   trace?: Array<TraceField>
 }
-export const enum BlockField {
+export enum BlockField {
   Number = 'Number',
   Hash = 'Hash',
   ParentHash = 'ParentHash',
@@ -140,7 +140,7 @@ export const enum BlockField {
   SendRoot = 'SendRoot',
   MixHash = 'MixHash'
 }
-export const enum TransactionField {
+export enum TransactionField {
   BlockHash = 'BlockHash',
   BlockNumber = 'BlockNumber',
   From = 'From',
@@ -176,7 +176,7 @@ export const enum TransactionField {
   L1FeeScalar = 'L1FeeScalar',
   GasUsedForL1 = 'GasUsedForL1'
 }
-export const enum LogField {
+export enum LogField {
   Removed = 'Removed',
   LogIndex = 'LogIndex',
   TransactionIndex = 'TransactionIndex',
@@ -190,7 +190,7 @@ export const enum LogField {
   Topic2 = 'Topic2',
   Topic3 = 'Topic3'
 }
-export const enum TraceField {
+export enum TraceField {
   From = 'From',
   To = 'To',
   CallType = 'CallType',
@@ -234,7 +234,7 @@ export interface BlockSelection {
    */
   miner?: Array<string>
 }
-export const enum JoinMode {
+export enum JoinMode {
   Default = 0,
   JoinAll = 1,
   JoinNothing = 2
@@ -541,7 +541,7 @@ export interface Events {
   /** Rollback guard, supposed to be used to detect rollbacks */
   rollbackGuard?: RollbackGuard
 }
-export class Decoder {
+export declare class Decoder {
   static fromSignatures(signatures: Array<string>): Decoder
   static fromSignaturesWithChecksum(signatures: Array<string>, checksum: boolean): Decoder
   enableChecksummedAddresses(): void
@@ -551,7 +551,7 @@ export class Decoder {
   decodeEvents(events: Array<Event>): Promise<Array<DecodedEvent | undefined | null>>
   decodeEventsSync(events: Array<Event>): Array<DecodedEvent | undefined | null>
 }
-export class CallDecoder {
+export declare class CallDecoder {
   static fromSignatures(signatures: Array<string>): CallDecoder
   static fromSignaturesWithChecksum(signatures: Array<string>, checksum: boolean): CallDecoder
   decodeInputs(inputs: Array<string>): Promise<Array<Array<DecodedSolValue> | undefined | null>>
@@ -562,7 +562,7 @@ export class CallDecoder {
   decodeTracesInputSync(traces: Array<Trace>): Array<Array<DecodedSolValue> | undefined | null>
   decodeImpl(input: string): Array<DecodedSolValue> | null
 }
-export class HypersyncClient {
+export declare class HypersyncClient {
   /** Create a new client with given config */
   static new(cfg?: ClientConfig | undefined | null): HypersyncClient
   /** Get the height of the source hypersync instance */
@@ -577,11 +577,11 @@ export class HypersyncClient {
   stream(query: Query, config: StreamConfig): Promise<QueryResponseStream>
   streamEvents(query: Query, config: StreamConfig): Promise<EventStream>
 }
-export class QueryResponseStream {
+export declare class QueryResponseStream {
   close(): Promise<void>
   recv(): Promise<QueryResponse | null>
 }
-export class EventStream {
+export declare class EventStream {
   close(): Promise<void>
   recv(): Promise<EventResponse | null>
 }
