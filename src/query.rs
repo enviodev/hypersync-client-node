@@ -41,6 +41,21 @@ pub struct TransactionSelection {
     // If transaction.contract_address matches any of these values, the transaction will be returned.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub contract_address: Option<Vec<String>>,
+
+    /// If transaction.authorization_list matches any of these values, the transaction will be returned.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub authorization_list: Option<Vec<AuthorizationSelection>>,
+}
+
+#[napi(object)]
+#[derive(Default, Clone, Serialize, Deserialize)]
+pub struct AuthorizationSelection {
+    /// List of chain ids to match in the transaction authorizationList
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub chain_id: Option<Vec<i64>>,
+    /// List of addresses to match in the transaction authorizationList
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub address: Option<Vec<String>>,
 }
 
 #[napi(object)]
@@ -113,6 +128,7 @@ pub enum TransactionField {
     MaxFeePerGas,
     ChainId,
     AccessList,
+    AuthorizationList,
     MaxFeePerBlobGas,
     BlobVersionedHashes,
     CumulativeGasUsed,
