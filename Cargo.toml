@@ -24,7 +24,10 @@ serde_json = "1"
 ruint = "1"
 alloy-primitives = "1.1"
 
-hypersync-client = "0.18.2"
+# hypersync-client = "0.18.2"
+#
+# [patch.crates-io]
+hypersync-client = { git = "https://github.com/enviodev/hypersync-client-rust", branch = "jp/bump-alloy-versions" }
 
 [build-dependencies]
 napi-build = "2.0.1"
