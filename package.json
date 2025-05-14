@@ -35,7 +35,8 @@
     "test": "ava",
     "universal": "napi universal",
     "version": "napi version",
-    "docs": "yarn build && npx typedoc --plugin typedoc-plugin-markdown index.d.ts"
+    "docs-html": "yarn build && npx typedoc index.d.ts",
+    "docs-md": "yarn build && npx typedoc --plugin typedoc-plugin-markdown index.d.ts"
   },
   "packageManager": "yarn@3.8.1"
 }
