@@ -103,6 +103,14 @@ export interface TransactionSelection {
   /** If transaction.type matches any of these values, the transaction will be returned */
   kind?: Array<number>
   contractAddress?: Array<string>
+  /** If transaction.authorization_list matches any of these values, the transaction will be returned. */
+  authorizationList?: Array<AuthorizationSelection>
+}
+export interface AuthorizationSelection {
+  /** List of chain ids to match in the transaction authorizationList */
+  chainId?: Array<number>
+  /** List of addresses to match in the transaction authorizationList */
+  address?: Array<string>
 }
 export interface FieldSelection {
   block?: Array<BlockField>
@@ -160,6 +168,7 @@ export enum TransactionField {
   MaxFeePerGas = 'MaxFeePerGas',
   ChainId = 'ChainId',
   AccessList = 'AccessList',
+  AuthorizationList = 'AuthorizationList',
   MaxFeePerBlobGas = 'MaxFeePerBlobGas',
   BlobVersionedHashes = 'BlobVersionedHashes',
   CumulativeGasUsed = 'CumulativeGasUsed',
@@ -360,6 +369,7 @@ export interface Transaction {
   maxFeePerGas?: bigint
   chainId?: number
   accessList?: Array<AccessList>
+  authorizationList?: Array<Authorization>
   maxFeePerBlobGas?: bigint
   blobVersionedHashes?: Array<string>
   cumulativeGasUsed?: bigint
@@ -395,6 +405,19 @@ export interface Withdrawal {
 export interface AccessList {
   address?: string
   storageKeys?: Array<string>
+}
+/**
+ * Evm authorization object
+ *
+ * See ethereum rpc spec for the meaning of fields
+ */
+export interface Authorization {
+  chainId: string
+  address: string
+  nonce: string
+  yParity: string
+  r: string
+  s: string
 }
 /**
  * Evm block header object

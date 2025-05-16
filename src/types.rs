@@ -61,6 +61,7 @@ pub struct Transaction {
     pub max_fee_per_gas: Option<BigInt>,
     pub chain_id: Option<i64>,
     pub access_list: Option<Vec<AccessList>>,
+    pub authorization_list: Option<Vec<Authorization>>,
     pub max_fee_per_blob_gas: Option<BigInt>,
     pub blob_versioned_hashes: Option<Vec<String>>,
     pub cumulative_gas_used: Option<BigInt>,
@@ -119,6 +120,33 @@ impl From<&format::AccessList> for AccessList {
                 .storage_keys
                 .as_ref()
                 .map(|arr| arr.iter().map(|x| x.encode_hex()).collect()),
+        }
+    }
+}
+
+/// Evm authorization object
+///
+/// See ethereum rpc spec for the meaning of fields
+#[napi(object)]
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
+pub struct Authorization {
+    pub chain_id: String,
+    pub address: String,
+    pub nonce: String,
+    pub y_parity: String,
+    pub r: String,
+    pub s: String,
+}
+
+impl From<&format::Authorization> for Authorization {
+    fn from(a: &format::Authorization) -> Self {
+        Self {
+            chain_id: a.chain_id.encode_hex(),
+            address: a.address.encode_hex(),
+            nonce: a.nonce.encode_hex(),
+            y_parity: a.y_parity.encode_hex(),
+            r: a.r.encode_hex(),
+            s: a.s.encode_hex(),
         }
     }
 }
@@ -363,6 +391,10 @@ impl Transaction {
                 .access_list
                 .as_ref()
                 .map(|arr| arr.iter().map(AccessList::from).collect()),
+            authorization_list: t
+                .authorization_list
+                .as_ref()
+                .map(|al| al.iter().map(Authorization::from).collect()),
             max_fee_per_blob_gas: map_bigint(&t.max_fee_per_blob_gas),
             blob_versioned_hashes: t
                 .blob_versioned_hashes
