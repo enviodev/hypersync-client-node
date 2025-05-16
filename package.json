@@ -1,6 +1,6 @@
 {
   "name": "@envio-dev/hypersync-client",
-  "version": "0.6.3",
+  "version": "0.6.4",
   "main": "index.js",
   "types": "index.d.ts",
   "napi": {
