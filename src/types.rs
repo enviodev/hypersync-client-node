@@ -128,23 +128,36 @@ impl From<&format::AccessList> for AccessList {
 ///
 /// See ethereum rpc spec for the meaning of fields
 #[napi(object)]
-#[derive(Debug, Default, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub struct Authorization {
-    pub chain_id: String,
+    /// uint256
+    pub chain_id: BigInt,
+    /// 20-byte hex
     pub address: String,
-    pub nonce: String,
-    pub y_parity: String,
+    /// uint64
+    pub nonce: i64,
+    /// 0 | 1
+    pub y_parity: i64,
+    /// 32-byte hex
     pub r: String,
+    /// 32-byte hex
     pub s: String,
 }
 
 impl From<&format::Authorization> for Authorization {
     fn from(a: &format::Authorization) -> Self {
         Self {
-            chain_id: a.chain_id.encode_hex(),
+            chain_id: convert_bigint_unsigned(
+                ruint::aliases::U256::try_from_be_slice(&a.chain_id)
+                    .expect("convert chain_id bytes to U256"),
+            ),
             address: a.address.encode_hex(),
-            nonce: a.nonce.encode_hex(),
-            y_parity: a.y_parity.encode_hex(),
+            nonce: alloy_primitives::I64::try_from_be_slice(&a.nonce)
+                .expect("convert nonce bytes to I64")
+                .as_i64(),
+            y_parity: alloy_primitives::I64::try_from_be_slice(&a.y_parity)
+                .expect("convert y_parity bytes to I64")
+                .as_i64(),
             r: a.r.encode_hex(),
             s: a.s.encode_hex(),
         }

@@ -412,10 +412,10 @@ export interface AccessList {
  * See ethereum rpc spec for the meaning of fields
  */
 export interface Authorization {
-  chainId: string
+  chainId: bigint
   address: string
-  nonce: string
-  yParity: string
+  nonce: number
+  yParity: number
   r: string
   s: string
 }
