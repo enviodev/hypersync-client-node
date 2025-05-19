@@ -38,13 +38,5 @@
     "docs": "yarn build && npx typedoc index.d.ts",
     "docs:md": "yarn build && npx typedoc --plugin typedoc-plugin-markdown index.d.ts"
   },
-  "packageManager": "yarn@3.8.1",
-  "optionalDependencies": {
-    "@envio-dev/hypersync-client-win32-x64-msvc": "0.6.5",
-    "@envio-dev/hypersync-client-darwin-x64": "0.6.5",
-    "@envio-dev/hypersync-client-linux-x64-gnu": "0.6.5",
-    "@envio-dev/hypersync-client-darwin-arm64": "0.6.5",
-    "@envio-dev/hypersync-client-linux-arm64-gnu": "0.6.5",
-    "@envio-dev/hypersync-client-linux-x64-musl": "0.6.5"
-  }
+  "packageManager": "yarn@3.8.1"
 }
