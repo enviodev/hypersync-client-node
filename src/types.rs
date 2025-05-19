@@ -130,23 +130,34 @@ impl From<&format::AccessList> for AccessList {
 #[napi(object)]
 #[derive(Debug, Clone)]
 pub struct Authorization {
-    pub chain_id: BigInt, // uint256
-    pub address: String,  // 20-byte hex
-    pub nonce: i64,       // uint64
-    pub y_parity: i64,    // 0 | 1
-    pub r: String,        // 32-byte hex
-    pub s: String,        // 32-byte hex
+    /// uint256
+    pub chain_id: BigInt,
+    /// 20-byte hex
+    pub address: String,
+    /// uint64
+    pub nonce: i64,
+    /// 0 | 1
+    pub y_parity: i64,
+    /// 32-byte hex
+    pub r: String,
+    /// 32-byte hex
+    pub s: String,
 }
 
 impl From<&format::Authorization> for Authorization {
     fn from(a: &format::Authorization) -> Self {
         Self {
-            chain_id: convert_bigint_unsigned(ruint::aliases::U256::from_be_bytes(
-                a.chain_id.as_ref().try_into().unwrap_or([0u8; 32]),
-            )),
+            chain_id: convert_bigint_unsigned(
+                ruint::aliases::U256::try_from_be_slice(&a.chain_id)
+                    .expect("convert chain_id bytes to U256"),
+            ),
             address: a.address.encode_hex(),
-            nonce: u64::from_be_bytes(a.nonce.as_ref().try_into().unwrap_or([0u8; 8])) as i64,
-            y_parity: u8::from_be_bytes(a.y_parity.as_ref().try_into().unwrap_or([0u8; 1])) as i64,
+            nonce: alloy_primitives::I64::try_from_be_slice(&a.nonce)
+                .expect("convert nonce bytes to I64")
+                .as_i64(),
+            y_parity: alloy_primitives::I64::try_from_be_slice(&a.y_parity)
+                .expect("convert y_parity bytes to I64")
+                .as_i64(),
             r: a.r.encode_hex(),
             s: a.s.encode_hex(),
         }
