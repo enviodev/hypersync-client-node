@@ -1,55 +1,58 @@
-import { HypersyncClient, Decoder, BlockField, LogField, TransactionField } from "@envio-dev/hypersync-client";
-import fs from "node:fs";
+import {
+  HypersyncClient,
+  Decoder,
+  BlockField,
+  LogField,
+  TransactionField,
+  Query,
+} from "@envio-dev/hypersync-client";
 
 async function main() {
   // Create hypersync client using the mainnet hypersync endpoint
   // Passing null config makes it use default
-  const client = HypersyncClient.new(null);
+  const client = HypersyncClient.new({
+    url: "https://8453.hypersync.xyz",
+  });
 
   // The query to run
-  const query = {
-    // Start from block 0 and go to the end of the chain (we don't specify a toBlock).
-    //   you can add a "toBlock" to limit the query to a certain range.
-    "fromBlock": 0,
-    // The logs we want. We will also automatically get transactions and blocks relating to these logs (the query implicitly joins them).
-    "logs": [
+  const query: Query = {
+    // fromBlock: 25225492,
+    // toBlock: 25300182,
+    fromBlock: 25236222,
+    toBlock: 25236223,
+    logs: [
       {
-        // We want All ERC20 transfers so no address filter and only a filter for the first topic
-        "topics": [
-          ["0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"],
-        ]
-      }
+        address: [
+          "0xeccfae0f0f6a6696547e645ae00ff99619d47143",
+          "0x613940bff09917cf91ee669c306c3de8d3d081fe",
+        ],
+        topics: [
+          [
+            "0x98636036cb66a9c19a37435efc1e90142190214e8abeb821bdba3f2990dd4c95",
+            "0x7a53080ba414158be7ec69b987b5fb7d07dee101fe85488f0853ae16239d0bde",
+            "0x70935338e69775456a85ddef226c395fb668b63fa0115f5f20610b388e6ca9c0",
+            "0xc42079f94a6350d7e6235f29174924f928cc2ac818eb64fed8004e115fbcca67",
+            "0x596b573906218d3411850b26a6b437d6c4522fdb43d2d2386263f86d50b8b151",
+          ],
+          [],
+          [],
+          [],
+        ],
+      },
     ],
-    // Select the fields we are interested in, notice topics are selected as topic0,1,2,3
-    //   Most of the fields below are there for demonstration purposes.
-    //   The only field we use in this example is the 'log.data' + 'log.address' + 'log.topic0' so you could create a faster query by removing others.
-    "fieldSelection": {
-      "block": [
-        BlockField.Number,
-        BlockField.Timestamp,
-        BlockField.Hash,
-      ],
-      "log": [
-        LogField.BlockNumber,
-        LogField.LogIndex,
-        LogField.TransactionIndex,
-        LogField.TransactionHash,
-        LogField.Data,
+    fieldSelection: {
+      block: [BlockField.Number, BlockField.Timestamp, BlockField.Hash],
+      transaction: [],
+      log: [
         LogField.Address,
+        LogField.Data,
+        LogField.LogIndex,
+        LogField.BlockNumber,
         LogField.Topic0,
         LogField.Topic1,
         LogField.Topic2,
         LogField.Topic3,
       ],
-      "transaction": [
-        TransactionField.BlockNumber,
-        TransactionField.TransactionIndex,
-        TransactionField.Hash,
-        TransactionField.From,
-        TransactionField.To,
-        TransactionField.Value,
-        TransactionField.Input,
-      ]
     },
   };
 
@@ -62,30 +65,13 @@ async function main() {
 
   console.log(`Ran the query once. Next block to query is ${res.nextBlock}`);
 
-  // Create a decoder with our mapping
-  const decoder = Decoder.fromSignatures([
-    "Transfer(address indexed from, address indexed to, uint amount)"
-  ]);
+  // const totalBlocks = res.nextBlock - query.fromBlock;
 
-  // Decode the log on a background thread so we don't block the event loop.
-  // Can also use decoder.decodeLogsSync rather than using this promise api if it is more convenient.
-  const decodedLogs = await decoder.decodeLogs(res.data.logs);
-
-  // Let's count total volume, it is meaningless because of currency differences but good as an example.
-  let total_volume = BigInt(0);
-
-  for (const log of decodedLogs) {
-    // skip invalid logs
-    if (log === null) {
-      continue;
-    }
-    // We know it is a bigint because of the signature
-    total_volume += log.body[0].val as bigint;
-  }
-
-  const totalBlocks = res.nextBlock - query.fromBlock;
-
-  console.log(`Total volume was ${total_volume} in ${totalBlocks} blocks in ${res.data.logs.length} transfers.`);
+  // console.log(
+  //   `Total events was ${res.data.logs.length} in ${totalBlocks} blocks in ${res.data.logs.length} transfers.`
+  // );
+  console.log(res.data.logs.filter((e) => e.blockNumber === 25236222));
+  console.log("Evetns n:",res.data.logs.length);
 }
 
 main();
