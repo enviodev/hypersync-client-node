@@ -254,8 +254,7 @@ impl QueryResponseStream {
     }
 }
 
-type HSEventResponse =
-    hypersync_client::QueryResponse<Vec<Vec<hypersync_client::simple_types::Event>>>;
+type HSEventResponse = hypersync_client::QueryResponse<Vec<hypersync_client::simple_types::Event>>;
 
 #[napi]
 pub struct EventStream {
@@ -403,27 +402,25 @@ fn convert_response(
 }
 
 fn convert_event_response(
-    resp: hypersync_client::QueryResponse<Vec<Vec<hypersync_client::simple_types::Event>>>,
+    resp: hypersync_client::QueryResponse<Vec<hypersync_client::simple_types::Event>>,
     should_checksum: bool,
 ) -> Result<EventResponse> {
     let data = resp
         .data
         .into_iter()
-        .flat_map(|batch| {
-            batch.into_iter().map(|event| {
-                Ok(Event {
-                    transaction: event
-                        .transaction
-                        .map(|v| Transaction::from_simple(&v, should_checksum))
-                        .transpose()
-                        .context("mapping transaction")?,
-                    block: event
-                        .block
-                        .map(|v| Block::from_simple(&v, should_checksum))
-                        .transpose()
-                        .context("mapping block")?,
-                    log: Log::from_simple(&event.log, should_checksum).context("mapping log")?,
-                })
+        .map(|event| {
+            Ok(Event {
+                transaction: event
+                    .transaction
+                    .map(|v| Transaction::from_simple(&v, should_checksum))
+                    .transpose()
+                    .context("mapping transaction")?,
+                block: event
+                    .block
+                    .map(|v| Block::from_simple(&v, should_checksum))
+                    .transpose()
+                    .context("mapping block")?,
+                log: Log::from_simple(&event.log, should_checksum).context("mapping log")?,
             })
         })
         .collect::<Result<Vec<_>>>()
