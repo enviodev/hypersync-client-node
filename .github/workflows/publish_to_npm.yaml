@@ -39,6 +39,7 @@ jobs:
             target: x86_64-unknown-linux-gnu
             docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian
             build: |-
+              rustup update stable
               yarn set version 3
               apt-get install -y capnproto libcapnp-dev
               set -e &&
@@ -48,6 +49,7 @@ jobs:
             target: x86_64-unknown-linux-musl
             docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian-zig
             build: |-
+              rustup update stable
               yarn set version 3
               apt-get install -y capnproto libcapnp-dev
               set -e &&
@@ -66,6 +68,7 @@ jobs:
             target: aarch64-unknown-linux-gnu
             docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian-aarch64
             build: |-
+              rustup update stable
               yarn set version 3
               apt-get install -y capnproto libcapnp-dev
               set -e &&
@@ -92,7 +95,7 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         if: ${{ !matrix.settings.docker }}
         with:
-          toolchain: 1.85
+          toolchain: stable
           targets: ${{ matrix.settings.target }}
       - name: Cache cargo
         uses: actions/cache@v3
