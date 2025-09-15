@@ -188,6 +188,7 @@ pub enum TraceField {
     TraceAddress,
     TransactionHash,
     TransactionPosition,
+    #[serde(rename = "type")]
     Kind,
     Error,
 }
