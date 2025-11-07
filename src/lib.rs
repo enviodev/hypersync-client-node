@@ -32,6 +32,11 @@ impl HypersyncClient {
 
         let cfg = cfg.unwrap_or_default();
         let converted_cfg = cfg.try_convert().context("parse config").map_err(map_err)?;
+        let converted_cfg = if converted_cfg.user_agent.is_some() {
+            converted_cfg
+        } else {
+            converted_cfg.with_user_agent(format!("hscn/{}", env!("CARGO_PKG_VERSION")))
+        };
 
         let inner = hypersync_client::Client::new(converted_cfg)
             .context("build client")
