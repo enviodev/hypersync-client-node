@@ -72,7 +72,7 @@ pub struct FieldSelection {
 }
 
 #[napi(string_enum)]
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone, Copy)]
 #[serde(rename_all = "snake_case")]
 pub enum BlockField {
     Number,
@@ -106,7 +106,7 @@ pub enum BlockField {
 }
 
 #[napi(string_enum)]
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone, Copy)]
 #[serde(rename_all = "snake_case")]
 pub enum TransactionField {
     BlockHash,
@@ -136,8 +136,7 @@ pub enum TransactionField {
     GasUsed,
     ContractAddress,
     LogsBloom,
-    #[serde(rename = "type")]
-    Kind,
+    Type,
     Root,
     Status,
     L1Fee,
@@ -148,7 +147,7 @@ pub enum TransactionField {
 }
 
 #[napi(string_enum)]
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone, Copy)]
 #[serde(rename_all = "snake_case")]
 pub enum LogField {
     Removed,
@@ -166,7 +165,7 @@ pub enum LogField {
 }
 
 #[napi(string_enum)]
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone, Copy)]
 #[serde(rename_all = "snake_case")]
 pub enum TraceField {
     From,
@@ -189,7 +188,7 @@ pub enum TraceField {
     TransactionHash,
     TransactionPosition,
     #[serde(rename = "type")]
-    Kind,
+    Type,
     Error,
 }
 
@@ -227,17 +226,12 @@ pub struct BlockSelection {
 }
 
 #[napi]
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
+#[derive(Default, Serialize, Deserialize, Debug, PartialEq, Eq, Clone, Copy)]
 pub enum JoinMode {
+    #[default]
     Default,
     JoinAll,
     JoinNothing,
-}
-
-impl Default for JoinMode {
-    fn default() -> Self {
-        Self::Default
-    }
 }
 
 #[napi(object)]

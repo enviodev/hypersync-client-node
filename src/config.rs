@@ -37,15 +37,16 @@ pub struct StreamConfig {
 }
 
 #[napi(string_enum)]
-#[derive(Debug, Serialize)]
+#[derive(Default, Debug, Serialize, Clone, Copy)]
 pub enum HexOutput {
+    #[default]
     NoEncode,
     Prefixed,
     NonPrefixed,
 }
 
 #[napi(string_enum)]
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone, Copy)]
 #[serde(rename_all = "lowercase")]
 pub enum DataType {
     Float64,
@@ -54,12 +55,6 @@ pub enum DataType {
     UInt32,
     Int64,
     Int32,
-}
-
-impl Default for HexOutput {
-    fn default() -> Self {
-        Self::NoEncode
-    }
 }
 
 #[napi(object)]
