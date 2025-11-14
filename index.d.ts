@@ -291,7 +291,7 @@ export type LogField =  'Removed'|
 'Topic2'|
 'Topic3';
 
-export interface LogSelection {
+export interface LogFilter {
   /**
    * Address of the contract, any logs that has any of these addresses will be returned.
    * Empty means match all.
@@ -302,6 +302,11 @@ export interface LogSelection {
    *  topic specified in topics[n] the log will be returned. Empty means match all.
    */
   topics?: Array<Array<string>>
+}
+
+export interface LogSelection {
+  include: LogFilter
+  exclude?: LogFilter
 }
 
 /**
@@ -347,7 +352,7 @@ export interface Query {
    * List of log selections, these have an or relationship between them, so the query will return logs
    * that match any of these selections.
    */
-  logs?: Array<LogSelection>
+  logs?: Array<LogFilter | LogSelection>
   /**
    * List of transaction selections, the query will return transactions that match any of these selections and
    *  it will return transactions that are related to the returned logs.
@@ -489,7 +494,7 @@ export interface Trace {
   traceAddress?: Array<number>
   transactionHash?: string
   transactionPosition?: number
-  kind?: string
+  type?: string
   error?: string
 }
 
@@ -521,7 +526,7 @@ export interface TraceSelection {
   address?: Array<string>
   callType?: Array<string>
   rewardType?: Array<string>
-  kind?: Array<string>
+  type?: Array<string>
   sighash?: Array<string>
 }
 
@@ -558,7 +563,7 @@ export interface Transaction {
   gasUsed?: bigint
   contractAddress?: string
   logsBloom?: string
-  kind?: number
+  type?: number
   root?: string
   status?: number
   l1Fee?: bigint
@@ -622,7 +627,7 @@ export interface TransactionSelection {
   /** If tx.status matches this it will be returned. */
   status?: number
   /** If transaction.type matches any of these values, the transaction will be returned */
-  kind?: Array<number>
+  type?: Array<number>
   contractAddress?: Array<string>
   /** If transaction.authorization_list matches any of these values, the transaction will be returned. */
   authorizationList?: Array<AuthorizationSelection>

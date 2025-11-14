@@ -69,7 +69,8 @@ pub struct Transaction {
     pub gas_used: Option<BigInt>,
     pub contract_address: Option<String>,
     pub logs_bloom: Option<String>,
-    pub kind: Option<i64>,
+    #[napi(js_name = "type")]
+    pub type_: Option<i64>,
     pub root: Option<String>,
     pub status: Option<i64>,
     pub l1_fee: Option<BigInt>,
@@ -225,7 +226,8 @@ pub struct Trace {
     pub trace_address: Option<Vec<i64>>,
     pub transaction_hash: Option<String>,
     pub transaction_position: Option<i64>,
-    pub kind: Option<String>,
+    #[napi(js_name = "type")]
+    pub type_: Option<String>,
     pub error: Option<String>,
 }
 
@@ -418,7 +420,7 @@ impl Transaction {
             gas_used: map_bigint(&t.gas_used),
             contract_address: map_address_string(&t.contract_address, should_checksum),
             logs_bloom: map_hex_string(&t.logs_bloom),
-            kind: t.kind.map(|v| u8::from(v).into()),
+            type_: t.kind.map(|v| u8::from(v).into()),
             root: map_hex_string(&t.root),
             status: t.status.map(|v| v.to_u8().into()),
             l1_fee: map_bigint(&t.l1_fee),
@@ -505,7 +507,7 @@ impl Trace {
                 .map(|n| n.try_into())
                 .transpose()
                 .context("mapping trace.transaction_position")?,
-            kind: t.kind.clone(),
+            type_: t.kind.clone(),
             error: t.error.clone(),
         })
     }
