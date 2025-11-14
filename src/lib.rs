@@ -26,7 +26,7 @@ pub struct HypersyncClient {
 #[napi]
 impl HypersyncClient {
     /// Create a new client with given config
-    #[napi]
+    #[napi(constructor)]
     pub fn new(cfg: Option<ClientConfig>) -> napi::Result<HypersyncClient> {
         env_logger::try_init().ok();
 

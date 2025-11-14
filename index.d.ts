@@ -30,7 +30,7 @@ export declare class EventStream {
 
 export declare class HypersyncClient {
   /** Create a new client with given config */
-  static new(cfg?: ClientConfig | undefined | null): HypersyncClient
+  constructor(cfg?: ClientConfig | undefined | null)
   /** Get the height of the source hypersync instance */
   getHeight(): Promise<number>
   /** Get the chain_id of the source hypersync instance */
