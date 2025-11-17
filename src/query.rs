@@ -74,7 +74,18 @@ pub struct FieldSelection {
 }
 
 #[napi(string_enum)]
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    strum_macros::EnumIter,
+    strum_macros::AsRefStr,
+)]
+#[strum(serialize_all = "snake_case")]
 pub enum BlockField {
     Number,
     Hash,
@@ -107,7 +118,18 @@ pub enum BlockField {
 }
 
 #[napi(string_enum)]
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    strum_macros::EnumIter,
+    strum_macros::AsRefStr,
+)]
+#[strum(serialize_all = "snake_case")]
 pub enum TransactionField {
     BlockHash,
     BlockNumber,
@@ -148,7 +170,18 @@ pub enum TransactionField {
 }
 
 #[napi(string_enum)]
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    strum_macros::EnumIter,
+    strum_macros::AsRefStr,
+)]
+#[strum(serialize_all = "snake_case")]
 pub enum LogField {
     Removed,
     LogIndex,
@@ -165,7 +198,18 @@ pub enum LogField {
 }
 
 #[napi(string_enum)]
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    strum_macros::EnumIter,
+    strum_macros::AsRefStr,
+)]
+#[strum(serialize_all = "snake_case")]
 pub enum TraceField {
     From,
     To,
@@ -864,6 +908,10 @@ impl TryFrom<FieldSelection> for net_types::FieldSelection {
 
 #[cfg(test)]
 mod tests {
+    use std::collections::BTreeSet;
+
+    use strum::IntoEnumIterator;
+
     use super::*;
 
     #[test]
@@ -1206,5 +1254,52 @@ mod tests {
         assert_eq!(converted.to_block, Some(200));
         assert_eq!(converted.logs.len(), 1);
         assert!(converted.include_all_blocks);
+    }
+
+    #[test]
+    fn all_fields_in_schema() {
+        let block_fields = BlockField::iter()
+            .map(|f| f.as_ref().to_string())
+            .collect::<BTreeSet<_>>();
+        for block_field in net_types::block::BlockField::iter() {
+            assert!(
+                block_fields.contains(block_field.as_ref()),
+                "missing block field: {}",
+                block_field.as_ref()
+            );
+        }
+
+        let tx_fields = TransactionField::iter()
+            .map(|f| f.as_ref().to_string())
+            .collect::<BTreeSet<_>>();
+        for tx_field in net_types::transaction::TransactionField::iter() {
+            assert!(
+                tx_fields.contains(tx_field.as_ref()),
+                "missing transaction field: {}",
+                tx_field.as_ref()
+            );
+        }
+
+        let log_fields = LogField::iter()
+            .map(|f| f.as_ref().to_string())
+            .collect::<BTreeSet<_>>();
+        for log_field in net_types::log::LogField::iter() {
+            assert!(
+                log_fields.contains(log_field.as_ref()),
+                "missing log field: {}",
+                log_field.as_ref()
+            );
+        }
+
+        let trace_fields = TraceField::iter()
+            .map(|f| f.as_ref().to_string())
+            .collect::<BTreeSet<_>>();
+        for trace_field in net_types::trace::TraceField::iter() {
+            assert!(
+                trace_fields.contains(trace_field.as_ref()),
+                "missing trace field: {}",
+                trace_field.as_ref()
+            );
+        }
     }
 }
