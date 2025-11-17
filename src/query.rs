@@ -1,5 +1,5 @@
 use anyhow::{Context, Result};
-use hypersync_client::net_types;
+use hypersync_client::{format::Hex, net_types};
 use napi::bindgen_prelude::Either;
 
 #[napi(object)]
@@ -939,6 +939,524 @@ impl TryFrom<FieldSelection> for net_types::FieldSelection {
     }
 }
 
+// Reverse conversions from net_types back to client types
+
+impl TryFrom<net_types::Query> for Query {
+    type Error = anyhow::Error;
+
+    fn try_from(query: net_types::Query) -> Result<Query> {
+        let logs = if query.logs.is_empty() {
+            None
+        } else {
+            Some(
+                query
+                    .logs
+                    .into_iter()
+                    .map(|selection| LogSelection::try_from(selection).map(Either::B))
+                    .collect::<Result<Vec<_>>>()?,
+            )
+        };
+
+        let transactions = if query.transactions.is_empty() {
+            None
+        } else {
+            Some(
+                query
+                    .transactions
+                    .into_iter()
+                    .map(|selection| TransactionSelection::try_from(selection).map(Either::B))
+                    .collect::<Result<Vec<_>>>()?,
+            )
+        };
+
+        let traces = if query.traces.is_empty() {
+            None
+        } else {
+            Some(
+                query
+                    .traces
+                    .into_iter()
+                    .map(|selection| TraceSelection::try_from(selection).map(Either::B))
+                    .collect::<Result<Vec<_>>>()?,
+            )
+        };
+
+        let blocks = if query.blocks.is_empty() {
+            None
+        } else {
+            Some(
+                query
+                    .blocks
+                    .into_iter()
+                    .map(|selection| BlockSelection::try_from(selection).map(Either::B))
+                    .collect::<Result<Vec<_>>>()?,
+            )
+        };
+
+        let field_selection = FieldSelection::try_from(query.field_selection)?;
+
+        let join_mode = Some(match query.join_mode {
+            net_types::JoinMode::Default => JoinMode::Default,
+            net_types::JoinMode::JoinAll => JoinMode::JoinAll,
+            net_types::JoinMode::JoinNothing => JoinMode::JoinNothing,
+        });
+
+        Ok(Query {
+            from_block: query.from_block as i64,
+            to_block: query.to_block.map(|b| b as i64),
+            logs,
+            transactions,
+            traces,
+            blocks,
+            include_all_blocks: if query.include_all_blocks {
+                Some(true)
+            } else {
+                None
+            },
+            field_selection,
+            max_num_blocks: query.max_num_blocks.map(|n| n as i64),
+            max_num_transactions: query.max_num_transactions.map(|n| n as i64),
+            max_num_logs: query.max_num_logs.map(|n| n as i64),
+            max_num_traces: query.max_num_traces.map(|n| n as i64),
+            join_mode,
+        })
+    }
+}
+
+impl TryFrom<net_types::LogFilter> for LogFilter {
+    type Error = anyhow::Error;
+
+    fn try_from(filter: net_types::LogFilter) -> Result<LogFilter> {
+        let address = if filter.address.is_empty() {
+            None
+        } else {
+            Some(filter.address.iter().map(Hex::encode_hex).collect())
+        };
+
+        let topics = if filter.topics.is_empty() {
+            None
+        } else {
+            Some(
+                filter
+                    .topics
+                    .into_iter()
+                    .map(|topic_vec| topic_vec.iter().map(Hex::encode_hex).collect())
+                    .collect(),
+            )
+        };
+
+        Ok(LogFilter { address, topics })
+    }
+}
+
+impl TryFrom<net_types::LogSelection> for LogSelection {
+    type Error = anyhow::Error;
+
+    fn try_from(selection: net_types::LogSelection) -> Result<LogSelection> {
+        let include = LogFilter::try_from(selection.include)?;
+        let exclude = selection.exclude.map(LogFilter::try_from).transpose()?;
+
+        Ok(LogSelection { include, exclude })
+    }
+}
+
+impl TryFrom<net_types::AuthorizationSelection> for AuthorizationSelection {
+    type Error = anyhow::Error;
+
+    fn try_from(selection: net_types::AuthorizationSelection) -> Result<AuthorizationSelection> {
+        let chain_id = if selection.chain_id.is_empty() {
+            None
+        } else {
+            Some(selection.chain_id.into_iter().map(|id| id as i64).collect())
+        };
+
+        let address = if selection.address.is_empty() {
+            None
+        } else {
+            Some(selection.address.iter().map(Hex::encode_hex).collect())
+        };
+
+        Ok(AuthorizationSelection { chain_id, address })
+    }
+}
+
+impl TryFrom<net_types::TransactionFilter> for TransactionFilter {
+    type Error = anyhow::Error;
+
+    fn try_from(filter: net_types::TransactionFilter) -> Result<TransactionFilter> {
+        let from = if filter.from.is_empty() {
+            None
+        } else {
+            Some(filter.from.iter().map(Hex::encode_hex).collect())
+        };
+
+        let to = if filter.to.is_empty() {
+            None
+        } else {
+            Some(filter.to.iter().map(Hex::encode_hex).collect())
+        };
+
+        let sighash = if filter.sighash.is_empty() {
+            None
+        } else {
+            Some(filter.sighash.iter().map(Hex::encode_hex).collect())
+        };
+
+        let status = filter.status.map(|s| s as i64);
+
+        let type_ = if filter.type_.is_empty() {
+            None
+        } else {
+            Some(filter.type_)
+        };
+
+        let contract_address = if filter.contract_address.is_empty() {
+            None
+        } else {
+            Some(
+                filter
+                    .contract_address
+                    .iter()
+                    .map(Hex::encode_hex)
+                    .collect(),
+            )
+        };
+
+        let hash = if filter.hash.is_empty() {
+            None
+        } else {
+            Some(filter.hash.iter().map(Hex::encode_hex).collect())
+        };
+
+        let authorization_list = if filter.authorization_list.is_empty() {
+            None
+        } else {
+            Some(
+                filter
+                    .authorization_list
+                    .into_iter()
+                    .map(AuthorizationSelection::try_from)
+                    .collect::<Result<Vec<_>>>()?,
+            )
+        };
+
+        Ok(TransactionFilter {
+            from,
+            to,
+            sighash,
+            status,
+            type_,
+            contract_address,
+            hash,
+            authorization_list,
+        })
+    }
+}
+
+impl TryFrom<net_types::TransactionSelection> for TransactionSelection {
+    type Error = anyhow::Error;
+
+    fn try_from(selection: net_types::TransactionSelection) -> Result<TransactionSelection> {
+        let include = TransactionFilter::try_from(selection.include)?;
+        let exclude = selection
+            .exclude
+            .map(TransactionFilter::try_from)
+            .transpose()?;
+
+        Ok(TransactionSelection { include, exclude })
+    }
+}
+
+impl TryFrom<net_types::TraceFilter> for TraceFilter {
+    type Error = anyhow::Error;
+
+    fn try_from(filter: net_types::TraceFilter) -> Result<TraceFilter> {
+        let from = if filter.from.is_empty() {
+            None
+        } else {
+            Some(filter.from.iter().map(Hex::encode_hex).collect())
+        };
+
+        let to = if filter.to.is_empty() {
+            None
+        } else {
+            Some(filter.to.iter().map(Hex::encode_hex).collect())
+        };
+
+        let address = if filter.address.is_empty() {
+            None
+        } else {
+            Some(filter.address.iter().map(Hex::encode_hex).collect())
+        };
+
+        let call_type = if filter.call_type.is_empty() {
+            None
+        } else {
+            Some(filter.call_type)
+        };
+
+        let reward_type = if filter.reward_type.is_empty() {
+            None
+        } else {
+            Some(filter.reward_type)
+        };
+
+        let type_ = if filter.type_.is_empty() {
+            None
+        } else {
+            Some(filter.type_)
+        };
+
+        let sighash = if filter.sighash.is_empty() {
+            None
+        } else {
+            Some(filter.sighash.iter().map(Hex::encode_hex).collect())
+        };
+
+        Ok(TraceFilter {
+            from,
+            to,
+            address,
+            call_type,
+            reward_type,
+            type_,
+            sighash,
+        })
+    }
+}
+
+impl TryFrom<net_types::TraceSelection> for TraceSelection {
+    type Error = anyhow::Error;
+
+    fn try_from(selection: net_types::TraceSelection) -> Result<TraceSelection> {
+        let include = TraceFilter::try_from(selection.include)?;
+        let exclude = selection.exclude.map(TraceFilter::try_from).transpose()?;
+
+        Ok(TraceSelection { include, exclude })
+    }
+}
+
+impl TryFrom<net_types::BlockFilter> for BlockFilter {
+    type Error = anyhow::Error;
+
+    fn try_from(filter: net_types::BlockFilter) -> Result<BlockFilter> {
+        let hash = if filter.hash.is_empty() {
+            None
+        } else {
+            Some(filter.hash.iter().map(Hex::encode_hex).collect())
+        };
+
+        let miner = if filter.miner.is_empty() {
+            None
+        } else {
+            Some(filter.miner.iter().map(Hex::encode_hex).collect())
+        };
+
+        Ok(BlockFilter { hash, miner })
+    }
+}
+
+impl TryFrom<net_types::BlockSelection> for BlockSelection {
+    type Error = anyhow::Error;
+
+    fn try_from(selection: net_types::BlockSelection) -> Result<BlockSelection> {
+        let include = BlockFilter::try_from(selection.include)?;
+        let exclude = selection.exclude.map(BlockFilter::try_from).transpose()?;
+
+        Ok(BlockSelection { include, exclude })
+    }
+}
+
+impl From<net_types::BlockField> for BlockField {
+    fn from(field: net_types::BlockField) -> Self {
+        match field {
+            net_types::BlockField::Number => BlockField::Number,
+            net_types::BlockField::Hash => BlockField::Hash,
+            net_types::BlockField::ParentHash => BlockField::ParentHash,
+            net_types::BlockField::Nonce => BlockField::Nonce,
+            net_types::BlockField::Sha3Uncles => BlockField::Sha3Uncles,
+            net_types::BlockField::LogsBloom => BlockField::LogsBloom,
+            net_types::BlockField::TransactionsRoot => BlockField::TransactionsRoot,
+            net_types::BlockField::StateRoot => BlockField::StateRoot,
+            net_types::BlockField::ReceiptsRoot => BlockField::ReceiptsRoot,
+            net_types::BlockField::Miner => BlockField::Miner,
+            net_types::BlockField::Difficulty => BlockField::Difficulty,
+            net_types::BlockField::TotalDifficulty => BlockField::TotalDifficulty,
+            net_types::BlockField::ExtraData => BlockField::ExtraData,
+            net_types::BlockField::Size => BlockField::Size,
+            net_types::BlockField::GasLimit => BlockField::GasLimit,
+            net_types::BlockField::GasUsed => BlockField::GasUsed,
+            net_types::BlockField::Timestamp => BlockField::Timestamp,
+            net_types::BlockField::Uncles => BlockField::Uncles,
+            net_types::BlockField::BaseFeePerGas => BlockField::BaseFeePerGas,
+            net_types::BlockField::BlobGasUsed => BlockField::BlobGasUsed,
+            net_types::BlockField::ExcessBlobGas => BlockField::ExcessBlobGas,
+            net_types::BlockField::ParentBeaconBlockRoot => BlockField::ParentBeaconBlockRoot,
+            net_types::BlockField::WithdrawalsRoot => BlockField::WithdrawalsRoot,
+            net_types::BlockField::Withdrawals => BlockField::Withdrawals,
+            net_types::BlockField::L1BlockNumber => BlockField::L1BlockNumber,
+            net_types::BlockField::SendCount => BlockField::SendCount,
+            net_types::BlockField::SendRoot => BlockField::SendRoot,
+            net_types::BlockField::MixHash => BlockField::MixHash,
+        }
+    }
+}
+
+impl From<net_types::TransactionField> for TransactionField {
+    fn from(field: net_types::TransactionField) -> Self {
+        match field {
+            net_types::TransactionField::BlockHash => TransactionField::BlockHash,
+            net_types::TransactionField::BlockNumber => TransactionField::BlockNumber,
+            net_types::TransactionField::From => TransactionField::From,
+            net_types::TransactionField::Gas => TransactionField::Gas,
+            net_types::TransactionField::GasPrice => TransactionField::GasPrice,
+            net_types::TransactionField::Hash => TransactionField::Hash,
+            net_types::TransactionField::Input => TransactionField::Input,
+            net_types::TransactionField::Nonce => TransactionField::Nonce,
+            net_types::TransactionField::To => TransactionField::To,
+            net_types::TransactionField::TransactionIndex => TransactionField::TransactionIndex,
+            net_types::TransactionField::Value => TransactionField::Value,
+            net_types::TransactionField::V => TransactionField::V,
+            net_types::TransactionField::R => TransactionField::R,
+            net_types::TransactionField::S => TransactionField::S,
+            net_types::TransactionField::YParity => TransactionField::YParity,
+            net_types::TransactionField::MaxPriorityFeePerGas => {
+                TransactionField::MaxPriorityFeePerGas
+            }
+            net_types::TransactionField::MaxFeePerGas => TransactionField::MaxFeePerGas,
+            net_types::TransactionField::ChainId => TransactionField::ChainId,
+            net_types::TransactionField::AccessList => TransactionField::AccessList,
+            net_types::TransactionField::MaxFeePerBlobGas => TransactionField::MaxFeePerBlobGas,
+            net_types::TransactionField::BlobVersionedHashes => {
+                TransactionField::BlobVersionedHashes
+            }
+            net_types::TransactionField::CumulativeGasUsed => TransactionField::CumulativeGasUsed,
+            net_types::TransactionField::EffectiveGasPrice => TransactionField::EffectiveGasPrice,
+            net_types::TransactionField::GasUsed => TransactionField::GasUsed,
+            net_types::TransactionField::ContractAddress => TransactionField::ContractAddress,
+            net_types::TransactionField::LogsBloom => TransactionField::LogsBloom,
+            net_types::TransactionField::Type => TransactionField::Type,
+            net_types::TransactionField::Root => TransactionField::Root,
+            net_types::TransactionField::Status => TransactionField::Status,
+            net_types::TransactionField::Sighash => TransactionField::Sighash,
+            net_types::TransactionField::AuthorizationList => TransactionField::AuthorizationList,
+            net_types::TransactionField::L1Fee => TransactionField::L1Fee,
+            net_types::TransactionField::L1BlockNumber => TransactionField::L1BlockNumber,
+            net_types::TransactionField::L1GasPrice => TransactionField::L1GasPrice,
+            net_types::TransactionField::L1GasUsed => TransactionField::L1GasUsed,
+            net_types::TransactionField::L1FeeScalar => TransactionField::L1FeeScalar,
+            net_types::TransactionField::L1BaseFeeScalar => TransactionField::L1BaseFeeScalar,
+            net_types::TransactionField::L1BlobBaseFee => TransactionField::L1BlobBaseFee,
+            net_types::TransactionField::L1BlobBaseFeeScalar => {
+                TransactionField::L1BlobBaseFeeScalar
+            }
+            net_types::TransactionField::GasUsedForL1 => TransactionField::GasUsedForL1,
+            net_types::TransactionField::BlobGasPrice => TransactionField::BlobGasPrice,
+            net_types::TransactionField::BlobGasUsed => TransactionField::BlobGasUsed,
+            net_types::TransactionField::DepositNonce => TransactionField::DepositNonce,
+            net_types::TransactionField::DepositReceiptVersion => {
+                TransactionField::DepositReceiptVersion
+            }
+            net_types::TransactionField::Mint => TransactionField::Mint,
+            net_types::TransactionField::SourceHash => TransactionField::SourceHash,
+        }
+    }
+}
+
+impl From<net_types::LogField> for LogField {
+    fn from(field: net_types::LogField) -> Self {
+        match field {
+            net_types::LogField::Removed => LogField::Removed,
+            net_types::LogField::LogIndex => LogField::LogIndex,
+            net_types::LogField::TransactionIndex => LogField::TransactionIndex,
+            net_types::LogField::TransactionHash => LogField::TransactionHash,
+            net_types::LogField::BlockHash => LogField::BlockHash,
+            net_types::LogField::BlockNumber => LogField::BlockNumber,
+            net_types::LogField::Address => LogField::Address,
+            net_types::LogField::Data => LogField::Data,
+            net_types::LogField::Topic0 => LogField::Topic0,
+            net_types::LogField::Topic1 => LogField::Topic1,
+            net_types::LogField::Topic2 => LogField::Topic2,
+            net_types::LogField::Topic3 => LogField::Topic3,
+        }
+    }
+}
+
+impl From<net_types::TraceField> for TraceField {
+    fn from(field: net_types::TraceField) -> Self {
+        match field {
+            net_types::TraceField::From => TraceField::From,
+            net_types::TraceField::To => TraceField::To,
+            net_types::TraceField::CallType => TraceField::CallType,
+            net_types::TraceField::Gas => TraceField::Gas,
+            net_types::TraceField::Input => TraceField::Input,
+            net_types::TraceField::Init => TraceField::Init,
+            net_types::TraceField::Value => TraceField::Value,
+            net_types::TraceField::Author => TraceField::Author,
+            net_types::TraceField::RewardType => TraceField::RewardType,
+            net_types::TraceField::BlockHash => TraceField::BlockHash,
+            net_types::TraceField::BlockNumber => TraceField::BlockNumber,
+            net_types::TraceField::Address => TraceField::Address,
+            net_types::TraceField::Code => TraceField::Code,
+            net_types::TraceField::GasUsed => TraceField::GasUsed,
+            net_types::TraceField::Output => TraceField::Output,
+            net_types::TraceField::Subtraces => TraceField::Subtraces,
+            net_types::TraceField::TraceAddress => TraceField::TraceAddress,
+            net_types::TraceField::TransactionHash => TraceField::TransactionHash,
+            net_types::TraceField::TransactionPosition => TraceField::TransactionPosition,
+            net_types::TraceField::Type => TraceField::Type,
+            net_types::TraceField::Error => TraceField::Error,
+            net_types::TraceField::ActionAddress => TraceField::ActionAddress,
+            net_types::TraceField::Balance => TraceField::Balance,
+            net_types::TraceField::RefundAddress => TraceField::RefundAddress,
+            net_types::TraceField::Sighash => TraceField::Sighash,
+        }
+    }
+}
+
+impl TryFrom<net_types::FieldSelection> for FieldSelection {
+    type Error = anyhow::Error;
+
+    fn try_from(selection: net_types::FieldSelection) -> Result<FieldSelection> {
+        let block = if selection.block.is_empty() {
+            None
+        } else {
+            Some(selection.block.into_iter().map(BlockField::from).collect())
+        };
+
+        let transaction = if selection.transaction.is_empty() {
+            None
+        } else {
+            Some(
+                selection
+                    .transaction
+                    .into_iter()
+                    .map(TransactionField::from)
+                    .collect(),
+            )
+        };
+
+        let log = if selection.log.is_empty() {
+            None
+        } else {
+            Some(selection.log.into_iter().map(LogField::from).collect())
+        };
+
+        let trace = if selection.trace.is_empty() {
+            None
+        } else {
+            Some(selection.trace.into_iter().map(TraceField::from).collect())
+        };
+
+        Ok(FieldSelection {
+            block,
+            transaction,
+            log,
+            trace,
+        })
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1331,5 +1849,191 @@ mod tests {
             trace_fields, net_types_trace_fields,
             "trace fields mismatch"
         );
+    }
+
+    // Tests for reverse conversions (net_types -> client types)
+
+    #[test]
+    fn test_reverse_log_filter_conversion() {
+        use arrayvec::ArrayVec;
+        use hypersync_client::format::{Address, LogArgument};
+
+        let mut topics = ArrayVec::new();
+        topics.push(vec![LogArgument::try_from(
+            "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef",
+        )
+        .unwrap()]);
+
+        let net_filter = net_types::LogFilter {
+            address: vec![Address::try_from("0xdAC17F958D2ee523a2206206994597C13D831ec7").unwrap()],
+            address_filter: None,
+            topics,
+        };
+
+        let converted = LogFilter::try_from(net_filter).expect("reverse conversion should succeed");
+
+        assert!(converted.address.is_some());
+        assert_eq!(converted.address.as_ref().unwrap().len(), 1);
+        assert!(converted.topics.is_some());
+        assert_eq!(converted.topics.as_ref().unwrap().len(), 1);
+    }
+
+    #[test]
+    fn test_reverse_log_filter_empty_collections() {
+        let net_filter = net_types::LogFilter {
+            address: vec![],
+            address_filter: None,
+            topics: arrayvec::ArrayVec::new(),
+        };
+
+        let converted = LogFilter::try_from(net_filter).expect("reverse conversion should succeed");
+
+        assert!(converted.address.is_none());
+        assert!(converted.topics.is_none());
+    }
+
+    #[test]
+    fn test_reverse_transaction_filter_conversion() {
+        use hypersync_client::format::{Address, Hash};
+        use hypersync_client::net_types::Sighash;
+
+        let net_filter = net_types::TransactionFilter {
+            from: vec![Address::try_from("0xdAC17F958D2ee523a2206206994597C13D831ec7").unwrap()],
+            from_filter: None,
+            to: vec![Address::try_from("0xa0b86a33e6c11c8c0c5c0b5e6adee30d1a234567").unwrap()],
+            to_filter: None,
+            sighash: vec![Sighash::try_from("0xa9059cbb").unwrap()],
+            status: Some(1),
+            type_: vec![2],
+            contract_address: vec![
+                Address::try_from("0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6").unwrap(),
+            ],
+            contract_address_filter: None,
+            hash: vec![Hash::try_from(
+                "0x40d008f2a1653f09b7b028d30c7fd1ba7c84900fcfb032040b3eb3d16f84d294",
+            )
+            .unwrap()],
+            authorization_list: vec![],
+        };
+
+        let converted =
+            TransactionFilter::try_from(net_filter).expect("reverse conversion should succeed");
+
+        assert!(converted.from.is_some());
+        assert_eq!(converted.from.as_ref().unwrap().len(), 1);
+        assert!(converted.to.is_some());
+        assert_eq!(converted.to.as_ref().unwrap().len(), 1);
+        assert!(converted.sighash.is_some());
+        assert_eq!(converted.sighash.as_ref().unwrap().len(), 1);
+        assert_eq!(converted.status, Some(1));
+        assert!(converted.type_.is_some());
+        assert_eq!(converted.type_.as_ref().unwrap().len(), 1);
+        assert!(converted.contract_address.is_some());
+        assert_eq!(converted.contract_address.as_ref().unwrap().len(), 1);
+        assert!(converted.hash.is_some());
+        assert_eq!(converted.hash.as_ref().unwrap().len(), 1);
+        assert!(converted.authorization_list.is_none());
+    }
+
+    #[test]
+    fn test_reverse_transaction_filter_empty_collections() {
+        let net_filter = net_types::TransactionFilter {
+            from: vec![],
+            from_filter: None,
+            to: vec![],
+            to_filter: None,
+            sighash: vec![],
+            status: None,
+            type_: vec![],
+            contract_address: vec![],
+            contract_address_filter: None,
+            hash: vec![],
+            authorization_list: vec![],
+        };
+
+        let converted =
+            TransactionFilter::try_from(net_filter).expect("reverse conversion should succeed");
+
+        assert!(converted.from.is_none());
+        assert!(converted.to.is_none());
+        assert!(converted.sighash.is_none());
+        assert!(converted.status.is_none());
+        assert!(converted.type_.is_none());
+        assert!(converted.contract_address.is_none());
+        assert!(converted.hash.is_none());
+        assert!(converted.authorization_list.is_none());
+    }
+
+    #[test]
+    fn test_reverse_field_selection_conversion() {
+        use std::collections::BTreeSet;
+
+        let mut block_fields = BTreeSet::new();
+        block_fields.insert(net_types::BlockField::Number);
+        block_fields.insert(net_types::BlockField::Hash);
+
+        let mut tx_fields = BTreeSet::new();
+        tx_fields.insert(net_types::TransactionField::Hash);
+        tx_fields.insert(net_types::TransactionField::From);
+
+        let net_selection = net_types::FieldSelection {
+            block: block_fields,
+            transaction: tx_fields,
+            log: BTreeSet::new(),
+            trace: BTreeSet::new(),
+        };
+
+        let converted =
+            FieldSelection::try_from(net_selection).expect("reverse conversion should succeed");
+
+        assert!(converted.block.is_some());
+        assert_eq!(converted.block.as_ref().unwrap().len(), 2);
+        assert!(converted.transaction.is_some());
+        assert_eq!(converted.transaction.as_ref().unwrap().len(), 2);
+        assert!(converted.log.is_none());
+        assert!(converted.trace.is_none());
+    }
+
+    #[test]
+    fn test_reverse_query_conversion() {
+        use std::collections::BTreeSet;
+
+        let net_query = net_types::Query {
+            from_block: 100,
+            to_block: Some(200),
+            logs: vec![],
+            transactions: vec![],
+            traces: vec![],
+            blocks: vec![],
+            include_all_blocks: true,
+            field_selection: net_types::FieldSelection {
+                block: {
+                    let mut set = BTreeSet::new();
+                    set.insert(net_types::BlockField::Number);
+                    set
+                },
+                transaction: BTreeSet::new(),
+                log: BTreeSet::new(),
+                trace: BTreeSet::new(),
+            },
+            max_num_blocks: Some(1000),
+            max_num_transactions: None,
+            max_num_logs: None,
+            max_num_traces: None,
+            join_mode: net_types::JoinMode::JoinAll,
+        };
+
+        let converted = Query::try_from(net_query).expect("reverse conversion should succeed");
+
+        assert_eq!(converted.from_block, 100);
+        assert_eq!(converted.to_block, Some(200));
+        assert!(converted.logs.is_none());
+        assert!(converted.transactions.is_none());
+        assert!(converted.traces.is_none());
+        assert!(converted.blocks.is_none());
+        assert_eq!(converted.include_all_blocks, Some(true));
+        assert!(converted.field_selection.block.is_some());
+        assert_eq!(converted.max_num_blocks, Some(1000));
+        assert_eq!(converted.join_mode, Some(JoinMode::JoinAll));
     }
 }
