@@ -452,6 +452,8 @@ impl TryFrom<LogFilter> for net_types::LogFilter {
         use arrayvec::ArrayVec;
         use hypersync_client::format::LogArgument;
 
+        let address = map_optional_vec(filter.address).context("Failed to parse address")?;
+
         let mut topics = ArrayVec::new();
         if let Some(topic_vecs) = filter.topics {
             for (i, topic_vec) in topic_vecs.into_iter().enumerate() {
@@ -468,7 +470,7 @@ impl TryFrom<LogFilter> for net_types::LogFilter {
         }
 
         Ok(net_types::LogFilter {
-            address: map_optional_vec(filter.address).context("Failed to parse address")?,
+            address,
             address_filter: None,
             topics,
         })
@@ -493,15 +495,17 @@ impl TryFrom<AuthorizationSelection> for net_types::AuthorizationSelection {
     type Error = anyhow::Error;
 
     fn try_from(selection: AuthorizationSelection) -> Result<net_types::AuthorizationSelection> {
-        Ok(net_types::AuthorizationSelection {
-            chain_id: selection
-                .chain_id
-                .unwrap_or_default()
-                .into_iter()
-                .map(|id| id as u64)
-                .collect(),
-            address: map_optional_vec(selection.address).context("Failed to parse authorization address")?,
-        })
+        let chain_id = selection
+            .chain_id
+            .unwrap_or_default()
+            .into_iter()
+            .map(|id| id as u64)
+            .collect();
+
+        let address =
+            map_optional_vec(selection.address).context("Failed to parse authorization address")?;
+
+        Ok(net_types::AuthorizationSelection { chain_id, address })
     }
 }
 
@@ -559,17 +563,64 @@ impl TryFrom<TraceFilter> for net_types::TraceFilter {
     type Error = anyhow::Error;
 
     fn try_from(filter: TraceFilter) -> Result<net_types::TraceFilter> {
+        use hypersync_client::format::Address;
+        use hypersync_client::net_types::Sighash;
+
+        let from = if let Some(addresses) = filter.from {
+            addresses
+                .into_iter()
+                .map(|addr_str| Address::try_from(addr_str.as_str()))
+                .collect::<std::result::Result<Vec<_>, _>>()
+                .context("Failed to parse from address")?
+        } else {
+            Vec::new()
+        };
+
+        let to = if let Some(addresses) = filter.to {
+            addresses
+                .into_iter()
+                .map(|addr_str| Address::try_from(addr_str.as_str()))
+                .collect::<std::result::Result<Vec<_>, _>>()
+                .context("Failed to parse to address")?
+        } else {
+            Vec::new()
+        };
+
+        let address = if let Some(addresses) = filter.address {
+            addresses
+                .into_iter()
+                .map(|addr_str| Address::try_from(addr_str.as_str()))
+                .collect::<std::result::Result<Vec<_>, _>>()
+                .context("Failed to parse address")?
+        } else {
+            Vec::new()
+        };
+
+        let call_type = filter.call_type.unwrap_or_default();
+        let reward_type = filter.reward_type.unwrap_or_default();
+        let type_ = filter.type_.unwrap_or_default();
+
+        let sighash = if let Some(sighashes) = filter.sighash {
+            sighashes
+                .into_iter()
+                .map(|sig_str| Sighash::try_from(sig_str.as_str()))
+                .collect::<std::result::Result<Vec<_>, _>>()
+                .context("Failed to parse sighash")?
+        } else {
+            Vec::new()
+        };
+
         Ok(net_types::TraceFilter {
-            from: map_optional_vec(filter.from).context("Failed to parse from address")?,
+            from,
             from_filter: None,
-            to: map_optional_vec(filter.to).context("Failed to parse to address")?,
+            to,
             to_filter: None,
-            address: map_optional_vec(filter.address).context("Failed to parse address")?,
+            address,
             address_filter: None,
-            call_type: filter.call_type.unwrap_or_default(),
-            reward_type: filter.reward_type.unwrap_or_default(),
-            type_: filter.type_.unwrap_or_default(),
-            sighash: map_optional_vec(filter.sighash).context("Failed to parse sighash")?,
+            call_type,
+            reward_type,
+            type_,
+            sighash,
         })
     }
 }
@@ -592,10 +643,29 @@ impl TryFrom<BlockFilter> for net_types::BlockFilter {
     type Error = anyhow::Error;
 
     fn try_from(filter: BlockFilter) -> Result<net_types::BlockFilter> {
-        Ok(net_types::BlockFilter {
-            hash: map_optional_vec(filter.hash).context("Failed to parse hash")?,
-            miner: map_optional_vec(filter.miner).context("Failed to parse miner address")?,
-        })
+        use hypersync_client::format::{Address, Hash};
+
+        let hash = if let Some(hashes) = filter.hash {
+            hashes
+                .into_iter()
+                .map(|hash_str| Hash::try_from(hash_str.as_str()))
+                .collect::<std::result::Result<Vec<_>, _>>()
+                .context("Failed to parse hash")?
+        } else {
+            Vec::new()
+        };
+
+        let miner = if let Some(addresses) = filter.miner {
+            addresses
+                .into_iter()
+                .map(|addr_str| Address::try_from(addr_str.as_str()))
+                .collect::<std::result::Result<Vec<_>, _>>()
+                .context("Failed to parse miner address")?
+        } else {
+            Vec::new()
+        };
+
+        Ok(net_types::BlockFilter { hash, miner })
     }
 }
 
@@ -803,59 +873,29 @@ impl TryFrom<FieldSelection> for net_types::FieldSelection {
 
 // Reverse conversions from net_types back to client types
 
-impl TryFrom<net_types::Query> for Query {
-    type Error = anyhow::Error;
-
-    fn try_from(query: net_types::Query) -> Result<Query> {
-        let logs = if query.logs.is_empty() {
-            None
-        } else {
-            Some(
-                query
-                    .logs
-                    .into_iter()
-                    .map(|selection| LogSelection::try_from(selection).map(Either::B))
-                    .collect::<Result<Vec<_>>>()?,
-            )
-        };
-
-        let transactions = if query.transactions.is_empty() {
-            None
-        } else {
-            Some(
-                query
-                    .transactions
-                    .into_iter()
-                    .map(|selection| TransactionSelection::try_from(selection).map(Either::B))
-                    .collect::<Result<Vec<_>>>()?,
-            )
-        };
-
-        let traces = if query.traces.is_empty() {
-            None
-        } else {
-            Some(
-                query
-                    .traces
-                    .into_iter()
-                    .map(|selection| TraceSelection::try_from(selection).map(Either::B))
-                    .collect::<Result<Vec<_>>>()?,
-            )
-        };
-
-        let blocks = if query.blocks.is_empty() {
-            None
-        } else {
-            Some(
-                query
-                    .blocks
-                    .into_iter()
-                    .map(|selection| BlockSelection::try_from(selection).map(Either::B))
-                    .collect::<Result<Vec<_>>>()?,
-            )
-        };
-
-        let field_selection = FieldSelection::try_from(query.field_selection)?;
+impl From<net_types::Query> for Query {
+    fn from(query: net_types::Query) -> Query {
+        fn map_selections<T, F, S>(
+            selections: Vec<net_types::Selection<T>>,
+        ) -> Option<Vec<Either<F, S>>>
+        where
+            T: Into<F>,
+            net_types::Selection<T>: Into<S>,
+        {
+            if selections.is_empty() {
+                None
+            } else {
+                let mut converted = Vec::new();
+                for selection in selections {
+                    if selection.exclude.is_some() {
+                        converted.push(Either::B(selection.into()));
+                    } else {
+                        converted.push(Either::A(selection.include.into()));
+                    }
+                }
+                Some(converted)
+            }
+        }
 
         let join_mode = Some(match query.join_mode {
             net_types::JoinMode::Default => JoinMode::Default,
@@ -863,38 +903,41 @@ impl TryFrom<net_types::Query> for Query {
             net_types::JoinMode::JoinNothing => JoinMode::JoinNothing,
         });
 
-        Ok(Query {
+        Query {
             from_block: query.from_block as i64,
             to_block: query.to_block.map(|b| b as i64),
-            logs,
-            transactions,
-            traces,
-            blocks,
+            logs: map_selections(query.logs),
+            transactions: map_selections(query.transactions),
+            traces: map_selections(query.traces),
+            blocks: map_selections(query.blocks),
             include_all_blocks: if query.include_all_blocks {
                 Some(true)
             } else {
                 None
             },
-            field_selection,
+            field_selection: query.field_selection.into(),
             max_num_blocks: query.max_num_blocks.map(|n| n as i64),
             max_num_transactions: query.max_num_transactions.map(|n| n as i64),
             max_num_logs: query.max_num_logs.map(|n| n as i64),
             max_num_traces: query.max_num_traces.map(|n| n as i64),
             join_mode,
-        })
+        }
     }
 }
 
-impl TryFrom<net_types::LogFilter> for LogFilter {
-    type Error = anyhow::Error;
+fn map_maybe_hex_vec<T>(v: Vec<T>) -> Option<Vec<String>>
+where
+    T: Hex,
+{
+    if v.is_empty() {
+        None
+    } else {
+        Some(v.iter().map(Hex::encode_hex).collect())
+    }
+}
 
-    fn try_from(filter: net_types::LogFilter) -> Result<LogFilter> {
-        let address = if filter.address.is_empty() {
-            None
-        } else {
-            Some(filter.address.iter().map(Hex::encode_hex).collect())
-        };
-
+impl From<net_types::LogFilter> for LogFilter {
+    fn from(filter: net_types::LogFilter) -> LogFilter {
         let topics = if filter.topics.is_empty() {
             None
         } else {
@@ -907,87 +950,45 @@ impl TryFrom<net_types::LogFilter> for LogFilter {
             )
         };
 
-        Ok(LogFilter { address, topics })
+        LogFilter {
+            address: map_maybe_hex_vec(filter.address),
+            topics,
+        }
     }
 }
 
-impl TryFrom<net_types::LogSelection> for LogSelection {
-    type Error = anyhow::Error;
-
-    fn try_from(selection: net_types::LogSelection) -> Result<LogSelection> {
-        let include = LogFilter::try_from(selection.include)?;
-        let exclude = selection.exclude.map(LogFilter::try_from).transpose()?;
-
-        Ok(LogSelection { include, exclude })
+impl From<net_types::LogSelection> for LogSelection {
+    fn from(selection: net_types::LogSelection) -> Self {
+        Self {
+            include: selection.include.into(),
+            exclude: selection.exclude.map(Into::into),
+        }
     }
 }
 
-impl TryFrom<net_types::AuthorizationSelection> for AuthorizationSelection {
-    type Error = anyhow::Error;
-
-    fn try_from(selection: net_types::AuthorizationSelection) -> Result<AuthorizationSelection> {
+impl From<net_types::AuthorizationSelection> for AuthorizationSelection {
+    fn from(selection: net_types::AuthorizationSelection) -> AuthorizationSelection {
         let chain_id = if selection.chain_id.is_empty() {
             None
         } else {
             Some(selection.chain_id.into_iter().map(|id| id as i64).collect())
         };
 
-        let address = if selection.address.is_empty() {
-            None
-        } else {
-            Some(selection.address.iter().map(Hex::encode_hex).collect())
-        };
-
-        Ok(AuthorizationSelection { chain_id, address })
+        AuthorizationSelection {
+            chain_id,
+            address: map_maybe_hex_vec(selection.address),
+        }
     }
 }
 
-impl TryFrom<net_types::TransactionFilter> for TransactionFilter {
-    type Error = anyhow::Error;
-
-    fn try_from(filter: net_types::TransactionFilter) -> Result<TransactionFilter> {
-        let from = if filter.from.is_empty() {
-            None
-        } else {
-            Some(filter.from.iter().map(Hex::encode_hex).collect())
-        };
-
-        let to = if filter.to.is_empty() {
-            None
-        } else {
-            Some(filter.to.iter().map(Hex::encode_hex).collect())
-        };
-
-        let sighash = if filter.sighash.is_empty() {
-            None
-        } else {
-            Some(filter.sighash.iter().map(Hex::encode_hex).collect())
-        };
-
+impl From<net_types::TransactionFilter> for TransactionFilter {
+    fn from(filter: net_types::TransactionFilter) -> TransactionFilter {
         let status = filter.status.map(|s| s as i64);
 
         let type_ = if filter.type_.is_empty() {
             None
         } else {
             Some(filter.type_)
-        };
-
-        let contract_address = if filter.contract_address.is_empty() {
-            None
-        } else {
-            Some(
-                filter
-                    .contract_address
-                    .iter()
-                    .map(Hex::encode_hex)
-                    .collect(),
-            )
-        };
-
-        let hash = if filter.hash.is_empty() {
-            None
-        } else {
-            Some(filter.hash.iter().map(Hex::encode_hex).collect())
         };
 
         let authorization_list = if filter.authorization_list.is_empty() {
@@ -997,60 +998,35 @@ impl TryFrom<net_types::TransactionFilter> for TransactionFilter {
                 filter
                     .authorization_list
                     .into_iter()
-                    .map(AuthorizationSelection::try_from)
-                    .collect::<Result<Vec<_>>>()?,
+                    .map(Into::into)
+                    .collect::<Vec<_>>(),
             )
         };
 
-        Ok(TransactionFilter {
-            from,
-            to,
-            sighash,
+        TransactionFilter {
+            from: map_maybe_hex_vec(filter.from),
+            to: map_maybe_hex_vec(filter.to),
+            sighash: map_maybe_hex_vec(filter.sighash),
             status,
             type_,
-            contract_address,
-            hash,
+            contract_address: map_maybe_hex_vec(filter.contract_address),
+            hash: map_maybe_hex_vec(filter.hash),
             authorization_list,
-        })
+        }
     }
 }
 
-impl TryFrom<net_types::TransactionSelection> for TransactionSelection {
-    type Error = anyhow::Error;
-
-    fn try_from(selection: net_types::TransactionSelection) -> Result<TransactionSelection> {
-        let include = TransactionFilter::try_from(selection.include)?;
-        let exclude = selection
-            .exclude
-            .map(TransactionFilter::try_from)
-            .transpose()?;
-
-        Ok(TransactionSelection { include, exclude })
+impl From<net_types::TransactionSelection> for TransactionSelection {
+    fn from(selection: net_types::TransactionSelection) -> Self {
+        Self {
+            include: selection.include.into(),
+            exclude: selection.exclude.map(Into::into),
+        }
     }
 }
 
-impl TryFrom<net_types::TraceFilter> for TraceFilter {
-    type Error = anyhow::Error;
-
-    fn try_from(filter: net_types::TraceFilter) -> Result<TraceFilter> {
-        let from = if filter.from.is_empty() {
-            None
-        } else {
-            Some(filter.from.iter().map(Hex::encode_hex).collect())
-        };
-
-        let to = if filter.to.is_empty() {
-            None
-        } else {
-            Some(filter.to.iter().map(Hex::encode_hex).collect())
-        };
-
-        let address = if filter.address.is_empty() {
-            None
-        } else {
-            Some(filter.address.iter().map(Hex::encode_hex).collect())
-        };
-
+impl From<net_types::TraceFilter> for TraceFilter {
+    fn from(filter: net_types::TraceFilter) -> TraceFilter {
         let call_type = if filter.call_type.is_empty() {
             None
         } else {
@@ -1069,63 +1045,42 @@ impl TryFrom<net_types::TraceFilter> for TraceFilter {
             Some(filter.type_)
         };
 
-        let sighash = if filter.sighash.is_empty() {
-            None
-        } else {
-            Some(filter.sighash.iter().map(Hex::encode_hex).collect())
-        };
-
-        Ok(TraceFilter {
-            from,
-            to,
-            address,
+        TraceFilter {
+            from: map_maybe_hex_vec(filter.from),
+            to: map_maybe_hex_vec(filter.to),
+            address: map_maybe_hex_vec(filter.address),
             call_type,
             reward_type,
             type_,
-            sighash,
-        })
+            sighash: map_maybe_hex_vec(filter.sighash),
+        }
     }
 }
 
-impl TryFrom<net_types::TraceSelection> for TraceSelection {
-    type Error = anyhow::Error;
+impl From<net_types::TraceSelection> for TraceSelection {
+    fn from(selection: net_types::TraceSelection) -> TraceSelection {
+        let include = TraceFilter::from(selection.include);
+        let exclude = selection.exclude.map(TraceFilter::from);
 
-    fn try_from(selection: net_types::TraceSelection) -> Result<TraceSelection> {
-        let include = TraceFilter::try_from(selection.include)?;
-        let exclude = selection.exclude.map(TraceFilter::try_from).transpose()?;
-
-        Ok(TraceSelection { include, exclude })
+        TraceSelection { include, exclude }
     }
 }
 
-impl TryFrom<net_types::BlockFilter> for BlockFilter {
-    type Error = anyhow::Error;
-
-    fn try_from(filter: net_types::BlockFilter) -> Result<BlockFilter> {
-        let hash = if filter.hash.is_empty() {
-            None
-        } else {
-            Some(filter.hash.iter().map(Hex::encode_hex).collect())
-        };
-
-        let miner = if filter.miner.is_empty() {
-            None
-        } else {
-            Some(filter.miner.iter().map(Hex::encode_hex).collect())
-        };
-
-        Ok(BlockFilter { hash, miner })
+impl From<net_types::BlockFilter> for BlockFilter {
+    fn from(filter: net_types::BlockFilter) -> BlockFilter {
+        BlockFilter {
+            hash: map_maybe_hex_vec(filter.hash),
+            miner: map_maybe_hex_vec(filter.miner),
+        }
     }
 }
 
-impl TryFrom<net_types::BlockSelection> for BlockSelection {
-    type Error = anyhow::Error;
-
-    fn try_from(selection: net_types::BlockSelection) -> Result<BlockSelection> {
-        let include = BlockFilter::try_from(selection.include)?;
-        let exclude = selection.exclude.map(BlockFilter::try_from).transpose()?;
-
-        Ok(BlockSelection { include, exclude })
+impl From<net_types::BlockSelection> for BlockSelection {
+    fn from(selection: net_types::BlockSelection) -> Self {
+        Self {
+            include: selection.include.into(),
+            exclude: selection.exclude.map(Into::into),
+        }
     }
 }
 
@@ -1276,46 +1231,25 @@ impl From<net_types::TraceField> for TraceField {
     }
 }
 
-impl TryFrom<net_types::FieldSelection> for FieldSelection {
-    type Error = anyhow::Error;
+impl From<net_types::FieldSelection> for FieldSelection {
+    fn from(selection: net_types::FieldSelection) -> FieldSelection {
+        fn map_into<T, F>(fields: std::collections::BTreeSet<T>) -> Option<Vec<F>>
+        where
+            T: Into<F>,
+        {
+            if fields.is_empty() {
+                None
+            } else {
+                Some(fields.into_iter().map(Into::into).collect())
+            }
+        }
 
-    fn try_from(selection: net_types::FieldSelection) -> Result<FieldSelection> {
-        let block = if selection.block.is_empty() {
-            None
-        } else {
-            Some(selection.block.into_iter().map(BlockField::from).collect())
-        };
-
-        let transaction = if selection.transaction.is_empty() {
-            None
-        } else {
-            Some(
-                selection
-                    .transaction
-                    .into_iter()
-                    .map(TransactionField::from)
-                    .collect(),
-            )
-        };
-
-        let log = if selection.log.is_empty() {
-            None
-        } else {
-            Some(selection.log.into_iter().map(LogField::from).collect())
-        };
-
-        let trace = if selection.trace.is_empty() {
-            None
-        } else {
-            Some(selection.trace.into_iter().map(TraceField::from).collect())
-        };
-
-        Ok(FieldSelection {
-            block,
-            transaction,
-            log,
-            trace,
-        })
+        FieldSelection {
+            block: map_into(selection.block),
+            transaction: map_into(selection.transaction),
+            log: map_into(selection.log),
+            trace: map_into(selection.trace),
+        }
     }
 }
 
