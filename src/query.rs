@@ -162,11 +162,21 @@ pub enum TransactionField {
     Root,
     Status,
     L1Fee,
+    L1BlockNumber,
     L1GasPrice,
     L1GasUsed,
     L1FeeScalar,
+    L1BaseFeeScalar,
+    L1BlobBaseFee,
+    L1BlobBaseFeeScalar,
     GasUsedForL1,
     Sighash,
+    BlobGasPrice,
+    BlobGasUsed,
+    DepositNonce,
+    DepositReceiptVersion,
+    Mint,
+    SourceHash,
 }
 
 #[napi(string_enum)]
@@ -211,6 +221,10 @@ pub enum LogField {
 )]
 #[strum(serialize_all = "snake_case")]
 pub enum TraceField {
+    ActionAddress,
+    Balance,
+    RefundAddress,
+    Sighash,
     From,
     To,
     CallType,
@@ -811,10 +825,25 @@ impl From<TransactionField> for net_types::TransactionField {
             TransactionField::Sighash => net_types::TransactionField::Sighash,
             TransactionField::AuthorizationList => net_types::TransactionField::AuthorizationList,
             TransactionField::L1Fee => net_types::TransactionField::L1Fee,
+            TransactionField::L1BlockNumber => net_types::TransactionField::L1BlockNumber,
             TransactionField::L1GasPrice => net_types::TransactionField::L1GasPrice,
             TransactionField::L1GasUsed => net_types::TransactionField::L1GasUsed,
             TransactionField::L1FeeScalar => net_types::TransactionField::L1FeeScalar,
+            TransactionField::L1BaseFeeScalar => net_types::TransactionField::L1BaseFeeScalar,
+            TransactionField::L1BlobBaseFee => net_types::TransactionField::L1BlobBaseFee,
+            TransactionField::L1BlobBaseFeeScalar => {
+                net_types::TransactionField::L1BlobBaseFeeScalar
+            }
             TransactionField::GasUsedForL1 => net_types::TransactionField::GasUsedForL1,
+            TransactionField::BlobGasPrice => net_types::TransactionField::BlobGasPrice,
+            TransactionField::BlobGasUsed => net_types::TransactionField::BlobGasUsed,
+
+            TransactionField::DepositNonce => net_types::TransactionField::DepositNonce,
+            TransactionField::DepositReceiptVersion => {
+                net_types::TransactionField::DepositReceiptVersion
+            }
+            TransactionField::Mint => net_types::TransactionField::Mint,
+            TransactionField::SourceHash => net_types::TransactionField::SourceHash,
         }
     }
 }
@@ -862,6 +891,10 @@ impl From<TraceField> for net_types::TraceField {
             TraceField::TransactionPosition => net_types::TraceField::TransactionPosition,
             TraceField::Type => net_types::TraceField::Type,
             TraceField::Error => net_types::TraceField::Error,
+            TraceField::ActionAddress => net_types::TraceField::ActionAddress,
+            TraceField::Balance => net_types::TraceField::Balance,
+            TraceField::RefundAddress => net_types::TraceField::RefundAddress,
+            TraceField::Sighash => net_types::TraceField::Sighash,
         }
     }
 }
@@ -908,11 +941,10 @@ impl TryFrom<FieldSelection> for net_types::FieldSelection {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::BTreeSet;
-
-    use strum::IntoEnumIterator;
-
     use super::*;
+    use pretty_assertions::assert_eq;
+    use std::collections::BTreeSet;
+    use strum::IntoEnumIterator;
 
     #[test]
     fn test_log_filter_conversion() {
@@ -1261,45 +1293,43 @@ mod tests {
         let block_fields = BlockField::iter()
             .map(|f| f.as_ref().to_string())
             .collect::<BTreeSet<_>>();
-        for block_field in net_types::block::BlockField::iter() {
-            assert!(
-                block_fields.contains(block_field.as_ref()),
-                "missing block field: {}",
-                block_field.as_ref()
-            );
-        }
+        let net_types_block_fields = net_types::block::BlockField::iter()
+            .map(|f| f.as_ref().to_string())
+            .collect::<BTreeSet<_>>();
+
+        assert_eq!(
+            block_fields, net_types_block_fields,
+            "block fields mismatch"
+        );
 
         let tx_fields = TransactionField::iter()
             .map(|f| f.as_ref().to_string())
             .collect::<BTreeSet<_>>();
-        for tx_field in net_types::transaction::TransactionField::iter() {
-            assert!(
-                tx_fields.contains(tx_field.as_ref()),
-                "missing transaction field: {}",
-                tx_field.as_ref()
-            );
-        }
+        let net_types_tx_fields = net_types::transaction::TransactionField::iter()
+            .map(|f| f.as_ref().to_string())
+            .collect::<BTreeSet<_>>();
+        assert_eq!(
+            tx_fields, net_types_tx_fields,
+            "transaction fields mismatch"
+        );
 
         let log_fields = LogField::iter()
             .map(|f| f.as_ref().to_string())
             .collect::<BTreeSet<_>>();
-        for log_field in net_types::log::LogField::iter() {
-            assert!(
-                log_fields.contains(log_field.as_ref()),
-                "missing log field: {}",
-                log_field.as_ref()
-            );
-        }
+        let net_types_log_fields = net_types::log::LogField::iter()
+            .map(|f| f.as_ref().to_string())
+            .collect::<BTreeSet<_>>();
+        assert_eq!(log_fields, net_types_log_fields, "log fields mismatch");
 
         let trace_fields = TraceField::iter()
             .map(|f| f.as_ref().to_string())
             .collect::<BTreeSet<_>>();
-        for trace_field in net_types::trace::TraceField::iter() {
-            assert!(
-                trace_fields.contains(trace_field.as_ref()),
-                "missing trace field: {}",
-                trace_field.as_ref()
-            );
-        }
+        let net_types_trace_fields = net_types::trace::TraceField::iter()
+            .map(|f| f.as_ref().to_string())
+            .collect::<BTreeSet<_>>();
+        assert_eq!(
+            trace_fields, net_types_trace_fields,
+            "trace fields mismatch"
+        );
     }
 }

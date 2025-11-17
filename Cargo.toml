@@ -34,3 +34,6 @@ napi-build = "2.3.1"
 
 [profile.release]
 lto = true
+
+[dev-dependencies]
+pretty_assertions = "1.4.1"
