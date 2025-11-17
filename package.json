@@ -5,14 +5,12 @@
   "main": "index.js",
   "types": "index.d.ts",
   "napi": {
-    "name": "hypersync-client",
-    "triples": {
-      "additional": [
-        "aarch64-apple-darwin",
-        "aarch64-unknown-linux-gnu",
-        "x86_64-unknown-linux-musl"
-      ]
-    }
+    "binaryName": "hypersync-client",
+    "targets": [
+      "aarch64-apple-darwin",
+      "aarch64-unknown-linux-gnu",
+      "x86_64-unknown-linux-musl"
+    ]
   },
   "license": "MIT",
   "devDependencies": {

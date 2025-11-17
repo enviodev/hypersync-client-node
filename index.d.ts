@@ -151,7 +151,7 @@ export type BlockField =  'Number'|
 'SendRoot'|
 'MixHash';
 
-export interface BlockSelection {
+export interface BlockFilter {
   /**
    * Hash of a block, any blocks that have one of these hashes will be returned.
    * Empty means match all.
@@ -162,6 +162,11 @@ export interface BlockSelection {
    * Empty means match all.
    */
   miner?: Array<string>
+}
+
+export interface BlockSelection {
+  include: BlockFilter
+  exclude?: BlockFilter
 }
 
 export interface ClientConfig {
@@ -357,14 +362,14 @@ export interface Query {
    * List of transaction selections, the query will return transactions that match any of these selections and
    *  it will return transactions that are related to the returned logs.
    */
-  transactions?: Array<TransactionSelection>
+  transactions?: Array<TransactionFilter | TransactionSelection>
   /**
    * List of trace selections, the query will return traces that match any of these selections and
    *  it will re turn traces that are related to the returned logs.
    */
-  traces?: Array<TraceSelection>
+  traces?: Array<TraceFilter | TraceSelection>
   /** List of block selections, the query will return blocks that match any of these selections */
-  blocks?: Array<BlockSelection>
+  blocks?: Array<BlockFilter | BlockSelection>
   /**
    * Weather to include all blocks regardless of if they are related to a returned transaction or log. Normally
    *  the server will return only the blocks that are related to the transaction or logs in the response. But if this
@@ -498,7 +503,11 @@ export interface Trace {
   error?: string
 }
 
-export type TraceField =  'From'|
+export type TraceField =  'ActionAddress'|
+'Balance'|
+'RefundAddress'|
+'Sighash'|
+'From'|
 'To'|
 'CallType'|
 'Gas'|
@@ -520,7 +529,7 @@ export type TraceField =  'From'|
 'Type'|
 'Error';
 
-export interface TraceSelection {
+export interface TraceFilter {
   from?: Array<string>
   to?: Array<string>
   address?: Array<string>
@@ -528,6 +537,11 @@ export interface TraceSelection {
   rewardType?: Array<string>
   type?: Array<string>
   sighash?: Array<string>
+}
+
+export interface TraceSelection {
+  include: TraceFilter
+  exclude?: TraceFilter
 }
 
 /**
@@ -604,12 +618,23 @@ export type TransactionField =  'BlockHash'|
 'Root'|
 'Status'|
 'L1Fee'|
+'L1BlockNumber'|
 'L1GasPrice'|
 'L1GasUsed'|
 'L1FeeScalar'|
-'GasUsedForL1';
+'L1BaseFeeScalar'|
+'L1BlobBaseFee'|
+'L1BlobBaseFeeScalar'|
+'GasUsedForL1'|
+'Sighash'|
+'BlobGasPrice'|
+'BlobGasUsed'|
+'DepositNonce'|
+'DepositReceiptVersion'|
+'Mint'|
+'SourceHash';
 
-export interface TransactionSelection {
+export interface TransactionFilter {
   /**
    * Address the transaction should originate from. If transaction.from matches any of these, the transaction
    *  will be returned. Keep in mind that this has an and relationship with to filter, so each transaction should
@@ -629,8 +654,18 @@ export interface TransactionSelection {
   /** If transaction.type matches any of these values, the transaction will be returned */
   type?: Array<number>
   contractAddress?: Array<string>
+  /**
+   * If transaction.hash matches any of these values, the transaction will be returned.
+   * Empty means match all.
+   */
+  hash?: Array<string>
   /** If transaction.authorization_list matches any of these values, the transaction will be returned. */
   authorizationList?: Array<AuthorizationSelection>
+}
+
+export interface TransactionSelection {
+  include: TransactionFilter
+  exclude?: TransactionFilter
 }
 
 /**
