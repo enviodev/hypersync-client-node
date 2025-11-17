@@ -1,7 +1,6 @@
 use anyhow::{Context, Result};
 use hypersync_client::net_types;
 use napi::bindgen_prelude::Either;
-use serde::{Deserialize, Serialize};
 
 #[napi(object)]
 #[derive(Default, Clone, Debug)]
@@ -63,21 +62,16 @@ pub struct AuthorizationSelection {
 }
 
 #[napi(object)]
-#[derive(Default, Clone, Serialize, Deserialize)]
+#[derive(Default, Clone, Debug)]
 pub struct FieldSelection {
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub block: Option<Vec<BlockField>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub transaction: Option<Vec<TransactionField>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub log: Option<Vec<LogField>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub trace: Option<Vec<TraceField>>,
 }
 
 #[napi(string_enum)]
-#[derive(Serialize, Deserialize, Clone, Copy)]
-#[serde(rename_all = "snake_case")]
+#[derive(Clone, Copy, Debug)]
 pub enum BlockField {
     Number,
     Hash,
@@ -110,8 +104,7 @@ pub enum BlockField {
 }
 
 #[napi(string_enum)]
-#[derive(Serialize, Deserialize, Clone, Copy)]
-#[serde(rename_all = "snake_case")]
+#[derive(Clone, Copy, Debug)]
 pub enum TransactionField {
     BlockHash,
     BlockNumber,
@@ -151,8 +144,7 @@ pub enum TransactionField {
 }
 
 #[napi(string_enum)]
-#[derive(Serialize, Deserialize, Clone, Copy)]
-#[serde(rename_all = "snake_case")]
+#[derive(Clone, Copy, Debug)]
 pub enum LogField {
     Removed,
     LogIndex,
@@ -169,8 +161,7 @@ pub enum LogField {
 }
 
 #[napi(string_enum)]
-#[derive(Serialize, Deserialize, Clone, Copy)]
-#[serde(rename_all = "snake_case")]
+#[derive(Clone, Copy, Debug)]
 pub enum TraceField {
     From,
     To,
@@ -191,7 +182,6 @@ pub enum TraceField {
     TraceAddress,
     TransactionHash,
     TransactionPosition,
-    #[serde(rename = "type")]
     Type,
     Error,
 }
@@ -235,7 +225,7 @@ pub struct BlockSelection {
 }
 
 #[napi]
-#[derive(Default, Serialize, Deserialize, Debug, PartialEq, Eq, Clone, Copy)]
+#[derive(Default, Debug, PartialEq, Eq, Clone, Copy)]
 pub enum JoinMode {
     #[default]
     Default,
