@@ -450,17 +450,7 @@ impl TryFrom<LogFilter> for net_types::LogFilter {
 
     fn try_from(filter: LogFilter) -> Result<net_types::LogFilter> {
         use arrayvec::ArrayVec;
-        use hypersync_client::format::{Address, LogArgument};
-
-        let address = if let Some(addresses) = filter.address {
-            addresses
-                .into_iter()
-                .map(|addr_str| Address::try_from(addr_str.as_str()))
-                .collect::<std::result::Result<Vec<_>, _>>()
-                .map_err(|e| anyhow::anyhow!("Failed to parse address: {}", e))?
-        } else {
-            Vec::new()
-        };
+        use hypersync_client::format::LogArgument;
 
         let mut topics = ArrayVec::new();
         if let Some(topic_vecs) = filter.topics {
@@ -478,7 +468,7 @@ impl TryFrom<LogFilter> for net_types::LogFilter {
         }
 
         Ok(net_types::LogFilter {
-            address,
+            address: map_optional_vec(filter.address).context("Failed to parse address")?,
             address_filter: None,
             topics,
         })
@@ -503,26 +493,29 @@ impl TryFrom<AuthorizationSelection> for net_types::AuthorizationSelection {
     type Error = anyhow::Error;
 
     fn try_from(selection: AuthorizationSelection) -> Result<net_types::AuthorizationSelection> {
-        use hypersync_client::format::Address;
-
-        let chain_id = selection
-            .chain_id
-            .unwrap_or_default()
-            .into_iter()
-            .map(|id| id as u64)
-            .collect();
-
-        let address = if let Some(addresses) = selection.address {
-            addresses
+        Ok(net_types::AuthorizationSelection {
+            chain_id: selection
+                .chain_id
+                .unwrap_or_default()
                 .into_iter()
-                .map(|addr_str| Address::try_from(addr_str.as_str()))
-                .collect::<std::result::Result<Vec<_>, _>>()
-                .context("Failed to parse authorization address")?
-        } else {
-            Vec::new()
-        };
+                .map(|id| id as u64)
+                .collect(),
+            address: map_optional_vec(selection.address).context("Failed to parse authorization address")?,
+        })
+    }
+}
 
-        Ok(net_types::AuthorizationSelection { chain_id, address })
+fn map_optional_vec<T, U, E>(v: Option<Vec<T>>) -> std::result::Result<Vec<U>, E>
+where
+    T: TryInto<U, Error = E>,
+    U: std::fmt::Debug,
+{
+    if let Some(ve) = v {
+        ve.into_iter()
+            .map(TryInto::try_into)
+            .collect::<std::result::Result<Vec<_>, _>>()
+    } else {
+        Ok(Vec::new())
     }
 }
 
@@ -530,85 +523,20 @@ impl TryFrom<TransactionFilter> for net_types::TransactionFilter {
     type Error = anyhow::Error;
 
     fn try_from(filter: TransactionFilter) -> Result<net_types::TransactionFilter> {
-        use hypersync_client::format::{Address, Hash};
-        use hypersync_client::net_types::Sighash;
-
-        let from = if let Some(addresses) = filter.from {
-            addresses
-                .into_iter()
-                .map(|addr_str| Address::try_from(addr_str.as_str()))
-                .collect::<std::result::Result<Vec<_>, _>>()
-                .context("Failed to parse from address")?
-        } else {
-            Vec::new()
-        };
-
-        let to = if let Some(addresses) = filter.to {
-            addresses
-                .into_iter()
-                .map(|addr_str| Address::try_from(addr_str.as_str()))
-                .collect::<std::result::Result<Vec<_>, _>>()
-                .context("Failed to parse to address")?
-        } else {
-            Vec::new()
-        };
-
-        let sighash = if let Some(sighashes) = filter.sighash {
-            sighashes
-                .into_iter()
-                .map(|sig_str| Sighash::try_from(sig_str.as_str()))
-                .collect::<std::result::Result<Vec<_>, _>>()
-                .context("Failed to parse sighash")?
-        } else {
-            Vec::new()
-        };
-
-        let status = filter.status.map(|s| s as u8);
-
-        let type_ = filter.type_.unwrap_or_default();
-
-        let contract_address = if let Some(addresses) = filter.contract_address {
-            addresses
-                .into_iter()
-                .map(|addr_str| Address::try_from(addr_str.as_str()))
-                .collect::<std::result::Result<Vec<_>, _>>()
-                .context("Failed to parse contract address")?
-        } else {
-            Vec::new()
-        };
-
-        let hash = if let Some(hashes) = filter.hash {
-            hashes
-                .into_iter()
-                .map(|hash_str| Hash::try_from(hash_str.as_str()))
-                .collect::<std::result::Result<Vec<_>, _>>()
-                .context("Failed to parse hash")?
-        } else {
-            Vec::new()
-        };
-
-        let authorization_list = if let Some(auth_list) = filter.authorization_list {
-            auth_list
-                .into_iter()
-                .map(net_types::AuthorizationSelection::try_from)
-                .collect::<std::result::Result<Vec<_>, _>>()
-                .context("Failed to convert authorization list")?
-        } else {
-            Vec::new()
-        };
-
         Ok(net_types::TransactionFilter {
-            from,
+            from: map_optional_vec(filter.from).context("Failed to convert from")?,
             from_filter: None,
-            to,
+            to: map_optional_vec(filter.to).context("Failed to convert to")?,
             to_filter: None,
-            sighash,
-            status,
-            type_,
-            contract_address,
+            sighash: map_optional_vec(filter.sighash).context("Failed to convert sighash")?,
+            status: filter.status.map(|s| s as u8),
+            type_: filter.type_.unwrap_or_default(),
+            contract_address: map_optional_vec(filter.contract_address)
+                .context("Failed to convert contract_address")?,
             contract_address_filter: None,
-            hash,
-            authorization_list,
+            hash: map_optional_vec(filter.hash).context("Failed to convert hash")?,
+            authorization_list: map_optional_vec(filter.authorization_list)
+                .context("Failed to convert authorization_list")?,
         })
     }
 }
@@ -631,64 +559,17 @@ impl TryFrom<TraceFilter> for net_types::TraceFilter {
     type Error = anyhow::Error;
 
     fn try_from(filter: TraceFilter) -> Result<net_types::TraceFilter> {
-        use hypersync_client::format::Address;
-        use hypersync_client::net_types::Sighash;
-
-        let from = if let Some(addresses) = filter.from {
-            addresses
-                .into_iter()
-                .map(|addr_str| Address::try_from(addr_str.as_str()))
-                .collect::<std::result::Result<Vec<_>, _>>()
-                .context("Failed to parse from address")?
-        } else {
-            Vec::new()
-        };
-
-        let to = if let Some(addresses) = filter.to {
-            addresses
-                .into_iter()
-                .map(|addr_str| Address::try_from(addr_str.as_str()))
-                .collect::<std::result::Result<Vec<_>, _>>()
-                .context("Failed to parse to address")?
-        } else {
-            Vec::new()
-        };
-
-        let address = if let Some(addresses) = filter.address {
-            addresses
-                .into_iter()
-                .map(|addr_str| Address::try_from(addr_str.as_str()))
-                .collect::<std::result::Result<Vec<_>, _>>()
-                .context("Failed to parse address")?
-        } else {
-            Vec::new()
-        };
-
-        let call_type = filter.call_type.unwrap_or_default();
-        let reward_type = filter.reward_type.unwrap_or_default();
-        let type_ = filter.type_.unwrap_or_default();
-
-        let sighash = if let Some(sighashes) = filter.sighash {
-            sighashes
-                .into_iter()
-                .map(|sig_str| Sighash::try_from(sig_str.as_str()))
-                .collect::<std::result::Result<Vec<_>, _>>()
-                .context("Failed to parse sighash")?
-        } else {
-            Vec::new()
-        };
-
         Ok(net_types::TraceFilter {
-            from,
+            from: map_optional_vec(filter.from).context("Failed to parse from address")?,
             from_filter: None,
-            to,
+            to: map_optional_vec(filter.to).context("Failed to parse to address")?,
             to_filter: None,
-            address,
+            address: map_optional_vec(filter.address).context("Failed to parse address")?,
             address_filter: None,
-            call_type,
-            reward_type,
-            type_,
-            sighash,
+            call_type: filter.call_type.unwrap_or_default(),
+            reward_type: filter.reward_type.unwrap_or_default(),
+            type_: filter.type_.unwrap_or_default(),
+            sighash: map_optional_vec(filter.sighash).context("Failed to parse sighash")?,
         })
     }
 }
@@ -711,29 +592,10 @@ impl TryFrom<BlockFilter> for net_types::BlockFilter {
     type Error = anyhow::Error;
 
     fn try_from(filter: BlockFilter) -> Result<net_types::BlockFilter> {
-        use hypersync_client::format::{Address, Hash};
-
-        let hash = if let Some(hashes) = filter.hash {
-            hashes
-                .into_iter()
-                .map(|hash_str| Hash::try_from(hash_str.as_str()))
-                .collect::<std::result::Result<Vec<_>, _>>()
-                .context("Failed to parse hash")?
-        } else {
-            Vec::new()
-        };
-
-        let miner = if let Some(addresses) = filter.miner {
-            addresses
-                .into_iter()
-                .map(|addr_str| Address::try_from(addr_str.as_str()))
-                .collect::<std::result::Result<Vec<_>, _>>()
-                .context("Failed to parse miner address")?
-        } else {
-            Vec::new()
-        };
-
-        Ok(net_types::BlockFilter { hash, miner })
+        Ok(net_types::BlockFilter {
+            hash: map_optional_vec(filter.hash).context("Failed to parse hash")?,
+            miner: map_optional_vec(filter.miner).context("Failed to parse miner address")?,
+        })
     }
 }
 
