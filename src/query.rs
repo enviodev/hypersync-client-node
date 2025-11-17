@@ -1666,7 +1666,7 @@ mod tests {
             topics,
         };
 
-        let converted = LogFilter::try_from(net_filter).expect("reverse conversion should succeed");
+        let converted = LogFilter::from(net_filter);
 
         assert!(converted.address.is_some());
         assert_eq!(converted.address.as_ref().unwrap().len(), 1);
@@ -1682,7 +1682,7 @@ mod tests {
             topics: arrayvec::ArrayVec::new(),
         };
 
-        let converted = LogFilter::try_from(net_filter).expect("reverse conversion should succeed");
+        let converted = LogFilter::from(net_filter);
 
         assert!(converted.address.is_none());
         assert!(converted.topics.is_none());
@@ -1713,7 +1713,7 @@ mod tests {
         };
 
         let converted =
-            TransactionFilter::try_from(net_filter).expect("reverse conversion should succeed");
+            TransactionFilter::from(net_filter);
 
         assert!(converted.from.is_some());
         assert_eq!(converted.from.as_ref().unwrap().len(), 1);
@@ -1748,7 +1748,7 @@ mod tests {
         };
 
         let converted =
-            TransactionFilter::try_from(net_filter).expect("reverse conversion should succeed");
+            TransactionFilter::from(net_filter);
 
         assert!(converted.from.is_none());
         assert!(converted.to.is_none());
@@ -1780,7 +1780,7 @@ mod tests {
         };
 
         let converted =
-            FieldSelection::try_from(net_selection).expect("reverse conversion should succeed");
+            FieldSelection::from(net_selection);
 
         assert!(converted.block.is_some());
         assert_eq!(converted.block.as_ref().unwrap().len(), 2);
@@ -1819,7 +1819,7 @@ mod tests {
             join_mode: net_types::JoinMode::JoinAll,
         };
 
-        let converted = Query::try_from(net_query).expect("reverse conversion should succeed");
+        let converted = Query::from(net_query);
 
         assert_eq!(converted.from_block, 100);
         assert_eq!(converted.to_block, Some(200));
