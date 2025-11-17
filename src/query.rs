@@ -486,6 +486,130 @@ impl TryFrom<TransactionSelection> for net_types::TransactionSelection {
     }
 }
 
+impl TryFrom<TraceFilter> for net_types::TraceFilter {
+    type Error = anyhow::Error;
+
+    fn try_from(filter: TraceFilter) -> Result<net_types::TraceFilter> {
+        use hypersync_client::format::Address;
+        use hypersync_client::net_types::Sighash;
+
+        let from = if let Some(addresses) = filter.from {
+            addresses
+                .into_iter()
+                .map(|addr_str| Address::try_from(addr_str.as_str()))
+                .collect::<std::result::Result<Vec<_>, _>>()
+                .context("Failed to parse from address")?
+        } else {
+            Vec::new()
+        };
+
+        let to = if let Some(addresses) = filter.to {
+            addresses
+                .into_iter()
+                .map(|addr_str| Address::try_from(addr_str.as_str()))
+                .collect::<std::result::Result<Vec<_>, _>>()
+                .context("Failed to parse to address")?
+        } else {
+            Vec::new()
+        };
+
+        let address = if let Some(addresses) = filter.address {
+            addresses
+                .into_iter()
+                .map(|addr_str| Address::try_from(addr_str.as_str()))
+                .collect::<std::result::Result<Vec<_>, _>>()
+                .context("Failed to parse address")?
+        } else {
+            Vec::new()
+        };
+
+        let call_type = filter.call_type.unwrap_or_default();
+        let reward_type = filter.reward_type.unwrap_or_default();
+        let type_ = filter.type_.unwrap_or_default();
+
+        let sighash = if let Some(sighashes) = filter.sighash {
+            sighashes
+                .into_iter()
+                .map(|sig_str| Sighash::try_from(sig_str.as_str()))
+                .collect::<std::result::Result<Vec<_>, _>>()
+                .context("Failed to parse sighash")?
+        } else {
+            Vec::new()
+        };
+
+        Ok(net_types::TraceFilter {
+            from,
+            from_filter: None,
+            to,
+            to_filter: None,
+            address,
+            address_filter: None,
+            call_type,
+            reward_type,
+            type_,
+            sighash,
+        })
+    }
+}
+
+impl TryFrom<TraceSelection> for net_types::TraceSelection {
+    type Error = anyhow::Error;
+
+    fn try_from(selection: TraceSelection) -> Result<net_types::TraceSelection> {
+        let include = net_types::TraceFilter::try_from(selection.include)?;
+        let exclude = selection
+            .exclude
+            .map(net_types::TraceFilter::try_from)
+            .transpose()?;
+
+        Ok(net_types::TraceSelection { include, exclude })
+    }
+}
+
+impl TryFrom<BlockFilter> for net_types::BlockFilter {
+    type Error = anyhow::Error;
+
+    fn try_from(filter: BlockFilter) -> Result<net_types::BlockFilter> {
+        use hypersync_client::format::{Address, Hash};
+
+        let hash = if let Some(hashes) = filter.hash {
+            hashes
+                .into_iter()
+                .map(|hash_str| Hash::try_from(hash_str.as_str()))
+                .collect::<std::result::Result<Vec<_>, _>>()
+                .context("Failed to parse hash")?
+        } else {
+            Vec::new()
+        };
+
+        let miner = if let Some(addresses) = filter.miner {
+            addresses
+                .into_iter()
+                .map(|addr_str| Address::try_from(addr_str.as_str()))
+                .collect::<std::result::Result<Vec<_>, _>>()
+                .context("Failed to parse miner address")?
+        } else {
+            Vec::new()
+        };
+
+        Ok(net_types::BlockFilter { hash, miner })
+    }
+}
+
+impl TryFrom<BlockSelection> for net_types::BlockSelection {
+    type Error = anyhow::Error;
+
+    fn try_from(selection: BlockSelection) -> Result<net_types::BlockSelection> {
+        let include = net_types::BlockFilter::try_from(selection.include)?;
+        let exclude = selection
+            .exclude
+            .map(net_types::BlockFilter::try_from)
+            .transpose()?;
+
+        Ok(net_types::BlockSelection { include, exclude })
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -671,5 +795,74 @@ mod tests {
         assert!(converted.sighash.is_empty());
         assert!(converted.contract_address.is_empty());
         assert!(converted.authorization_list.is_empty());
+    }
+
+    #[test]
+    fn test_trace_filter_conversion() {
+        let filter = TraceFilter {
+            from: Some(vec!["0xdAC17F958D2ee523a2206206994597C13D831ec7".to_string()]),
+            to: Some(vec!["0xa0b86a33e6c11c8c0c5c0b5e6adee30d1a234567".to_string()]),
+            address: Some(vec!["0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6".to_string()]),
+            call_type: Some(vec!["call".to_string()]),
+            reward_type: None,
+            type_: Some(vec!["create".to_string()]),
+            sighash: Some(vec!["0xa9059cbb".to_string()]),
+        };
+
+        let converted = net_types::TraceFilter::try_from(filter).expect("conversion should succeed");
+        
+        assert_eq!(converted.from.len(), 1);
+        assert_eq!(converted.to.len(), 1);
+        assert_eq!(converted.address.len(), 1);
+    }
+
+    #[test]
+    fn test_trace_selection_conversion() {
+        let selection = TraceSelection {
+            include: TraceFilter {
+                from: Some(vec!["0xdAC17F958D2ee523a2206206994597C13D831ec7".to_string()]),
+                to: None,
+                address: None,
+                call_type: None,
+                reward_type: None,
+                type_: None,
+                sighash: None,
+            },
+            exclude: None,
+        };
+
+        let converted = net_types::TraceSelection::try_from(selection).expect("conversion should succeed");
+        
+        assert_eq!(converted.include.from.len(), 1);
+        assert!(converted.exclude.is_none());
+    }
+
+    #[test]
+    fn test_block_filter_conversion() {
+        let filter = BlockFilter {
+            hash: Some(vec!["0x40d008f2a1653f09b7b028d30c7fd1ba7c84900fcfb032040b3eb3d16f84d294".to_string()]),
+            miner: Some(vec!["0xdAC17F958D2ee523a2206206994597C13D831ec7".to_string()]),
+        };
+
+        let converted = net_types::BlockFilter::try_from(filter).expect("conversion should succeed");
+        
+        assert_eq!(converted.hash.len(), 1);
+        assert_eq!(converted.miner.len(), 1);
+    }
+
+    #[test]
+    fn test_block_selection_conversion() {
+        let selection = BlockSelection {
+            include: BlockFilter {
+                hash: Some(vec!["0x40d008f2a1653f09b7b028d30c7fd1ba7c84900fcfb032040b3eb3d16f84d294".to_string()]),
+                miner: None,
+            },
+            exclude: None,
+        };
+
+        let converted = net_types::BlockSelection::try_from(selection).expect("conversion should succeed");
+        
+        assert_eq!(converted.include.hash.len(), 1);
+        assert!(converted.exclude.is_none());
     }
 }
