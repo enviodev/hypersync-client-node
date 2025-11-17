@@ -74,7 +74,7 @@ pub struct FieldSelection {
 }
 
 #[napi(string_enum)]
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum BlockField {
     Number,
     Hash,
@@ -107,7 +107,7 @@ pub enum BlockField {
 }
 
 #[napi(string_enum)]
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum TransactionField {
     BlockHash,
     BlockNumber,
@@ -144,10 +144,11 @@ pub enum TransactionField {
     L1GasUsed,
     L1FeeScalar,
     GasUsedForL1,
+    Sighash,
 }
 
 #[napi(string_enum)]
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum LogField {
     Removed,
     LogIndex,
@@ -164,7 +165,7 @@ pub enum LogField {
 }
 
 #[napi(string_enum)]
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum TraceField {
     From,
     To,
@@ -296,13 +297,93 @@ impl Query {
     }
 }
 
-impl TryFrom<net_types::Query> for Query {
+impl TryFrom<Query> for net_types::Query {
     type Error = anyhow::Error;
 
-    fn try_from(_skar_query: net_types::Query) -> Result<Self> {
-        todo!()
-        // let json = serde_json::to_vec(&skar_query).context("serialize query to json")?;
-        // serde_json::from_slice(&json).context("parse json")
+    fn try_from(query: Query) -> Result<net_types::Query> {
+        let logs = if let Some(log_filters) = query.logs {
+            log_filters
+                .into_iter()
+                .map(|either| match either {
+                    Either::A(filter) => {
+                        let net_filter = net_types::LogFilter::try_from(filter)?;
+                        Ok(net_types::LogSelection::new(net_filter))
+                    }
+                    Either::B(selection) => net_types::LogSelection::try_from(selection),
+                })
+                .collect::<Result<Vec<_>>>()?
+        } else {
+            Vec::new()
+        };
+
+        let transactions = if let Some(transaction_filters) = query.transactions {
+            transaction_filters
+                .into_iter()
+                .map(|either| match either {
+                    Either::A(filter) => {
+                        let net_filter = net_types::TransactionFilter::try_from(filter)?;
+                        Ok(net_types::TransactionSelection::new(net_filter))
+                    }
+                    Either::B(selection) => net_types::TransactionSelection::try_from(selection),
+                })
+                .collect::<Result<Vec<_>>>()?
+        } else {
+            Vec::new()
+        };
+
+        let traces = if let Some(trace_filters) = query.traces {
+            trace_filters
+                .into_iter()
+                .map(|either| match either {
+                    Either::A(filter) => {
+                        let net_filter = net_types::TraceFilter::try_from(filter)?;
+                        Ok(net_types::TraceSelection::new(net_filter))
+                    }
+                    Either::B(selection) => net_types::TraceSelection::try_from(selection),
+                })
+                .collect::<Result<Vec<_>>>()?
+        } else {
+            Vec::new()
+        };
+
+        let blocks = if let Some(block_filters) = query.blocks {
+            block_filters
+                .into_iter()
+                .map(|either| match either {
+                    Either::A(filter) => {
+                        let net_filter = net_types::BlockFilter::try_from(filter)?;
+                        Ok(net_types::BlockSelection::new(net_filter))
+                    }
+                    Either::B(selection) => net_types::BlockSelection::try_from(selection),
+                })
+                .collect::<Result<Vec<_>>>()?
+        } else {
+            Vec::new()
+        };
+
+        let field_selection = net_types::FieldSelection::try_from(query.field_selection)?;
+
+        let join_mode = match query.join_mode.unwrap_or(JoinMode::Default) {
+            JoinMode::Default => net_types::JoinMode::Default,
+            JoinMode::JoinAll => net_types::JoinMode::JoinAll,
+            JoinMode::JoinNothing => net_types::JoinMode::JoinNothing,
+        };
+
+        Ok(net_types::Query {
+            from_block: query.from_block as u64,
+            to_block: query.to_block.map(|b| b as u64),
+            logs,
+            transactions,
+            traces,
+            blocks,
+            include_all_blocks: query.include_all_blocks.unwrap_or(false),
+            field_selection,
+            max_num_blocks: query.max_num_blocks.map(|n| n as usize),
+            max_num_transactions: query.max_num_transactions.map(|n| n as usize),
+            max_num_logs: query.max_num_logs.map(|n| n as usize),
+            max_num_traces: query.max_num_traces.map(|n| n as usize),
+            join_mode,
+        })
     }
 }
 
@@ -366,8 +447,13 @@ impl TryFrom<AuthorizationSelection> for net_types::AuthorizationSelection {
     fn try_from(selection: AuthorizationSelection) -> Result<net_types::AuthorizationSelection> {
         use hypersync_client::format::Address;
 
-        let chain_id = selection.chain_id.unwrap_or_default().into_iter().map(|id| id as u64).collect();
-        
+        let chain_id = selection
+            .chain_id
+            .unwrap_or_default()
+            .into_iter()
+            .map(|id| id as u64)
+            .collect();
+
         let address = if let Some(addresses) = selection.address {
             addresses
                 .into_iter()
@@ -378,10 +464,7 @@ impl TryFrom<AuthorizationSelection> for net_types::AuthorizationSelection {
             Vec::new()
         };
 
-        Ok(net_types::AuthorizationSelection {
-            chain_id,
-            address,
-        })
+        Ok(net_types::AuthorizationSelection { chain_id, address })
     }
 }
 
@@ -610,6 +693,175 @@ impl TryFrom<BlockSelection> for net_types::BlockSelection {
     }
 }
 
+impl From<BlockField> for net_types::BlockField {
+    fn from(field: BlockField) -> Self {
+        match field {
+            BlockField::Number => net_types::BlockField::Number,
+            BlockField::Hash => net_types::BlockField::Hash,
+            BlockField::ParentHash => net_types::BlockField::ParentHash,
+            BlockField::Nonce => net_types::BlockField::Nonce,
+            BlockField::Sha3Uncles => net_types::BlockField::Sha3Uncles,
+            BlockField::LogsBloom => net_types::BlockField::LogsBloom,
+            BlockField::TransactionsRoot => net_types::BlockField::TransactionsRoot,
+            BlockField::StateRoot => net_types::BlockField::StateRoot,
+            BlockField::ReceiptsRoot => net_types::BlockField::ReceiptsRoot,
+            BlockField::Miner => net_types::BlockField::Miner,
+            BlockField::Difficulty => net_types::BlockField::Difficulty,
+            BlockField::TotalDifficulty => net_types::BlockField::TotalDifficulty,
+            BlockField::ExtraData => net_types::BlockField::ExtraData,
+            BlockField::Size => net_types::BlockField::Size,
+            BlockField::GasLimit => net_types::BlockField::GasLimit,
+            BlockField::GasUsed => net_types::BlockField::GasUsed,
+            BlockField::Timestamp => net_types::BlockField::Timestamp,
+            BlockField::Uncles => net_types::BlockField::Uncles,
+            BlockField::BaseFeePerGas => net_types::BlockField::BaseFeePerGas,
+            BlockField::BlobGasUsed => net_types::BlockField::BlobGasUsed,
+            BlockField::ExcessBlobGas => net_types::BlockField::ExcessBlobGas,
+            BlockField::ParentBeaconBlockRoot => net_types::BlockField::ParentBeaconBlockRoot,
+            BlockField::Withdrawals => net_types::BlockField::Withdrawals,
+            BlockField::L1BlockNumber => net_types::BlockField::L1BlockNumber,
+            BlockField::SendCount => net_types::BlockField::SendCount,
+            BlockField::SendRoot => net_types::BlockField::SendRoot,
+            BlockField::MixHash => net_types::BlockField::MixHash,
+            BlockField::WithdrawalsRoot => net_types::BlockField::WithdrawalsRoot,
+        }
+    }
+}
+
+impl From<TransactionField> for net_types::TransactionField {
+    fn from(field: TransactionField) -> Self {
+        match field {
+            TransactionField::BlockHash => net_types::TransactionField::BlockHash,
+            TransactionField::BlockNumber => net_types::TransactionField::BlockNumber,
+            TransactionField::From => net_types::TransactionField::From,
+            TransactionField::Gas => net_types::TransactionField::Gas,
+            TransactionField::GasPrice => net_types::TransactionField::GasPrice,
+            TransactionField::Hash => net_types::TransactionField::Hash,
+            TransactionField::Input => net_types::TransactionField::Input,
+            TransactionField::Nonce => net_types::TransactionField::Nonce,
+            TransactionField::To => net_types::TransactionField::To,
+            TransactionField::TransactionIndex => net_types::TransactionField::TransactionIndex,
+            TransactionField::Value => net_types::TransactionField::Value,
+            TransactionField::V => net_types::TransactionField::V,
+            TransactionField::R => net_types::TransactionField::R,
+            TransactionField::S => net_types::TransactionField::S,
+            TransactionField::YParity => net_types::TransactionField::YParity,
+            TransactionField::MaxPriorityFeePerGas => {
+                net_types::TransactionField::MaxPriorityFeePerGas
+            }
+            TransactionField::MaxFeePerGas => net_types::TransactionField::MaxFeePerGas,
+            TransactionField::ChainId => net_types::TransactionField::ChainId,
+            TransactionField::AccessList => net_types::TransactionField::AccessList,
+            TransactionField::MaxFeePerBlobGas => net_types::TransactionField::MaxFeePerBlobGas,
+            TransactionField::BlobVersionedHashes => {
+                net_types::TransactionField::BlobVersionedHashes
+            }
+            TransactionField::CumulativeGasUsed => net_types::TransactionField::CumulativeGasUsed,
+            TransactionField::EffectiveGasPrice => net_types::TransactionField::EffectiveGasPrice,
+            TransactionField::GasUsed => net_types::TransactionField::GasUsed,
+            TransactionField::ContractAddress => net_types::TransactionField::ContractAddress,
+            TransactionField::LogsBloom => net_types::TransactionField::LogsBloom,
+            TransactionField::Type => net_types::TransactionField::Type,
+            TransactionField::Root => net_types::TransactionField::Root,
+            TransactionField::Status => net_types::TransactionField::Status,
+            TransactionField::Sighash => net_types::TransactionField::Sighash,
+            TransactionField::AuthorizationList => net_types::TransactionField::AuthorizationList,
+            TransactionField::L1Fee => net_types::TransactionField::L1Fee,
+            TransactionField::L1GasPrice => net_types::TransactionField::L1GasPrice,
+            TransactionField::L1GasUsed => net_types::TransactionField::L1GasUsed,
+            TransactionField::L1FeeScalar => net_types::TransactionField::L1FeeScalar,
+            TransactionField::GasUsedForL1 => net_types::TransactionField::GasUsedForL1,
+        }
+    }
+}
+
+impl From<LogField> for net_types::LogField {
+    fn from(field: LogField) -> Self {
+        match field {
+            LogField::Removed => net_types::LogField::Removed,
+            LogField::LogIndex => net_types::LogField::LogIndex,
+            LogField::TransactionIndex => net_types::LogField::TransactionIndex,
+            LogField::TransactionHash => net_types::LogField::TransactionHash,
+            LogField::BlockHash => net_types::LogField::BlockHash,
+            LogField::BlockNumber => net_types::LogField::BlockNumber,
+            LogField::Address => net_types::LogField::Address,
+            LogField::Data => net_types::LogField::Data,
+            LogField::Topic0 => net_types::LogField::Topic0,
+            LogField::Topic1 => net_types::LogField::Topic1,
+            LogField::Topic2 => net_types::LogField::Topic2,
+            LogField::Topic3 => net_types::LogField::Topic3,
+        }
+    }
+}
+
+impl From<TraceField> for net_types::TraceField {
+    fn from(field: TraceField) -> Self {
+        match field {
+            TraceField::From => net_types::TraceField::From,
+            TraceField::To => net_types::TraceField::To,
+            TraceField::CallType => net_types::TraceField::CallType,
+            TraceField::Gas => net_types::TraceField::Gas,
+            TraceField::Input => net_types::TraceField::Input,
+            TraceField::Init => net_types::TraceField::Init,
+            TraceField::Value => net_types::TraceField::Value,
+            TraceField::Author => net_types::TraceField::Author,
+            TraceField::RewardType => net_types::TraceField::RewardType,
+            TraceField::BlockHash => net_types::TraceField::BlockHash,
+            TraceField::BlockNumber => net_types::TraceField::BlockNumber,
+            TraceField::Address => net_types::TraceField::Address,
+            TraceField::Code => net_types::TraceField::Code,
+            TraceField::GasUsed => net_types::TraceField::GasUsed,
+            TraceField::Output => net_types::TraceField::Output,
+            TraceField::Subtraces => net_types::TraceField::Subtraces,
+            TraceField::TraceAddress => net_types::TraceField::TraceAddress,
+            TraceField::TransactionHash => net_types::TraceField::TransactionHash,
+            TraceField::TransactionPosition => net_types::TraceField::TransactionPosition,
+            TraceField::Type => net_types::TraceField::Type,
+            TraceField::Error => net_types::TraceField::Error,
+        }
+    }
+}
+
+impl TryFrom<FieldSelection> for net_types::FieldSelection {
+    type Error = anyhow::Error;
+
+    fn try_from(selection: FieldSelection) -> Result<net_types::FieldSelection> {
+        use std::collections::BTreeSet;
+
+        let block = selection
+            .block
+            .unwrap_or_default()
+            .into_iter()
+            .map(net_types::BlockField::from)
+            .collect::<BTreeSet<_>>();
+        let transaction = selection
+            .transaction
+            .unwrap_or_default()
+            .into_iter()
+            .map(net_types::TransactionField::from)
+            .collect::<BTreeSet<_>>();
+        let log = selection
+            .log
+            .unwrap_or_default()
+            .into_iter()
+            .map(net_types::LogField::from)
+            .collect::<BTreeSet<_>>();
+        let trace = selection
+            .trace
+            .unwrap_or_default()
+            .into_iter()
+            .map(net_types::TraceField::from)
+            .collect::<BTreeSet<_>>();
+
+        Ok(net_types::FieldSelection {
+            block,
+            transaction,
+            log,
+            trace,
+        })
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -674,17 +926,26 @@ mod tests {
     #[test]
     fn test_transaction_filter_conversion() {
         let filter = TransactionFilter {
-            from: Some(vec!["0xdAC17F958D2ee523a2206206994597C13D831ec7".to_string()]),
-            to: Some(vec!["0xa0b86a33e6c11c8c0c5c0b5e6adee30d1a234567".to_string()]),
+            from: Some(vec![
+                "0xdAC17F958D2ee523a2206206994597C13D831ec7".to_string()
+            ]),
+            to: Some(vec![
+                "0xa0b86a33e6c11c8c0c5c0b5e6adee30d1a234567".to_string()
+            ]),
             sighash: Some(vec!["0xa9059cbb".to_string()]),
             status: Some(1),
             type_: Some(vec![2]),
-            contract_address: Some(vec!["0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6".to_string()]),
-            hash: Some(vec!["0x40d008f2a1653f09b7b028d30c7fd1ba7c84900fcfb032040b3eb3d16f84d294".to_string()]),
+            contract_address: Some(vec![
+                "0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6".to_string()
+            ]),
+            hash: Some(vec![
+                "0x40d008f2a1653f09b7b028d30c7fd1ba7c84900fcfb032040b3eb3d16f84d294".to_string(),
+            ]),
             authorization_list: None,
         };
 
-        let converted = net_types::TransactionFilter::try_from(filter).expect("conversion should succeed");
+        let converted =
+            net_types::TransactionFilter::try_from(filter).expect("conversion should succeed");
 
         assert_eq!(converted.from.len(), 1);
         assert_eq!(converted.to.len(), 1);
@@ -703,7 +964,9 @@ mod tests {
     fn test_transaction_selection_conversion() {
         let selection = TransactionSelection {
             include: TransactionFilter {
-                from: Some(vec!["0xdAC17F958D2ee523a2206206994597C13D831ec7".to_string()]),
+                from: Some(vec![
+                    "0xdAC17F958D2ee523a2206206994597C13D831ec7".to_string()
+                ]),
                 to: None,
                 sighash: None,
                 status: None,
@@ -724,7 +987,8 @@ mod tests {
             }),
         };
 
-        let converted = net_types::TransactionSelection::try_from(selection).expect("conversion should succeed");
+        let converted = net_types::TransactionSelection::try_from(selection)
+            .expect("conversion should succeed");
 
         assert_eq!(converted.include.from.len(), 1);
         assert!(converted.exclude.is_some());
@@ -736,10 +1000,13 @@ mod tests {
     fn test_authorization_selection_conversion() {
         let auth_selection = AuthorizationSelection {
             chain_id: Some(vec![1, 137, 42161]),
-            address: Some(vec!["0xdAC17F958D2ee523a2206206994597C13D831ec7".to_string()]),
+            address: Some(vec![
+                "0xdAC17F958D2ee523a2206206994597C13D831ec7".to_string()
+            ]),
         };
 
-        let converted = net_types::AuthorizationSelection::try_from(auth_selection).expect("conversion should succeed");
+        let converted = net_types::AuthorizationSelection::try_from(auth_selection)
+            .expect("conversion should succeed");
 
         assert_eq!(converted.chain_id.len(), 3);
         assert_eq!(converted.chain_id, vec![1, 137, 42161]);
@@ -759,7 +1026,8 @@ mod tests {
             authorization_list: None,
         };
 
-        let converted = net_types::TransactionFilter::try_from(filter).expect("conversion should succeed");
+        let converted =
+            net_types::TransactionFilter::try_from(filter).expect("conversion should succeed");
 
         assert!(converted.from.is_empty());
         assert!(converted.to.is_empty());
@@ -787,7 +1055,8 @@ mod tests {
             authorization_list: None,
         };
 
-        let converted = net_types::TransactionFilter::try_from(filter).expect("conversion should succeed");
+        let converted =
+            net_types::TransactionFilter::try_from(filter).expect("conversion should succeed");
 
         assert_eq!(converted.hash.len(), 2);
         assert!(converted.from.is_empty());
@@ -800,17 +1069,24 @@ mod tests {
     #[test]
     fn test_trace_filter_conversion() {
         let filter = TraceFilter {
-            from: Some(vec!["0xdAC17F958D2ee523a2206206994597C13D831ec7".to_string()]),
-            to: Some(vec!["0xa0b86a33e6c11c8c0c5c0b5e6adee30d1a234567".to_string()]),
-            address: Some(vec!["0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6".to_string()]),
+            from: Some(vec![
+                "0xdAC17F958D2ee523a2206206994597C13D831ec7".to_string()
+            ]),
+            to: Some(vec![
+                "0xa0b86a33e6c11c8c0c5c0b5e6adee30d1a234567".to_string()
+            ]),
+            address: Some(vec![
+                "0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6".to_string()
+            ]),
             call_type: Some(vec!["call".to_string()]),
             reward_type: None,
             type_: Some(vec!["create".to_string()]),
             sighash: Some(vec!["0xa9059cbb".to_string()]),
         };
 
-        let converted = net_types::TraceFilter::try_from(filter).expect("conversion should succeed");
-        
+        let converted =
+            net_types::TraceFilter::try_from(filter).expect("conversion should succeed");
+
         assert_eq!(converted.from.len(), 1);
         assert_eq!(converted.to.len(), 1);
         assert_eq!(converted.address.len(), 1);
@@ -820,7 +1096,9 @@ mod tests {
     fn test_trace_selection_conversion() {
         let selection = TraceSelection {
             include: TraceFilter {
-                from: Some(vec!["0xdAC17F958D2ee523a2206206994597C13D831ec7".to_string()]),
+                from: Some(vec![
+                    "0xdAC17F958D2ee523a2206206994597C13D831ec7".to_string()
+                ]),
                 to: None,
                 address: None,
                 call_type: None,
@@ -831,8 +1109,9 @@ mod tests {
             exclude: None,
         };
 
-        let converted = net_types::TraceSelection::try_from(selection).expect("conversion should succeed");
-        
+        let converted =
+            net_types::TraceSelection::try_from(selection).expect("conversion should succeed");
+
         assert_eq!(converted.include.from.len(), 1);
         assert!(converted.exclude.is_none());
     }
@@ -840,12 +1119,17 @@ mod tests {
     #[test]
     fn test_block_filter_conversion() {
         let filter = BlockFilter {
-            hash: Some(vec!["0x40d008f2a1653f09b7b028d30c7fd1ba7c84900fcfb032040b3eb3d16f84d294".to_string()]),
-            miner: Some(vec!["0xdAC17F958D2ee523a2206206994597C13D831ec7".to_string()]),
+            hash: Some(vec![
+                "0x40d008f2a1653f09b7b028d30c7fd1ba7c84900fcfb032040b3eb3d16f84d294".to_string(),
+            ]),
+            miner: Some(vec![
+                "0xdAC17F958D2ee523a2206206994597C13D831ec7".to_string()
+            ]),
         };
 
-        let converted = net_types::BlockFilter::try_from(filter).expect("conversion should succeed");
-        
+        let converted =
+            net_types::BlockFilter::try_from(filter).expect("conversion should succeed");
+
         assert_eq!(converted.hash.len(), 1);
         assert_eq!(converted.miner.len(), 1);
     }
@@ -854,15 +1138,73 @@ mod tests {
     fn test_block_selection_conversion() {
         let selection = BlockSelection {
             include: BlockFilter {
-                hash: Some(vec!["0x40d008f2a1653f09b7b028d30c7fd1ba7c84900fcfb032040b3eb3d16f84d294".to_string()]),
+                hash: Some(vec![
+                    "0x40d008f2a1653f09b7b028d30c7fd1ba7c84900fcfb032040b3eb3d16f84d294"
+                        .to_string(),
+                ]),
                 miner: None,
             },
             exclude: None,
         };
 
-        let converted = net_types::BlockSelection::try_from(selection).expect("conversion should succeed");
-        
+        let converted =
+            net_types::BlockSelection::try_from(selection).expect("conversion should succeed");
+
         assert_eq!(converted.include.hash.len(), 1);
         assert!(converted.exclude.is_none());
+    }
+
+    #[test]
+    fn test_field_selection_conversion() {
+        let selection = FieldSelection {
+            block: Some(vec![BlockField::Number, BlockField::Hash]),
+            transaction: Some(vec![TransactionField::Hash, TransactionField::From]),
+            log: Some(vec![LogField::Address, LogField::Data]),
+            trace: None,
+        };
+
+        let converted =
+            net_types::FieldSelection::try_from(selection).expect("conversion should succeed");
+
+        assert_eq!(converted.block.len(), 2);
+        assert_eq!(converted.transaction.len(), 2);
+        assert_eq!(converted.log.len(), 2);
+        assert!(converted.trace.is_empty());
+    }
+
+    #[test]
+    fn test_query_conversion() {
+        let query = Query {
+            from_block: 100,
+            to_block: Some(200),
+            logs: Some(vec![Either::A(LogFilter {
+                address: Some(vec![
+                    "0xdAC17F958D2ee523a2206206994597C13D831ec7".to_string()
+                ]),
+                topics: None,
+            })]),
+            transactions: None,
+            traces: None,
+            blocks: None,
+            include_all_blocks: Some(true),
+            field_selection: FieldSelection {
+                block: Some(vec![BlockField::Number]),
+                transaction: None,
+                log: Some(vec![LogField::Address]),
+                trace: None,
+            },
+            max_num_blocks: Some(1000),
+            max_num_transactions: None,
+            max_num_logs: None,
+            max_num_traces: None,
+            join_mode: Some(JoinMode::JoinAll),
+        };
+
+        let converted = net_types::Query::try_from(query).expect("conversion should succeed");
+
+        assert_eq!(converted.from_block, 100);
+        assert_eq!(converted.to_block, Some(200));
+        assert_eq!(converted.logs.len(), 1);
+        assert!(converted.include_all_blocks);
     }
 }
