@@ -98,6 +98,16 @@ pub struct ClientConfig {
     pub retry_ceiling_ms: Option<i64>,
     #[serde(skip)]
     pub enable_checksum_addresses: Option<bool>,
+    pub serialization_format: Option<SerializationFormat>,
+    pub enable_query_caching: Option<bool>,
+}
+
+#[napi(string_enum)]
+#[derive(Default, Clone, Serialize)]
+pub enum SerializationFormat {
+    #[default]
+    Json,
+    CapnProto,
 }
 
 impl ClientConfig {
