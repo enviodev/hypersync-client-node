@@ -1,8 +1,6 @@
 #[macro_use]
 extern crate napi_derive;
 
-use std::sync::Arc;
-
 use anyhow::{Context, Result};
 use tokio::sync::mpsc;
 
@@ -19,7 +17,7 @@ use types::{Block, Event, Log, RollbackGuard, Trace, Transaction};
 
 #[napi]
 pub struct HypersyncClient {
-    inner: Arc<hypersync_client::Client>,
+    inner: hypersync_client::Client,
     enable_checksum_addresses: bool,
 }
 
@@ -36,7 +34,6 @@ impl HypersyncClient {
         let inner = hypersync_client::Client::new(converted_cfg)
             .context("build client")
             .map_err(map_err)?;
-        let inner = Arc::new(inner);
 
         Ok(HypersyncClient {
             inner,
