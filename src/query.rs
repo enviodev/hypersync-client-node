@@ -40,6 +40,9 @@ pub struct TransactionFilter {
     pub type_: Option<Vec<u8>>,
     // If transaction.contract_address matches any of these values, the transaction will be returned.
     pub contract_address: Option<Vec<String>>,
+    /// If transaction.hash matches any of these values, the transaction will be returned.
+    /// Empty means match all.
+    pub hash: Option<Vec<String>>,
 
     /// If transaction.authorization_list matches any of these values, the transaction will be returned.
     pub authorization_list: Option<Vec<AuthorizationSelection>>,
@@ -357,6 +360,132 @@ impl TryFrom<LogSelection> for net_types::LogSelection {
     }
 }
 
+impl TryFrom<AuthorizationSelection> for net_types::AuthorizationSelection {
+    type Error = anyhow::Error;
+
+    fn try_from(selection: AuthorizationSelection) -> Result<net_types::AuthorizationSelection> {
+        use hypersync_client::format::Address;
+
+        let chain_id = selection.chain_id.unwrap_or_default().into_iter().map(|id| id as u64).collect();
+        
+        let address = if let Some(addresses) = selection.address {
+            addresses
+                .into_iter()
+                .map(|addr_str| Address::try_from(addr_str.as_str()))
+                .collect::<std::result::Result<Vec<_>, _>>()
+                .context("Failed to parse authorization address")?
+        } else {
+            Vec::new()
+        };
+
+        Ok(net_types::AuthorizationSelection {
+            chain_id,
+            address,
+        })
+    }
+}
+
+impl TryFrom<TransactionFilter> for net_types::TransactionFilter {
+    type Error = anyhow::Error;
+
+    fn try_from(filter: TransactionFilter) -> Result<net_types::TransactionFilter> {
+        use hypersync_client::format::{Address, Hash};
+        use hypersync_client::net_types::Sighash;
+
+        let from = if let Some(addresses) = filter.from {
+            addresses
+                .into_iter()
+                .map(|addr_str| Address::try_from(addr_str.as_str()))
+                .collect::<std::result::Result<Vec<_>, _>>()
+                .context("Failed to parse from address")?
+        } else {
+            Vec::new()
+        };
+
+        let to = if let Some(addresses) = filter.to {
+            addresses
+                .into_iter()
+                .map(|addr_str| Address::try_from(addr_str.as_str()))
+                .collect::<std::result::Result<Vec<_>, _>>()
+                .context("Failed to parse to address")?
+        } else {
+            Vec::new()
+        };
+
+        let sighash = if let Some(sighashes) = filter.sighash {
+            sighashes
+                .into_iter()
+                .map(|sig_str| Sighash::try_from(sig_str.as_str()))
+                .collect::<std::result::Result<Vec<_>, _>>()
+                .context("Failed to parse sighash")?
+        } else {
+            Vec::new()
+        };
+
+        let status = filter.status.map(|s| s as u8);
+
+        let type_ = filter.type_.unwrap_or_default();
+
+        let contract_address = if let Some(addresses) = filter.contract_address {
+            addresses
+                .into_iter()
+                .map(|addr_str| Address::try_from(addr_str.as_str()))
+                .collect::<std::result::Result<Vec<_>, _>>()
+                .context("Failed to parse contract address")?
+        } else {
+            Vec::new()
+        };
+
+        let hash = if let Some(hashes) = filter.hash {
+            hashes
+                .into_iter()
+                .map(|hash_str| Hash::try_from(hash_str.as_str()))
+                .collect::<std::result::Result<Vec<_>, _>>()
+                .context("Failed to parse hash")?
+        } else {
+            Vec::new()
+        };
+
+        let authorization_list = if let Some(auth_list) = filter.authorization_list {
+            auth_list
+                .into_iter()
+                .map(net_types::AuthorizationSelection::try_from)
+                .collect::<std::result::Result<Vec<_>, _>>()
+                .context("Failed to convert authorization list")?
+        } else {
+            Vec::new()
+        };
+
+        Ok(net_types::TransactionFilter {
+            from,
+            from_filter: None,
+            to,
+            to_filter: None,
+            sighash,
+            status,
+            type_,
+            contract_address,
+            contract_address_filter: None,
+            hash,
+            authorization_list,
+        })
+    }
+}
+
+impl TryFrom<TransactionSelection> for net_types::TransactionSelection {
+    type Error = anyhow::Error;
+
+    fn try_from(selection: TransactionSelection) -> Result<net_types::TransactionSelection> {
+        let include = net_types::TransactionFilter::try_from(selection.include)?;
+        let exclude = selection
+            .exclude
+            .map(net_types::TransactionFilter::try_from)
+            .transpose()?;
+
+        Ok(net_types::TransactionSelection { include, exclude })
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -416,5 +545,131 @@ mod tests {
 
         assert!(converted.address.is_empty());
         assert!(converted.topics.is_empty());
+    }
+
+    #[test]
+    fn test_transaction_filter_conversion() {
+        let filter = TransactionFilter {
+            from: Some(vec!["0xdAC17F958D2ee523a2206206994597C13D831ec7".to_string()]),
+            to: Some(vec!["0xa0b86a33e6c11c8c0c5c0b5e6adee30d1a234567".to_string()]),
+            sighash: Some(vec!["0xa9059cbb".to_string()]),
+            status: Some(1),
+            type_: Some(vec![2]),
+            contract_address: Some(vec!["0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6".to_string()]),
+            hash: Some(vec!["0x40d008f2a1653f09b7b028d30c7fd1ba7c84900fcfb032040b3eb3d16f84d294".to_string()]),
+            authorization_list: None,
+        };
+
+        let converted = net_types::TransactionFilter::try_from(filter).expect("conversion should succeed");
+
+        assert_eq!(converted.from.len(), 1);
+        assert_eq!(converted.to.len(), 1);
+        assert_eq!(converted.sighash.len(), 1);
+        assert_eq!(converted.status, Some(1));
+        assert_eq!(converted.type_.len(), 1);
+        assert_eq!(converted.type_[0], 2);
+        assert_eq!(converted.contract_address.len(), 1);
+        assert_eq!(converted.hash.len(), 1);
+        assert!(converted.authorization_list.is_empty());
+        assert!(converted.from_filter.is_none());
+        assert!(converted.to_filter.is_none());
+    }
+
+    #[test]
+    fn test_transaction_selection_conversion() {
+        let selection = TransactionSelection {
+            include: TransactionFilter {
+                from: Some(vec!["0xdAC17F958D2ee523a2206206994597C13D831ec7".to_string()]),
+                to: None,
+                sighash: None,
+                status: None,
+                type_: None,
+                contract_address: None,
+                hash: None,
+                authorization_list: None,
+            },
+            exclude: Some(TransactionFilter {
+                status: Some(0),
+                from: None,
+                to: None,
+                sighash: None,
+                type_: None,
+                contract_address: None,
+                hash: None,
+                authorization_list: None,
+            }),
+        };
+
+        let converted = net_types::TransactionSelection::try_from(selection).expect("conversion should succeed");
+
+        assert_eq!(converted.include.from.len(), 1);
+        assert!(converted.exclude.is_some());
+        let exclude = converted.exclude.unwrap();
+        assert_eq!(exclude.status, Some(0));
+    }
+
+    #[test]
+    fn test_authorization_selection_conversion() {
+        let auth_selection = AuthorizationSelection {
+            chain_id: Some(vec![1, 137, 42161]),
+            address: Some(vec!["0xdAC17F958D2ee523a2206206994597C13D831ec7".to_string()]),
+        };
+
+        let converted = net_types::AuthorizationSelection::try_from(auth_selection).expect("conversion should succeed");
+
+        assert_eq!(converted.chain_id.len(), 3);
+        assert_eq!(converted.chain_id, vec![1, 137, 42161]);
+        assert_eq!(converted.address.len(), 1);
+    }
+
+    #[test]
+    fn test_transaction_filter_empty_collections() {
+        let filter = TransactionFilter {
+            from: None,
+            to: None,
+            sighash: None,
+            status: None,
+            type_: None,
+            contract_address: None,
+            hash: None,
+            authorization_list: None,
+        };
+
+        let converted = net_types::TransactionFilter::try_from(filter).expect("conversion should succeed");
+
+        assert!(converted.from.is_empty());
+        assert!(converted.to.is_empty());
+        assert!(converted.sighash.is_empty());
+        assert!(converted.status.is_none());
+        assert!(converted.type_.is_empty());
+        assert!(converted.contract_address.is_empty());
+        assert!(converted.hash.is_empty());
+        assert!(converted.authorization_list.is_empty());
+    }
+
+    #[test]
+    fn test_transaction_filter_hash_field() {
+        let filter = TransactionFilter {
+            from: None,
+            to: None,
+            sighash: None,
+            status: None,
+            type_: None,
+            contract_address: None,
+            hash: Some(vec![
+                "0x40d008f2a1653f09b7b028d30c7fd1ba7c84900fcfb032040b3eb3d16f84d294".to_string(),
+                "0x88e96d4537bea4d9c05d12549907b32561d3bf31f45aae734cdc119f13406cb6".to_string(),
+            ]),
+            authorization_list: None,
+        };
+
+        let converted = net_types::TransactionFilter::try_from(filter).expect("conversion should succeed");
+
+        assert_eq!(converted.hash.len(), 2);
+        assert!(converted.from.is_empty());
+        assert!(converted.to.is_empty());
+        assert!(converted.sighash.is_empty());
+        assert!(converted.contract_address.is_empty());
+        assert!(converted.authorization_list.is_empty());
     }
 }
