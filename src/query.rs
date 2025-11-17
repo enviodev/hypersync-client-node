@@ -54,13 +54,11 @@ pub struct TransactionSelection {
 }
 
 #[napi(object)]
-#[derive(Default, Clone, Serialize, Deserialize)]
+#[derive(Default, Clone, Debug)]
 pub struct AuthorizationSelection {
     /// List of chain ids to match in the transaction authorizationList
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub chain_id: Option<Vec<i64>>,
     /// List of addresses to match in the transaction authorizationList
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub address: Option<Vec<String>>,
 }
 
@@ -308,9 +306,125 @@ impl Query {
 impl TryFrom<net_types::Query> for Query {
     type Error = anyhow::Error;
 
-    fn try_from(skar_query: net_types::Query) -> Result<Self> {
+    fn try_from(_skar_query: net_types::Query) -> Result<Self> {
         todo!()
         // let json = serde_json::to_vec(&skar_query).context("serialize query to json")?;
         // serde_json::from_slice(&json).context("parse json")
+    }
+}
+
+impl TryFrom<LogFilter> for net_types::LogFilter {
+    type Error = anyhow::Error;
+
+    fn try_from(filter: LogFilter) -> Result<net_types::LogFilter> {
+        use arrayvec::ArrayVec;
+        use hypersync_client::format::{Address, LogArgument};
+
+        let address = if let Some(addresses) = filter.address {
+            addresses
+                .into_iter()
+                .map(|addr_str| Address::try_from(addr_str.as_str()))
+                .collect::<std::result::Result<Vec<_>, _>>()
+                .map_err(|e| anyhow::anyhow!("Failed to parse address: {}", e))?
+        } else {
+            Vec::new()
+        };
+
+        let mut topics = ArrayVec::new();
+        if let Some(topic_vecs) = filter.topics {
+            for (i, topic_vec) in topic_vecs.into_iter().enumerate() {
+                if i >= 4 {
+                    anyhow::bail!("Log filter has more than 4 topics");
+                }
+                let parsed_topics = topic_vec
+                    .into_iter()
+                    .map(|topic_str| LogArgument::try_from(topic_str.as_str()))
+                    .collect::<std::result::Result<Vec<_>, _>>()
+                    .context("Failed to parse topic")?;
+                topics.push(parsed_topics);
+            }
+        }
+
+        Ok(net_types::LogFilter {
+            address,
+            address_filter: None,
+            topics,
+        })
+    }
+}
+
+impl TryFrom<LogSelection> for net_types::LogSelection {
+    type Error = anyhow::Error;
+
+    fn try_from(selection: LogSelection) -> Result<net_types::LogSelection> {
+        let include = net_types::LogFilter::try_from(selection.include)?;
+        let exclude = selection
+            .exclude
+            .map(net_types::LogFilter::try_from)
+            .transpose()?;
+
+        Ok(net_types::LogSelection { include, exclude })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_log_filter_conversion() {
+        let filter = LogFilter {
+            address: Some(vec![
+                "0xdAC17F958D2ee523a2206206994597C13D831ec7".to_string()
+            ]),
+            topics: Some(vec![vec![
+                "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef".to_string(),
+            ]]),
+        };
+
+        let converted = net_types::LogFilter::try_from(filter).expect("conversion should succeed");
+
+        assert_eq!(converted.address.len(), 1);
+        assert_eq!(converted.topics.len(), 1);
+        assert_eq!(converted.topics[0].len(), 1);
+        assert!(converted.address_filter.is_none());
+    }
+
+    #[test]
+    fn test_log_selection_conversion() {
+        let selection = LogSelection {
+            include: LogFilter {
+                address: Some(vec![
+                    "0xdAC17F958D2ee523a2206206994597C13D831ec7".to_string()
+                ]),
+                topics: None,
+            },
+            exclude: Some(LogFilter {
+                address: Some(vec![
+                    "0x0000000000000000000000000000000000000000".to_string()
+                ]),
+                topics: None,
+            }),
+        };
+
+        let converted =
+            net_types::LogSelection::try_from(selection).expect("conversion should succeed");
+
+        assert_eq!(converted.include.address.len(), 1);
+        assert!(converted.exclude.is_some());
+        assert_eq!(converted.exclude.unwrap().address.len(), 1);
+    }
+
+    #[test]
+    fn test_log_filter_empty_collections() {
+        let filter = LogFilter {
+            address: None,
+            topics: None,
+        };
+
+        let converted = net_types::LogFilter::try_from(filter).expect("conversion should succeed");
+
+        assert!(converted.address.is_empty());
+        assert!(converted.topics.is_empty());
     }
 }

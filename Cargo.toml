@@ -23,6 +23,7 @@ anyhow = "1"
 serde_json = "1"
 ruint = "1"
 alloy-primitives = "1.1"
+arrayvec = "0.7.6"
 
 hypersync-client = "0.20.0"
 
