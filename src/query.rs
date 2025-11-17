@@ -4,56 +4,53 @@ use napi::bindgen_prelude::Either;
 use serde::{Deserialize, Serialize};
 
 #[napi(object)]
-#[derive(Default, Clone, Serialize, Deserialize)]
+#[derive(Default, Clone, Debug)]
 pub struct LogFilter {
     /// Address of the contract, any logs that has any of these addresses will be returned.
     /// Empty means match all.
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub address: Option<Vec<String>>,
     /// Topics to match, each member of the top level array is another array, if the nth topic matches any
     ///  topic specified in topics[n] the log will be returned. Empty means match all.
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub topics: Option<Vec<Vec<String>>>,
 }
 
 #[napi(object)]
-#[derive(Default, Clone, Serialize, Deserialize)]
+#[derive(Default, Clone, Debug)]
 pub struct LogSelection {
     pub include: LogFilter,
     pub exclude: Option<LogFilter>,
 }
 
 #[napi(object)]
-#[derive(Default, Clone, Serialize, Deserialize)]
-pub struct TransactionSelection {
+#[derive(Default, Clone, Debug)]
+pub struct TransactionFilter {
     /// Address the transaction should originate from. If transaction.from matches any of these, the transaction
     ///  will be returned. Keep in mind that this has an and relationship with to filter, so each transaction should
     ///  match both of them. Empty means match all.
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub from: Option<Vec<String>>,
     /// Address the transaction should go to. If transaction.to matches any of these, the transaction will
     ///  be returned. Keep in mind that this has an and relationship with from filter, so each transaction should
     ///  match both of them. Empty means match all.
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub to: Option<Vec<String>>,
     /// If first 4 bytes of transaction input matches any of these, transaction will be returned. Empty means match all.
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub sighash: Option<Vec<String>>,
     /// If tx.status matches this it will be returned.
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub status: Option<i64>,
     /// If transaction.type matches any of these values, the transaction will be returned
-    #[serde(rename = "type")]
-    #[serde(skip_serializing_if = "Option::is_none")]
     #[napi(js_name = "type")]
     pub type_: Option<Vec<u8>>,
     // If transaction.contract_address matches any of these values, the transaction will be returned.
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub contract_address: Option<Vec<String>>,
 
     /// If transaction.authorization_list matches any of these values, the transaction will be returned.
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub authorization_list: Option<Vec<AuthorizationSelection>>,
+}
+
+#[napi(object)]
+#[derive(Default, Clone, Debug)]
+pub struct TransactionSelection {
+    pub include: TransactionFilter,
+    pub exclude: Option<TransactionFilter>,
 }
 
 #[napi(object)]
@@ -202,37 +199,41 @@ pub enum TraceField {
 }
 
 #[napi(object)]
-#[derive(Default, Clone, Serialize, Deserialize)]
-pub struct TraceSelection {
-    #[serde(skip_serializing_if = "Option::is_none")]
+#[derive(Default, Clone, Debug)]
+pub struct TraceFilter {
     pub from: Option<Vec<String>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub to: Option<Vec<String>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub address: Option<Vec<String>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub call_type: Option<Vec<String>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub reward_type: Option<Vec<String>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[serde(rename = "type")]
     #[napi(js_name = "type")]
     pub type_: Option<Vec<String>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub sighash: Option<Vec<String>>,
 }
 
 #[napi(object)]
-#[derive(Default, Clone, Serialize, Deserialize)]
-pub struct BlockSelection {
+#[derive(Default, Clone, Debug)]
+pub struct TraceSelection {
+    pub include: TraceFilter,
+    pub exclude: Option<TraceFilter>,
+}
+
+#[napi(object)]
+#[derive(Default, Clone, Debug)]
+pub struct BlockFilter {
     /// Hash of a block, any blocks that have one of these hashes will be returned.
     /// Empty means match all.
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub hash: Option<Vec<String>>,
     /// Miner address of a block, any blocks that have one of these miners will be returned.
     /// Empty means match all.
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub miner: Option<Vec<String>>,
+}
+
+#[napi(object)]
+#[derive(Default, Clone, Debug)]
+pub struct BlockSelection {
+    pub include: BlockFilter,
+    pub exclude: Option<BlockFilter>,
 }
 
 #[napi]
@@ -262,12 +263,12 @@ pub struct Query {
     pub logs: Option<Vec<Either<LogFilter, LogSelection>>>,
     /// List of transaction selections, the query will return transactions that match any of these selections and
     ///  it will return transactions that are related to the returned logs.
-    pub transactions: Option<Vec<TransactionSelection>>,
+    pub transactions: Option<Vec<Either<TransactionFilter, TransactionSelection>>>,
     /// List of trace selections, the query will return traces that match any of these selections and
     ///  it will re turn traces that are related to the returned logs.
-    pub traces: Option<Vec<TraceSelection>>,
+    pub traces: Option<Vec<Either<TraceFilter, TraceSelection>>>,
     /// List of block selections, the query will return blocks that match any of these selections
-    pub blocks: Option<Vec<BlockSelection>>,
+    pub blocks: Option<Vec<Either<BlockFilter, BlockSelection>>>,
     /// Weather to include all blocks regardless of if they are related to a returned transaction or log. Normally
     ///  the server will return only the blocks that are related to the transaction or logs in the response. But if this
     ///  is set to true, the server will return data for all blocks in the requested range [from_block, to_block).
