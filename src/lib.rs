@@ -25,19 +25,18 @@ pub struct HypersyncClient {
 impl HypersyncClient {
     /// Create a new client with given config
     #[napi(constructor)]
-    pub fn new(cfg: Option<ClientConfig>) -> napi::Result<HypersyncClient> {
+    pub fn new(cfg: ClientConfig) -> napi::Result<HypersyncClient> {
         env_logger::try_init().ok();
 
-        let cfg = cfg.unwrap_or_default();
-        let converted_cfg = cfg.try_convert().context("parse config").map_err(map_err)?;
+        let enable_checksum_addresses = cfg.enable_checksum_addresses.unwrap_or_default();
 
-        let inner = hypersync_client::Client::new(converted_cfg)
+        let inner = hypersync_client::Client::new(cfg.into())
             .context("build client")
             .map_err(map_err)?;
 
         Ok(HypersyncClient {
             inner,
-            enable_checksum_addresses: cfg.enable_checksum_addresses.unwrap_or_default(),
+            enable_checksum_addresses,
         })
     }
 
