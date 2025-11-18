@@ -1,19 +1,14 @@
-import {
-  HypersyncClient,
-  Decoder,
-  BlockField,
-  LogField,
-  TransactionField,
-} from "@envio-dev/hypersync-client";
-import fs from "node:fs";
+import { HypersyncClient, Decoder, Query } from "@envio-dev/hypersync-client";
 
 async function main() {
   // Create hypersync client using the mainnet hypersync endpoint
-  // Passing null config makes it use default
-  const client = HypersyncClient.new(null);
+  const client = new HypersyncClient({
+    url: "https://eth.hypersync.xyz",
+    apiToken: process.env.ENVIO_API_TOKEN!,
+  });
 
   // The query to run
-  const query = {
+  const query: Query = {
     // Start from block 0 and go to the end of the chain (we don't specify a toBlock).
     //   you can add a "toBlock" to limit the query to a certain range.
     fromBlock: 0,
@@ -32,27 +27,27 @@ async function main() {
     //   Most of the fields below are there for demonstration purposes.
     //   The only field we use in this example is the 'log.data' + 'log.address' + 'log.topic0' so you could create a faster query by removing others.
     fieldSelection: {
-      block: [BlockField.Number, BlockField.Timestamp, BlockField.Hash],
+      block: ["Number", "Timestamp", "Hash"],
       log: [
-        LogField.BlockNumber,
-        LogField.LogIndex,
-        LogField.TransactionIndex,
-        LogField.TransactionHash,
-        LogField.Data,
-        LogField.Address,
-        LogField.Topic0,
-        LogField.Topic1,
-        LogField.Topic2,
-        LogField.Topic3,
+        "BlockNumber",
+        "LogIndex",
+        "TransactionIndex",
+        "TransactionHash",
+        "Data",
+        "Address",
+        "Topic0",
+        "Topic1",
+        "Topic2",
+        "Topic3",
       ],
       transaction: [
-        TransactionField.BlockNumber,
-        TransactionField.TransactionIndex,
-        TransactionField.Hash,
-        TransactionField.From,
-        TransactionField.To,
-        TransactionField.Value,
-        TransactionField.Input,
+        "BlockNumber",
+        "TransactionIndex",
+        "Hash",
+        "From",
+        "To",
+        "Value",
+        "Input",
       ],
     },
   };
