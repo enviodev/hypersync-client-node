@@ -586,5 +586,6 @@ module.exports.presetQueryBlocksAndTransactionHashes = nativeBinding.presetQuery
 module.exports.presetQueryBlocksAndTransactions = nativeBinding.presetQueryBlocksAndTransactions
 module.exports.presetQueryLogs = nativeBinding.presetQueryLogs
 module.exports.presetQueryLogsOfEvent = nativeBinding.presetQueryLogsOfEvent
+module.exports.SerializationFormat = nativeBinding.SerializationFormat
 module.exports.TraceField = nativeBinding.TraceField
 module.exports.TransactionField = nativeBinding.TransactionField
