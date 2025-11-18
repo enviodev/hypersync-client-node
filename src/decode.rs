@@ -8,6 +8,7 @@ use crate::{
     types::{DecodedEvent, DecodedSolValue, Event, Log},
 };
 
+/// Decoder for Ethereum events and function calls
 #[napi]
 #[derive(Clone)]
 pub struct Decoder {
@@ -17,6 +18,7 @@ pub struct Decoder {
 
 #[napi]
 impl Decoder {
+    /// Create decoder from event signatures
     #[napi]
     pub fn from_signatures(signatures: Vec<String>) -> napi::Result<Decoder> {
         let inner = hypersync_client::Decoder::from_signatures(&signatures)
@@ -28,6 +30,7 @@ impl Decoder {
         })
     }
 
+    /// Create decoder from event signatures with checksum option
     #[napi]
     pub fn from_signatures_with_checksum(
         signatures: Vec<String>,
@@ -42,16 +45,19 @@ impl Decoder {
         })
     }
 
+    /// Enable checksummed addresses in decoded output
     #[napi]
     pub fn enable_checksummed_addresses(&mut self) {
         self.checksummed_addresses = true;
     }
 
+    /// Disable checksummed addresses in decoded output
     #[napi]
     pub fn disable_checksummed_addresses(&mut self) {
         self.checksummed_addresses = false;
     }
 
+    /// Decode logs asynchronously
     #[napi]
     pub async fn decode_logs(&self, logs: Vec<Log>) -> Vec<Option<DecodedEvent>> {
         let decoder = self.clone();
@@ -60,6 +66,7 @@ impl Decoder {
             .unwrap()
     }
 
+    /// Decode logs synchronously
     #[napi]
     pub fn decode_logs_sync(&self, logs: Vec<Log>) -> Vec<Option<DecodedEvent>> {
         logs.iter()
@@ -67,6 +74,7 @@ impl Decoder {
             .collect::<Vec<_>>()
     }
 
+    /// Decode events asynchronously
     #[napi]
     pub async fn decode_events(&self, events: Vec<Event>) -> Vec<Option<DecodedEvent>> {
         let decoder = self.clone();
@@ -75,6 +83,7 @@ impl Decoder {
             .unwrap()
     }
 
+    /// Decode events synchronously
     #[napi]
     pub fn decode_events_sync(&self, events: Vec<Event>) -> Vec<Option<DecodedEvent>> {
         events

@@ -2,8 +2,9 @@ import { HypersyncClient, presetQueryLogs } from "@envio-dev/hypersync-client";
 
 async function main() {
   // Create hypersync client using the mainnet hypersync endpoint
-  const client = HypersyncClient.new({
-    url: "https://eth.hypersync.xyz"
+  const client = new HypersyncClient({
+    url: "https://eth.hypersync.xyz",
+    apiToken: process.env.ENVIO_API_TOKEN!,
   });
 
   // address to get logs from

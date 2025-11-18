@@ -1,17 +1,16 @@
-import {HypersyncClient, Decoder, LogField} from "@envio-dev/hypersync-client";
-import fs from "node:fs";
-import {CallDecoder, TransactionField} from "../../../index";
+import {HypersyncClient, CallDecoder, Query} from "@envio-dev/hypersync-client";
 
 const DAI_ADDRESS = "0x6B175474E89094C44Da98b954EedeAC495271d0F";
 
 async function main() {
     // Create hypersync client using the mainnet hypersync endpoint
-    const client = HypersyncClient.new({
-        url: "https://eth.hypersync.xyz"
+    const client = new HypersyncClient({
+        url: "https://eth.hypersync.xyz",
+        apiToken: process.env.ENVIO_API_TOKEN!,
     });
 
     // The query to run
-    const query = {
+    const query: Query = {
         // start from tip of the chain
         "fromBlock": 20500000,
         "transactions": [
@@ -25,8 +24,8 @@ async function main() {
         // Select the fields we are interested in, notice topics are selected as topic0,1,2,3
         "fieldSelection": {
             "transaction": [
-                TransactionField.Hash,
-                TransactionField.Input,
+                "Hash",
+                "Input",
             ]
         },
     };
