@@ -1,33 +1,55 @@
 use std::collections::HashMap;
 
+/// Config for hypersync event streaming.
 #[napi(object)]
 #[derive(Default, Clone)]
 pub struct StreamConfig {
+    /// Column mapping for stream function output.
+    /// It lets you map columns you want into the DataTypes you want.
     pub column_mapping: Option<ColumnMapping>,
+    /// Event signature used to populate decode logs. Decode logs would be empty if set to None.
     pub event_signature: Option<String>,
+    /// Determines formatting of binary columns numbers into utf8 hex. Default: NoEncode.
     pub hex_output: Option<HexOutput>,
+    /// Initial batch size. Size would be adjusted based on response size during execution. Default: 1000.
     pub batch_size: Option<i64>,
+    /// Maximum batch size that could be used during dynamic adjustment. Default: 200000.
     pub max_batch_size: Option<i64>,
+    /// Minimum batch size that could be used during dynamic adjustment. Default: 200.
     pub min_batch_size: Option<i64>,
+    /// Number of async threads that would be spawned to execute different block ranges of queries. Default: 10.
     pub concurrency: Option<i64>,
+    /// Max number of blocks to fetch in a single request.
     pub max_num_blocks: Option<i64>,
+    /// Max number of transactions to fetch in a single request.
     pub max_num_transactions: Option<i64>,
+    /// Max number of logs to fetch in a single request.
     pub max_num_logs: Option<i64>,
+    /// Max number of traces to fetch in a single request.
     pub max_num_traces: Option<i64>,
+    /// Size of a response in bytes from which step size will be lowered. Default: 500000.
     pub response_bytes_ceiling: Option<i64>,
+    /// Size of a response in bytes from which step size will be increased. Default: 250000.
     pub response_bytes_floor: Option<i64>,
+    /// Stream data in reverse order. Default: false.
     pub reverse: Option<bool>,
 }
 
+/// Determines format of Binary column
 #[napi(string_enum)]
 #[derive(Default, Debug, Clone, Copy)]
 pub enum HexOutput {
+    /// Binary column won't be formatted as hex
     #[default]
     NoEncode,
+    /// Binary column would be formatted as prefixed hex i.e. 0xdeadbeef
     Prefixed,
+    /// Binary column would be formatted as non prefixed hex i.e. deadbeef
     NonPrefixed,
 }
 
+/// DataType is an enumeration representing the different data types that can be used in the column mapping.
+/// Each variant corresponds to a specific data type.
 #[napi(string_enum)]
 #[derive(Debug, Clone, Copy)]
 pub enum DataType {
@@ -39,13 +61,20 @@ pub enum DataType {
     Int32,
 }
 
+/// Column mapping for stream function output.
+/// It lets you map columns you want into the DataTypes you want.
 #[napi(object)]
 #[derive(Default, Clone)]
 pub struct ColumnMapping {
+    /// Mapping for block data.
     pub block: Option<HashMap<String, DataType>>,
+    /// Mapping for transaction data.
     pub transaction: Option<HashMap<String, DataType>>,
+    /// Mapping for log data.
     pub log: Option<HashMap<String, DataType>>,
+    /// Mapping for trace data.
     pub trace: Option<HashMap<String, DataType>>,
+    /// Mapping for decoded log data.
     pub decoded_log: Option<HashMap<String, DataType>>,
 }
 
@@ -130,18 +159,29 @@ impl From<StreamConfig> for hypersync_client::StreamConfig {
     }
 }
 
+/// Configuration for the hypersync client.
 #[napi(object)]
 #[derive(Default, Clone)]
 pub struct ClientConfig {
+    /// HyperSync server URL.
     pub url: String,
+    /// HyperSync server api token.
     pub api_token: String,
+    /// Milliseconds to wait for a response before timing out. Default: 30000.
     pub http_req_timeout_millis: Option<i64>,
+    /// Number of retries to attempt before returning error. Default: 12.
     pub max_num_retries: Option<i64>,
+    /// Milliseconds that would be used for retry backoff increasing. Default: 500.
     pub retry_backoff_ms: Option<i64>,
+    /// Initial wait time for request backoff. Default: 200.
     pub retry_base_ms: Option<i64>,
+    /// Ceiling time for request backoff. Default: 5000.
     pub retry_ceiling_ms: Option<i64>,
+    /// Enable checksum addresses in responses.
     pub enable_checksum_addresses: Option<bool>,
+    /// Query serialization format to use for HTTP requests. Default: Json.
     pub serialization_format: Option<SerializationFormat>,
+    /// Whether to use query caching when using CapnProto serialization format.
     pub enable_query_caching: Option<bool>,
 }
 
@@ -180,10 +220,13 @@ impl From<ClientConfig> for hypersync_client::ClientConfig {
     }
 }
 
+/// Determines query serialization format for HTTP requests.
 #[napi(string_enum)]
 #[derive(Default, Clone)]
 pub enum SerializationFormat {
+    /// Use JSON serialization (default)
     #[default]
     Json,
+    /// Use Cap'n Proto binary serialization
     CapnProto,
 }

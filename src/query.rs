@@ -2,6 +2,7 @@ use anyhow::{Context, Result};
 use hypersync_client::{format::Hex, net_types};
 use napi::bindgen_prelude::Either;
 
+/// Filter for selecting logs based on address and topics
 #[napi(object)]
 #[derive(Default, Clone, Debug)]
 pub struct LogFilter {
@@ -13,13 +14,17 @@ pub struct LogFilter {
     pub topics: Option<Vec<Vec<String>>>,
 }
 
+/// Selection criteria for logs with include and exclude filters
 #[napi(object)]
 #[derive(Default, Clone, Debug)]
 pub struct LogSelection {
+    /// Logs that match this filter will be included
     pub include: LogFilter,
+    /// Logs that match this filter will be excluded
     pub exclude: Option<LogFilter>,
 }
 
+/// Filter for selecting transactions based on various criteria
 #[napi(object)]
 #[derive(Default, Clone, Debug)]
 pub struct TransactionFilter {
@@ -48,13 +53,17 @@ pub struct TransactionFilter {
     pub authorization_list: Option<Vec<AuthorizationSelection>>,
 }
 
+/// Selection criteria for transactions with include and exclude filters
 #[napi(object)]
 #[derive(Default, Clone, Debug)]
 pub struct TransactionSelection {
+    /// Transactions that match this filter will be included
     pub include: TransactionFilter,
+    /// Transactions that match this filter will be excluded
     pub exclude: Option<TransactionFilter>,
 }
 
+/// Selection criteria for transaction authorization lists
 #[napi(object)]
 #[derive(Default, Clone, Debug)]
 pub struct AuthorizationSelection {
@@ -64,15 +73,21 @@ pub struct AuthorizationSelection {
     pub address: Option<Vec<String>>,
 }
 
+/// Selection of specific fields to return for each data type
 #[napi(object)]
 #[derive(Default, Clone, Debug)]
 pub struct FieldSelection {
+    /// Block fields to include in the response
     pub block: Option<Vec<BlockField>>,
+    /// Transaction fields to include in the response
     pub transaction: Option<Vec<TransactionField>>,
+    /// Log fields to include in the response
     pub log: Option<Vec<LogField>>,
+    /// Trace fields to include in the response
     pub trace: Option<Vec<TraceField>>,
 }
 
+/// Available fields for block data
 #[napi(string_enum)]
 #[derive(
     Clone,
@@ -117,6 +132,7 @@ pub enum BlockField {
     MixHash,
 }
 
+/// Available fields for transaction data
 #[napi(string_enum)]
 #[derive(
     Clone,
@@ -179,6 +195,7 @@ pub enum TransactionField {
     SourceHash,
 }
 
+/// Available fields for log data
 #[napi(string_enum)]
 #[derive(
     Clone,
@@ -207,6 +224,7 @@ pub enum LogField {
     Topic3,
 }
 
+/// Available fields for trace data
 #[napi(string_enum)]
 #[derive(
     Clone,
@@ -248,6 +266,7 @@ pub enum TraceField {
     Error,
 }
 
+/// Filter for selecting traces based on various criteria
 #[napi(object)]
 #[derive(Default, Clone, Debug)]
 pub struct TraceFilter {
@@ -261,13 +280,17 @@ pub struct TraceFilter {
     pub sighash: Option<Vec<String>>,
 }
 
+/// Selection criteria for traces with include and exclude filters
 #[napi(object)]
 #[derive(Default, Clone, Debug)]
 pub struct TraceSelection {
+    /// Traces that match this filter will be included
     pub include: TraceFilter,
+    /// Traces that match this filter will be excluded
     pub exclude: Option<TraceFilter>,
 }
 
+/// Filter for selecting blocks based on hash and miner
 #[napi(object)]
 #[derive(Default, Clone, Debug)]
 pub struct BlockFilter {
@@ -279,22 +302,30 @@ pub struct BlockFilter {
     pub miner: Option<Vec<String>>,
 }
 
+/// Selection criteria for blocks with include and exclude filters
 #[napi(object)]
 #[derive(Default, Clone, Debug)]
 pub struct BlockSelection {
+    /// Blocks that match this filter will be included
     pub include: BlockFilter,
+    /// Blocks that match this filter will be excluded
     pub exclude: Option<BlockFilter>,
 }
 
+/// Mode for joining blockchain data
 #[napi]
 #[derive(Default, Debug, PartialEq, Eq, Clone, Copy)]
 pub enum JoinMode {
+    /// Default join mode
     #[default]
     Default,
+    /// Join all available data
     JoinAll,
+    /// Join no additional data
     JoinNothing,
 }
 
+/// Query for retrieving blockchain data
 #[napi(object)]
 #[derive(Default, Clone)]
 pub struct Query {

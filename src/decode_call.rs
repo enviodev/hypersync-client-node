@@ -4,6 +4,7 @@ use anyhow::Context;
 use hypersync_client::format::{Data, Hex};
 use std::sync::Arc;
 
+/// Decoder for Ethereum function calls
 #[napi]
 #[derive(Clone)]
 pub struct CallDecoder {
@@ -13,6 +14,7 @@ pub struct CallDecoder {
 
 #[napi]
 impl CallDecoder {
+    /// Create call decoder from function signatures
     #[napi]
     pub fn from_signatures(signatures: Vec<String>) -> napi::Result<CallDecoder> {
         let inner = hypersync_client::CallDecoder::from_signatures(&signatures)
@@ -25,6 +27,7 @@ impl CallDecoder {
         })
     }
 
+    /// Create call decoder from function signatures with checksum option
     #[napi]
     pub fn from_signatures_with_checksum(
         signatures: Vec<String>,
@@ -48,6 +51,7 @@ impl CallDecoder {
         self.checksummed_addresses = false;
     }
 
+    /// Decode function call inputs asynchronously
     #[napi]
     pub async fn decode_inputs(&self, inputs: Vec<String>) -> Vec<Option<Vec<DecodedSolValue>>> {
         let decoder = self.clone();
@@ -57,8 +61,8 @@ impl CallDecoder {
             .unwrap()
     }
 
+    /// Decode transaction inputs asynchronously
     #[napi]
-
     pub async fn decode_transactions_input(
         &self,
         txs: Vec<Transaction>,
@@ -70,6 +74,7 @@ impl CallDecoder {
             .unwrap()
     }
 
+    /// Decode trace inputs asynchronously
     #[napi]
     pub async fn decode_traces_input(
         &self,
@@ -82,6 +87,7 @@ impl CallDecoder {
             .unwrap()
     }
 
+    /// Decode function call inputs synchronously
     #[napi]
     pub fn decode_inputs_sync(&self, inputs: Vec<String>) -> Vec<Option<Vec<DecodedSolValue>>> {
         inputs
@@ -90,6 +96,7 @@ impl CallDecoder {
             .collect()
     }
 
+    /// Decode transaction inputs synchronously
     #[napi]
     pub fn decode_transactions_input_sync(
         &self,
@@ -100,6 +107,7 @@ impl CallDecoder {
             .collect()
     }
 
+    /// Decode trace inputs synchronously
     #[napi]
     pub fn decode_traces_input_sync(
         &self,
@@ -111,6 +119,7 @@ impl CallDecoder {
             .collect()
     }
 
+    /// Decode a single input string
     #[napi]
     pub fn decode_impl(&self, input: String) -> Option<Vec<DecodedSolValue>> {
         let input = Data::decode_hex(input.as_str())

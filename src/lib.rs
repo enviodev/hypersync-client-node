@@ -15,6 +15,7 @@ use config::{ClientConfig, StreamConfig};
 use query::Query;
 use types::{Block, Event, Log, RollbackGuard, Trace, Transaction};
 
+/// HyperSync client for querying blockchain data
 #[napi]
 pub struct HypersyncClient {
     inner: hypersync_client::Client,
@@ -56,6 +57,7 @@ impl HypersyncClient {
         Ok(chain_id.try_into().unwrap())
     }
 
+    /// Collect blockchain data from the given query
     #[napi]
     pub async fn collect(&self, query: Query, config: StreamConfig) -> napi::Result<QueryResponse> {
         let query = query.try_into().context("parse query").map_err(map_err)?;
@@ -73,6 +75,7 @@ impl HypersyncClient {
             .map_err(map_err)
     }
 
+    /// Collect blockchain events from the given query
     #[napi]
     pub async fn collect_events(
         &self,
@@ -95,6 +98,7 @@ impl HypersyncClient {
             .map_err(map_err)
     }
 
+    /// Collect blockchain data and save to parquet format
     #[napi]
     pub async fn collect_parquet(
         &self,
@@ -112,6 +116,7 @@ impl HypersyncClient {
             .map_err(map_err)
     }
 
+    /// Get blockchain data for a single query
     #[napi]
     pub async fn get(&self, query: Query) -> napi::Result<QueryResponse> {
         let query = query.try_into().context("parse query").map_err(map_err)?;
@@ -126,6 +131,7 @@ impl HypersyncClient {
             .map_err(map_err)
     }
 
+    /// Get blockchain events for a single query
     #[napi]
     pub async fn get_events(&self, query: Query) -> napi::Result<EventResponse> {
         let query = query.try_into().context("parse query").map_err(map_err)?;
@@ -141,6 +147,7 @@ impl HypersyncClient {
         Ok(r)
     }
 
+    /// Stream blockchain data from the given query
     #[napi]
     pub async fn stream(
         &self,
@@ -164,6 +171,7 @@ impl HypersyncClient {
         })
     }
 
+    /// Stream blockchain events from the given query
     #[napi]
     pub async fn stream_events(
         &self,
@@ -188,6 +196,7 @@ impl HypersyncClient {
     }
 }
 
+/// Stream for receiving query responses
 #[napi]
 pub struct QueryResponseStream {
     inner: tokio::sync::Mutex<mpsc::Receiver<Result<hypersync_client::QueryResponse>>>,
@@ -196,11 +205,13 @@ pub struct QueryResponseStream {
 
 #[napi]
 impl QueryResponseStream {
+    /// Close the response stream
     #[napi]
     pub async fn close(&self) {
         self.inner.lock().await.close();
     }
 
+    /// Receive the next query response from the stream
     #[napi]
     pub async fn recv(&self) -> napi::Result<Option<QueryResponse>> {
         let resp = self.inner.lock().await.recv().await;
@@ -215,6 +226,7 @@ impl QueryResponseStream {
 
 type HSEventResponse = hypersync_client::QueryResponse<Vec<hypersync_client::simple_types::Event>>;
 
+/// Stream for receiving event responses
 #[napi]
 pub struct EventStream {
     inner: tokio::sync::Mutex<mpsc::Receiver<Result<HSEventResponse>>>,
@@ -223,11 +235,13 @@ pub struct EventStream {
 
 #[napi]
 impl EventStream {
+    /// Close the event stream
     #[napi]
     pub async fn close(&self) {
         self.inner.lock().await.close();
     }
 
+    /// Receive the next event response from the stream
     #[napi]
     pub async fn recv(&self) -> napi::Result<Option<EventResponse>> {
         let resp = self.inner.lock().await.recv().await;
@@ -240,14 +254,20 @@ impl EventStream {
     }
 }
 
+/// Data returned from a query response
 #[napi(object)]
 pub struct QueryResponseData {
+    /// Blocks returned by the query
     pub blocks: Vec<Block>,
+    /// Transactions returned by the query
     pub transactions: Vec<Transaction>,
+    /// Logs returned by the query
     pub logs: Vec<Log>,
+    /// Traces returned by the query
     pub traces: Vec<Trace>,
 }
 
+/// Response from a blockchain query
 #[napi(object)]
 pub struct QueryResponse {
     /// Current height of the source hypersync instance
@@ -264,6 +284,7 @@ pub struct QueryResponse {
     pub rollback_guard: Option<RollbackGuard>,
 }
 
+/// Response from an event query
 #[napi(object)]
 pub struct EventResponse {
     /// Current height of the source hypersync instance
@@ -280,6 +301,7 @@ pub struct EventResponse {
     pub rollback_guard: Option<RollbackGuard>,
 }
 
+/// Collection of events from a blockchain query
 #[napi(object)]
 pub struct Events {
     /// Current height of the source hypersync instance
