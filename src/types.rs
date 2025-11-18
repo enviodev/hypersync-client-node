@@ -531,8 +531,10 @@ pub struct RollbackGuard {
     pub first_parent_hash: String,
 }
 
-impl RollbackGuard {
-    pub fn try_convert(arg: net_types::RollbackGuard) -> Result<Self> {
+impl TryFrom<net_types::RollbackGuard> for RollbackGuard {
+    type Error = anyhow::Error;
+
+    fn try_from(arg: net_types::RollbackGuard) -> Result<Self> {
         Ok(Self {
             block_number: arg
                 .block_number

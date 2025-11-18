@@ -58,19 +58,12 @@ impl HypersyncClient {
 
     #[napi]
     pub async fn collect(&self, query: Query, config: StreamConfig) -> napi::Result<QueryResponse> {
-        let query = query
-            .try_convert()
-            .context("parse query")
-            .map_err(map_err)?;
-        let config = config
-            .try_convert()
-            .context("parse stream config")
-            .map_err(map_err)?;
+        let query = query.try_into().context("parse query").map_err(map_err)?;
 
         let resp = self
             .inner
             .clone()
-            .collect(query, config)
+            .collect(query, config.into())
             .await
             .context("run inner collect")
             .map_err(map_err)?;
@@ -86,14 +79,8 @@ impl HypersyncClient {
         query: Query,
         config: StreamConfig,
     ) -> napi::Result<EventResponse> {
-        let query = query
-            .try_convert()
-            .context("parse query")
-            .map_err(map_err)?;
-        let config = config
-            .try_convert()
-            .context("parse stream config")
-            .map_err(map_err)?;
+        let query = query.try_into().context("parse query").map_err(map_err)?;
+        let config = config.into();
 
         let resp = self
             .inner
@@ -115,14 +102,8 @@ impl HypersyncClient {
         query: Query,
         config: StreamConfig,
     ) -> napi::Result<()> {
-        let query = query
-            .try_convert()
-            .context("parse query")
-            .map_err(map_err)?;
-        let config = config
-            .try_convert()
-            .context("parse stream config")
-            .map_err(map_err)?;
+        let query = query.try_into().context("parse query").map_err(map_err)?;
+        let config = config.into();
 
         self.inner
             .clone()
@@ -133,10 +114,7 @@ impl HypersyncClient {
 
     #[napi]
     pub async fn get(&self, query: Query) -> napi::Result<QueryResponse> {
-        let query = query
-            .try_convert()
-            .context("parse query")
-            .map_err(map_err)?;
+        let query = query.try_into().context("parse query").map_err(map_err)?;
         let res = self
             .inner
             .get(&query)
@@ -150,10 +128,7 @@ impl HypersyncClient {
 
     #[napi]
     pub async fn get_events(&self, query: Query) -> napi::Result<EventResponse> {
-        let query = query
-            .try_convert()
-            .context("parse query")
-            .map_err(map_err)?;
+        let query = query.try_into().context("parse query").map_err(map_err)?;
         let res = self
             .inner
             .get_events(query)
@@ -172,14 +147,8 @@ impl HypersyncClient {
         query: Query,
         config: StreamConfig,
     ) -> napi::Result<QueryResponseStream> {
-        let query = query
-            .try_convert()
-            .context("parse query")
-            .map_err(map_err)?;
-        let config = config
-            .try_convert()
-            .context("parse stream config")
-            .map_err(map_err)?;
+        let query = query.try_into().context("parse query").map_err(map_err)?;
+        let config = config.into();
 
         let inner = self
             .inner
@@ -201,14 +170,8 @@ impl HypersyncClient {
         query: Query,
         config: StreamConfig,
     ) -> napi::Result<EventStream> {
-        let query = query
-            .try_convert()
-            .context("parse query")
-            .map_err(map_err)?;
-        let config = config
-            .try_convert()
-            .context("parse stream config")
-            .map_err(map_err)?;
+        let query = query.try_into().context("parse query").map_err(map_err)?;
+        let config = config.into();
 
         let inner = self
             .inner
@@ -391,7 +354,7 @@ fn convert_response(
         },
         rollback_guard: res
             .rollback_guard
-            .map(RollbackGuard::try_convert)
+            .map(RollbackGuard::try_from)
             .transpose()
             .context("convert rollback guard")?,
     })
@@ -436,7 +399,7 @@ fn convert_event_response(
         data,
         rollback_guard: resp
             .rollback_guard
-            .map(|rg| RollbackGuard::try_convert(rg).context("convert rollback guard"))
+            .map(|rg| RollbackGuard::try_from(rg).context("convert rollback guard"))
             .transpose()?,
     })
 }

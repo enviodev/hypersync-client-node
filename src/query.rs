@@ -347,14 +347,6 @@ pub struct Query {
     pub join_mode: Option<JoinMode>,
 }
 
-impl Query {
-    pub fn try_convert(&self) -> Result<net_types::Query> {
-        todo!()
-        // let json = serde_json::to_vec(self).context("serialize to json")?;
-        // serde_json::from_slice(&json).context("parse json")
-    }
-}
-
 impl TryFrom<Query> for net_types::Query {
     type Error = anyhow::Error;
 
@@ -1712,8 +1704,7 @@ mod tests {
             authorization_list: vec![],
         };
 
-        let converted =
-            TransactionFilter::from(net_filter);
+        let converted = TransactionFilter::from(net_filter);
 
         assert!(converted.from.is_some());
         assert_eq!(converted.from.as_ref().unwrap().len(), 1);
@@ -1747,8 +1738,7 @@ mod tests {
             authorization_list: vec![],
         };
 
-        let converted =
-            TransactionFilter::from(net_filter);
+        let converted = TransactionFilter::from(net_filter);
 
         assert!(converted.from.is_none());
         assert!(converted.to.is_none());
@@ -1779,8 +1769,7 @@ mod tests {
             trace: BTreeSet::new(),
         };
 
-        let converted =
-            FieldSelection::from(net_selection);
+        let converted = FieldSelection::from(net_selection);
 
         assert!(converted.block.is_some());
         assert_eq!(converted.block.as_ref().unwrap().len(), 2);
