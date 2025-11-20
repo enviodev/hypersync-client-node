@@ -28,17 +28,27 @@ impl HypersyncClient {
     /// Create a new client with given config
     #[napi]
     pub fn new(cfg: Option<ClientConfig>) -> napi::Result<HypersyncClient> {
+        Self::new_with_agent(cfg, format!("hscn/{}", env!("CARGO_PKG_VERSION")))
+    }
+
+    /// Create a new client with custom user agent
+    ///
+    /// This method is intended for internal use when you need to customize the user agent string.
+    /// Most users should use `new()` instead.
+    ///
+    /// @internal
+    #[doc(hidden)]
+    #[napi]
+    pub fn new_with_agent(
+        cfg: Option<ClientConfig>,
+        user_agent: String,
+    ) -> napi::Result<HypersyncClient> {
         env_logger::try_init().ok();
 
         let cfg = cfg.unwrap_or_default();
         let converted_cfg = cfg.try_convert().context("parse config").map_err(map_err)?;
-        let converted_cfg = if converted_cfg.user_agent.is_some() {
-            converted_cfg
-        } else {
-            converted_cfg.with_user_agent(format!("hscn/{}", env!("CARGO_PKG_VERSION")))
-        };
 
-        let inner = hypersync_client::Client::new(converted_cfg)
+        let inner = hypersync_client::Client::new_with_agent(converted_cfg, user_agent)
             .context("build client")
             .map_err(map_err)?;
         let inner = Arc::new(inner);

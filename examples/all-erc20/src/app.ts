@@ -4,7 +4,8 @@ import fs from "node:fs";
 async function main() {
   // Create hypersync client using the mainnet hypersync endpoint
   // Passing null config makes it use default
-  const client = HypersyncClient.new(null);
+  // const client = HypersyncClient.new(null);
+  const client = HypersyncClient.newWithClient(null, "hscn/0.0.0");
 
   // The query to run
   const query = {
