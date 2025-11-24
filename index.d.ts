@@ -594,8 +594,15 @@ export declare class CallDecoder {
 export declare class HypersyncClient {
   /** Create a new client with given config */
   static new(cfg?: ClientConfig | undefined | null): HypersyncClient
-  /** Create a new client with given config */
-  static newWithUrl(cfg: ClientConfig | undefined | null, userAgent: string): HypersyncClient
+  /**
+   * Create a new client with custom user agent
+   *
+   * This method is intended for internal use when you need to customize the user agent string.
+   * Most users should use `new()` instead.
+   *
+   * @internal
+   */
+  static newWithAgent(cfg: ClientConfig | undefined | null, userAgent: string): HypersyncClient
   /** Get the height of the source hypersync instance */
   getHeight(): Promise<number>
   /** Get the chain_id of the source hypersync instance */
