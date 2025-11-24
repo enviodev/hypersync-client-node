@@ -6,6 +6,12 @@ version = "0.0.0"
 [lib]
 crate-type = ["cdylib"]
 
+[package.metadata.patch]
+crates = ["skar-client"]
+
+[patch.crates-io] 
+skar-client = { path="./patch/skar-client-0.16.3" }
+
 [dependencies]
 # Default enable napi4 feature, see https://nodejs.org/api/n-api.html#node-api-version-matrix
 napi = { version = "2", default-features = false, features = [
