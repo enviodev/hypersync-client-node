@@ -240,6 +240,10 @@ pub struct Trace {
     #[napi(js_name = "type")]
     pub type_: Option<String>,
     pub error: Option<String>,
+    pub action_address: Option<String>,
+    pub balance: Option<BigInt>,
+    pub refund_address: Option<String>,
+    pub sighash: Option<String>,
 }
 
 /// Decoded EVM log
@@ -532,6 +536,10 @@ impl Trace {
                 .context("mapping trace.transaction_position")?,
             type_: t.type_.clone(),
             error: t.error.clone(),
+            action_address: map_address_string(&t.action_address, should_checksum),
+            balance: map_bigint(&t.balance),
+            refund_address: map_address_string(&t.refund_address, should_checksum),
+            sighash: map_hex_string(&t.sighash),
         })
     }
 }
@@ -599,6 +607,8 @@ mod tests {
             None => None,
         }
     }
+    // Set of simple compile tests to ensure we have all the fields that the simple types have
+
     #[test]
     fn has_all_tx_fields() {
         let tx = Transaction::default();
@@ -655,6 +665,104 @@ mod tests {
         assert_eq!(
             simple_tx,
             hypersync_client::simple_types::Transaction::default()
+        );
+    }
+
+    #[test]
+    fn has_all_block_fields() {
+        let block = Block::default();
+
+        let simple_block = hypersync_client::simple_types::Block {
+            number: map_none(block.number),
+            hash: map_none(block.hash),
+            parent_hash: map_none(block.parent_hash),
+            nonce: map_none(block.nonce),
+            sha3_uncles: map_none(block.sha3_uncles),
+            logs_bloom: map_none(block.logs_bloom),
+            transactions_root: map_none(block.transactions_root),
+            state_root: map_none(block.state_root),
+            receipts_root: map_none(block.receipts_root),
+            miner: map_none(block.miner),
+            difficulty: map_none(block.difficulty),
+            total_difficulty: map_none(block.total_difficulty),
+            extra_data: map_none(block.extra_data),
+            size: map_none(block.size),
+            gas_limit: map_none(block.gas_limit),
+            gas_used: map_none(block.gas_used),
+            timestamp: map_none(block.timestamp),
+            uncles: map_none(block.uncles),
+            base_fee_per_gas: map_none(block.base_fee_per_gas),
+            blob_gas_used: map_none(block.blob_gas_used),
+            excess_blob_gas: map_none(block.excess_blob_gas),
+            parent_beacon_block_root: map_none(block.parent_beacon_block_root),
+            withdrawals_root: map_none(block.withdrawals_root),
+            withdrawals: map_none(block.withdrawals),
+            l1_block_number: map_none(block.l1_block_number),
+            send_count: map_none(block.send_count),
+            send_root: map_none(block.send_root),
+            mix_hash: map_none(block.mix_hash),
+        };
+
+        assert_eq!(
+            simple_block,
+            hypersync_client::simple_types::Block::default()
+        );
+    }
+
+    #[test]
+    fn has_all_log_fields() {
+        let log = Log::default();
+
+        let simple_log = hypersync_client::simple_types::Log {
+            removed: log.removed,
+            log_index: map_none(log.log_index),
+            transaction_index: map_none(log.transaction_index),
+            transaction_hash: map_none(log.transaction_hash),
+            block_hash: map_none(log.block_hash),
+            block_number: map_none(log.block_number),
+            address: map_none(log.address),
+            data: map_none(log.data),
+            topics: log.topics.into_iter().map(|_| None).collect(),
+        };
+
+        assert_eq!(simple_log, hypersync_client::simple_types::Log::default());
+    }
+
+    #[test]
+    fn has_all_trace_fields() {
+        let trace = Trace::default();
+
+        let simple_trace = hypersync_client::simple_types::Trace {
+            from: map_none(trace.from),
+            to: map_none(trace.to),
+            call_type: trace.call_type,
+            gas: map_none(trace.gas),
+            input: map_none(trace.input),
+            init: map_none(trace.init),
+            value: map_none(trace.value),
+            author: map_none(trace.author),
+            reward_type: trace.reward_type,
+            block_hash: map_none(trace.block_hash),
+            block_number: map_none(trace.block_number),
+            address: map_none(trace.address),
+            code: map_none(trace.code),
+            gas_used: map_none(trace.gas_used),
+            output: map_none(trace.output),
+            subtraces: map_none(trace.subtraces),
+            trace_address: map_none(trace.trace_address),
+            transaction_hash: map_none(trace.transaction_hash),
+            transaction_position: map_none(trace.transaction_position),
+            type_: trace.type_,
+            error: trace.error,
+            action_address: map_none(trace.action_address),
+            balance: map_none(trace.balance),
+            refund_address: map_none(trace.refund_address),
+            sighash: map_none(trace.sighash),
+        };
+
+        assert_eq!(
+            simple_trace,
+            hypersync_client::simple_types::Trace::default()
         );
     }
 
