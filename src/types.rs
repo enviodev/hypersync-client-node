@@ -78,6 +78,17 @@ pub struct Transaction {
     pub l1_gas_used: Option<BigInt>,
     pub l1_fee_scalar: Option<f64>,
     pub gas_used_for_l1: Option<BigInt>,
+    pub blob_gas_price: Option<BigInt>,
+    pub blob_gas_used: Option<BigInt>,
+    pub deposit_nonce: Option<BigInt>,
+    pub deposit_receipt_version: Option<BigInt>,
+    pub l1_base_fee_scalar: Option<BigInt>,
+    pub l1_blob_base_fee: Option<BigInt>,
+    pub l1_blob_base_fee_scalar: Option<BigInt>,
+    pub l1_block_number: Option<i64>,
+    pub mint: Option<BigInt>,
+    pub sighash: Option<String>,
+    pub source_hash: Option<String>,
 }
 
 /// Evm withdrawal object
@@ -420,7 +431,7 @@ impl Transaction {
             gas_used: map_bigint(&t.gas_used),
             contract_address: map_address_string(&t.contract_address, should_checksum),
             logs_bloom: map_hex_string(&t.logs_bloom),
-            type_: t.kind.map(|v| u8::from(v).into()),
+            type_: t.type_.map(|v| u8::from(v).into()),
             root: map_hex_string(&t.root),
             status: t.status.map(|v| v.to_u8().into()),
             l1_fee: map_bigint(&t.l1_fee),
@@ -428,6 +439,18 @@ impl Transaction {
             l1_gas_used: map_bigint(&t.l1_gas_used),
             l1_fee_scalar: t.l1_fee_scalar,
             gas_used_for_l1: map_bigint(&t.gas_used_for_l1),
+            blob_gas_price: map_bigint(&t.blob_gas_price),
+            blob_gas_used: map_bigint(&t.blob_gas_used),
+            deposit_nonce: map_bigint(&t.deposit_nonce),
+            deposit_receipt_version: map_bigint(&t.deposit_receipt_version),
+            l1_base_fee_scalar: map_bigint(&t.l1_base_fee_scalar),
+            l1_blob_base_fee: map_bigint(&t.l1_blob_base_fee),
+            l1_blob_base_fee_scalar: map_bigint(&t.l1_blob_base_fee_scalar),
+            l1_block_number: map_i64(&t.l1_block_number)
+                .context("mapping transaction.l1_block_number")?,
+            mint: map_bigint(&t.mint),
+            sighash: map_hex_string(&t.sighash),
+            source_hash: map_hex_string(&t.source_hash),
         })
     }
 }
@@ -507,7 +530,7 @@ impl Trace {
                 .map(|n| n.try_into())
                 .transpose()
                 .context("mapping trace.transaction_position")?,
-            type_: t.kind.clone(),
+            type_: t.type_.clone(),
             error: t.error.clone(),
         })
     }
@@ -569,6 +592,71 @@ fn convert_bigint_unsigned(v: U256) -> BigInt {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn map_none<T, R>(opt: Option<T>) -> Option<R> {
+        match opt {
+            Some(_v) => unreachable!(),
+            None => None,
+        }
+    }
+    #[test]
+    fn has_all_tx_fields() {
+        let tx = Transaction::default();
+
+        let simple_tx = hypersync_client::simple_types::Transaction {
+            block_hash: map_none(tx.block_hash),
+            block_number: map_none(tx.block_number),
+            from: map_none(tx.from),
+            gas: map_none(tx.gas),
+            gas_price: map_none(tx.gas_price),
+            hash: map_none(tx.hash),
+            input: map_none(tx.input),
+            nonce: map_none(tx.nonce),
+            to: map_none(tx.to),
+            transaction_index: map_none(tx.transaction_index),
+            value: map_none(tx.value),
+            v: map_none(tx.v),
+            r: map_none(tx.r),
+            s: map_none(tx.s),
+            y_parity: map_none(tx.y_parity),
+            max_priority_fee_per_gas: map_none(tx.max_priority_fee_per_gas),
+            max_fee_per_gas: map_none(tx.max_fee_per_gas),
+            chain_id: map_none(tx.chain_id),
+            access_list: map_none(tx.access_list),
+            authorization_list: map_none(tx.authorization_list),
+            max_fee_per_blob_gas: map_none(tx.max_fee_per_blob_gas),
+            blob_versioned_hashes: map_none(tx.blob_versioned_hashes),
+            cumulative_gas_used: map_none(tx.cumulative_gas_used),
+            effective_gas_price: map_none(tx.effective_gas_price),
+            gas_used: map_none(tx.gas_used),
+            contract_address: map_none(tx.contract_address),
+            logs_bloom: map_none(tx.logs_bloom),
+            type_: map_none(tx.type_),
+            root: map_none(tx.root),
+            status: map_none(tx.status),
+            l1_fee: map_none(tx.l1_fee),
+            l1_gas_price: map_none(tx.l1_gas_price),
+            l1_gas_used: map_none(tx.l1_gas_used),
+            l1_fee_scalar: map_none(tx.l1_fee_scalar),
+            gas_used_for_l1: map_none(tx.gas_used_for_l1),
+            blob_gas_price: map_none(tx.blob_gas_price),
+            blob_gas_used: map_none(tx.blob_gas_used),
+            deposit_nonce: map_none(tx.deposit_nonce),
+            deposit_receipt_version: map_none(tx.deposit_receipt_version),
+            l1_base_fee_scalar: map_none(tx.l1_base_fee_scalar),
+            l1_blob_base_fee: map_none(tx.l1_blob_base_fee),
+            l1_blob_base_fee_scalar: map_none(tx.l1_blob_base_fee_scalar),
+            l1_block_number: map_none(tx.l1_block_number),
+            mint: map_none(tx.mint),
+            sighash: map_none(tx.sighash),
+            source_hash: map_none(tx.source_hash),
+        };
+
+        assert_eq!(
+            simple_tx,
+            hypersync_client::simple_types::Transaction::default()
+        );
+    }
 
     #[test]
     fn test_bigint_convert_signed() {
