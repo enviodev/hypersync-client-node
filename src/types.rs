@@ -69,7 +69,8 @@ pub struct Transaction {
     pub gas_used: Option<BigInt>,
     pub contract_address: Option<String>,
     pub logs_bloom: Option<String>,
-    pub kind: Option<i64>,
+    #[napi(js_name = "type")]
+    pub type_: Option<i64>,
     pub root: Option<String>,
     pub status: Option<i64>,
     pub l1_fee: Option<BigInt>,
@@ -77,6 +78,17 @@ pub struct Transaction {
     pub l1_gas_used: Option<BigInt>,
     pub l1_fee_scalar: Option<f64>,
     pub gas_used_for_l1: Option<BigInt>,
+    pub blob_gas_price: Option<BigInt>,
+    pub blob_gas_used: Option<BigInt>,
+    pub deposit_nonce: Option<BigInt>,
+    pub deposit_receipt_version: Option<BigInt>,
+    pub l1_base_fee_scalar: Option<BigInt>,
+    pub l1_blob_base_fee: Option<BigInt>,
+    pub l1_blob_base_fee_scalar: Option<BigInt>,
+    pub l1_block_number: Option<i64>,
+    pub mint: Option<BigInt>,
+    pub sighash: Option<String>,
+    pub source_hash: Option<String>,
 }
 
 /// Evm withdrawal object
@@ -225,8 +237,13 @@ pub struct Trace {
     pub trace_address: Option<Vec<i64>>,
     pub transaction_hash: Option<String>,
     pub transaction_position: Option<i64>,
-    pub kind: Option<String>,
+    #[napi(js_name = "type")]
+    pub type_: Option<String>,
     pub error: Option<String>,
+    pub action_address: Option<String>,
+    pub balance: Option<BigInt>,
+    pub refund_address: Option<String>,
+    pub sighash: Option<String>,
 }
 
 /// Decoded EVM log
@@ -418,7 +435,7 @@ impl Transaction {
             gas_used: map_bigint(&t.gas_used),
             contract_address: map_address_string(&t.contract_address, should_checksum),
             logs_bloom: map_hex_string(&t.logs_bloom),
-            kind: t.kind.map(|v| u8::from(v).into()),
+            type_: t.type_.map(|v| u8::from(v).into()),
             root: map_hex_string(&t.root),
             status: t.status.map(|v| v.to_u8().into()),
             l1_fee: map_bigint(&t.l1_fee),
@@ -426,6 +443,18 @@ impl Transaction {
             l1_gas_used: map_bigint(&t.l1_gas_used),
             l1_fee_scalar: t.l1_fee_scalar,
             gas_used_for_l1: map_bigint(&t.gas_used_for_l1),
+            blob_gas_price: map_bigint(&t.blob_gas_price),
+            blob_gas_used: map_bigint(&t.blob_gas_used),
+            deposit_nonce: map_bigint(&t.deposit_nonce),
+            deposit_receipt_version: map_bigint(&t.deposit_receipt_version),
+            l1_base_fee_scalar: map_bigint(&t.l1_base_fee_scalar),
+            l1_blob_base_fee: map_bigint(&t.l1_blob_base_fee),
+            l1_blob_base_fee_scalar: map_bigint(&t.l1_blob_base_fee_scalar),
+            l1_block_number: map_i64(&t.l1_block_number)
+                .context("mapping transaction.l1_block_number")?,
+            mint: map_bigint(&t.mint),
+            sighash: map_hex_string(&t.sighash),
+            source_hash: map_hex_string(&t.source_hash),
         })
     }
 }
@@ -505,8 +534,12 @@ impl Trace {
                 .map(|n| n.try_into())
                 .transpose()
                 .context("mapping trace.transaction_position")?,
-            kind: t.kind.clone(),
+            type_: t.type_.clone(),
             error: t.error.clone(),
+            action_address: map_address_string(&t.action_address, should_checksum),
+            balance: map_bigint(&t.balance),
+            refund_address: map_address_string(&t.refund_address, should_checksum),
+            sighash: map_hex_string(&t.sighash),
         })
     }
 }
@@ -529,8 +562,10 @@ pub struct RollbackGuard {
     pub first_parent_hash: String,
 }
 
-impl RollbackGuard {
-    pub fn try_convert(arg: net_types::RollbackGuard) -> Result<Self> {
+impl TryFrom<net_types::RollbackGuard> for RollbackGuard {
+    type Error = anyhow::Error;
+
+    fn try_from(arg: net_types::RollbackGuard) -> Result<Self> {
         Ok(Self {
             block_number: arg
                 .block_number
@@ -565,6 +600,171 @@ fn convert_bigint_unsigned(v: U256) -> BigInt {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn map_none<T, R>(opt: Option<T>) -> Option<R> {
+        match opt {
+            Some(_v) => unreachable!(),
+            None => None,
+        }
+    }
+    // Set of simple compile tests to ensure we have all the fields that the simple types have
+
+    #[test]
+    fn has_all_tx_fields() {
+        let tx = Transaction::default();
+
+        let simple_tx = hypersync_client::simple_types::Transaction {
+            block_hash: map_none(tx.block_hash),
+            block_number: map_none(tx.block_number),
+            from: map_none(tx.from),
+            gas: map_none(tx.gas),
+            gas_price: map_none(tx.gas_price),
+            hash: map_none(tx.hash),
+            input: map_none(tx.input),
+            nonce: map_none(tx.nonce),
+            to: map_none(tx.to),
+            transaction_index: map_none(tx.transaction_index),
+            value: map_none(tx.value),
+            v: map_none(tx.v),
+            r: map_none(tx.r),
+            s: map_none(tx.s),
+            y_parity: map_none(tx.y_parity),
+            max_priority_fee_per_gas: map_none(tx.max_priority_fee_per_gas),
+            max_fee_per_gas: map_none(tx.max_fee_per_gas),
+            chain_id: map_none(tx.chain_id),
+            access_list: map_none(tx.access_list),
+            authorization_list: map_none(tx.authorization_list),
+            max_fee_per_blob_gas: map_none(tx.max_fee_per_blob_gas),
+            blob_versioned_hashes: map_none(tx.blob_versioned_hashes),
+            cumulative_gas_used: map_none(tx.cumulative_gas_used),
+            effective_gas_price: map_none(tx.effective_gas_price),
+            gas_used: map_none(tx.gas_used),
+            contract_address: map_none(tx.contract_address),
+            logs_bloom: map_none(tx.logs_bloom),
+            type_: map_none(tx.type_),
+            root: map_none(tx.root),
+            status: map_none(tx.status),
+            l1_fee: map_none(tx.l1_fee),
+            l1_gas_price: map_none(tx.l1_gas_price),
+            l1_gas_used: map_none(tx.l1_gas_used),
+            l1_fee_scalar: map_none(tx.l1_fee_scalar),
+            gas_used_for_l1: map_none(tx.gas_used_for_l1),
+            blob_gas_price: map_none(tx.blob_gas_price),
+            blob_gas_used: map_none(tx.blob_gas_used),
+            deposit_nonce: map_none(tx.deposit_nonce),
+            deposit_receipt_version: map_none(tx.deposit_receipt_version),
+            l1_base_fee_scalar: map_none(tx.l1_base_fee_scalar),
+            l1_blob_base_fee: map_none(tx.l1_blob_base_fee),
+            l1_blob_base_fee_scalar: map_none(tx.l1_blob_base_fee_scalar),
+            l1_block_number: map_none(tx.l1_block_number),
+            mint: map_none(tx.mint),
+            sighash: map_none(tx.sighash),
+            source_hash: map_none(tx.source_hash),
+        };
+
+        assert_eq!(
+            simple_tx,
+            hypersync_client::simple_types::Transaction::default()
+        );
+    }
+
+    #[test]
+    fn has_all_block_fields() {
+        let block = Block::default();
+
+        let simple_block = hypersync_client::simple_types::Block {
+            number: map_none(block.number),
+            hash: map_none(block.hash),
+            parent_hash: map_none(block.parent_hash),
+            nonce: map_none(block.nonce),
+            sha3_uncles: map_none(block.sha3_uncles),
+            logs_bloom: map_none(block.logs_bloom),
+            transactions_root: map_none(block.transactions_root),
+            state_root: map_none(block.state_root),
+            receipts_root: map_none(block.receipts_root),
+            miner: map_none(block.miner),
+            difficulty: map_none(block.difficulty),
+            total_difficulty: map_none(block.total_difficulty),
+            extra_data: map_none(block.extra_data),
+            size: map_none(block.size),
+            gas_limit: map_none(block.gas_limit),
+            gas_used: map_none(block.gas_used),
+            timestamp: map_none(block.timestamp),
+            uncles: map_none(block.uncles),
+            base_fee_per_gas: map_none(block.base_fee_per_gas),
+            blob_gas_used: map_none(block.blob_gas_used),
+            excess_blob_gas: map_none(block.excess_blob_gas),
+            parent_beacon_block_root: map_none(block.parent_beacon_block_root),
+            withdrawals_root: map_none(block.withdrawals_root),
+            withdrawals: map_none(block.withdrawals),
+            l1_block_number: map_none(block.l1_block_number),
+            send_count: map_none(block.send_count),
+            send_root: map_none(block.send_root),
+            mix_hash: map_none(block.mix_hash),
+        };
+
+        assert_eq!(
+            simple_block,
+            hypersync_client::simple_types::Block::default()
+        );
+    }
+
+    #[test]
+    fn has_all_log_fields() {
+        let log = Log::default();
+
+        let simple_log = hypersync_client::simple_types::Log {
+            removed: log.removed,
+            log_index: map_none(log.log_index),
+            transaction_index: map_none(log.transaction_index),
+            transaction_hash: map_none(log.transaction_hash),
+            block_hash: map_none(log.block_hash),
+            block_number: map_none(log.block_number),
+            address: map_none(log.address),
+            data: map_none(log.data),
+            topics: log.topics.into_iter().map(|_| None).collect(),
+        };
+
+        assert_eq!(simple_log, hypersync_client::simple_types::Log::default());
+    }
+
+    #[test]
+    fn has_all_trace_fields() {
+        let trace = Trace::default();
+
+        let simple_trace = hypersync_client::simple_types::Trace {
+            from: map_none(trace.from),
+            to: map_none(trace.to),
+            call_type: trace.call_type,
+            gas: map_none(trace.gas),
+            input: map_none(trace.input),
+            init: map_none(trace.init),
+            value: map_none(trace.value),
+            author: map_none(trace.author),
+            reward_type: trace.reward_type,
+            block_hash: map_none(trace.block_hash),
+            block_number: map_none(trace.block_number),
+            address: map_none(trace.address),
+            code: map_none(trace.code),
+            gas_used: map_none(trace.gas_used),
+            output: map_none(trace.output),
+            subtraces: map_none(trace.subtraces),
+            trace_address: map_none(trace.trace_address),
+            transaction_hash: map_none(trace.transaction_hash),
+            transaction_position: map_none(trace.transaction_position),
+            type_: trace.type_,
+            error: trace.error,
+            action_address: map_none(trace.action_address),
+            balance: map_none(trace.balance),
+            refund_address: map_none(trace.refund_address),
+            sighash: map_none(trace.sighash),
+        };
+
+        assert_eq!(
+            simple_trace,
+            hypersync_client::simple_types::Trace::default()
+        );
+    }
 
     #[test]
     fn test_bigint_convert_signed() {

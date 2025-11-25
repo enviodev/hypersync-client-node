@@ -1,9 +1,8 @@
 #[macro_use]
 extern crate napi_derive;
 
-use std::sync::Arc;
-
 use anyhow::{Context, Result};
+use napi::bindgen_prelude::Either3;
 use tokio::sync::mpsc;
 
 mod config;
@@ -17,17 +16,18 @@ use config::{ClientConfig, StreamConfig};
 use query::Query;
 use types::{Block, Event, Log, RollbackGuard, Trace, Transaction};
 
+/// HyperSync client for querying blockchain data
 #[napi]
 pub struct HypersyncClient {
-    inner: Arc<hypersync_client::Client>,
+    inner: hypersync_client::Client,
     enable_checksum_addresses: bool,
 }
 
 #[napi]
 impl HypersyncClient {
     /// Create a new client with given config
-    #[napi]
-    pub fn new(cfg: Option<ClientConfig>) -> napi::Result<HypersyncClient> {
+    #[napi(constructor)]
+    pub fn new(cfg: ClientConfig) -> napi::Result<HypersyncClient> {
         Self::new_with_agent(cfg, format!("hscn/{}", env!("CARGO_PKG_VERSION")))
     }
 
@@ -39,23 +39,18 @@ impl HypersyncClient {
     /// @internal
     #[doc(hidden)]
     #[napi]
-    pub fn new_with_agent(
-        cfg: Option<ClientConfig>,
-        user_agent: String,
-    ) -> napi::Result<HypersyncClient> {
+    pub fn new_with_agent(cfg: ClientConfig, user_agent: String) -> napi::Result<HypersyncClient> {
         env_logger::try_init().ok();
 
-        let cfg = cfg.unwrap_or_default();
-        let converted_cfg = cfg.try_convert().context("parse config").map_err(map_err)?;
+        let enable_checksum_addresses = cfg.enable_checksum_addresses.unwrap_or_default();
 
-        let inner = hypersync_client::Client::new_with_agent(converted_cfg, user_agent)
+        let inner = hypersync_client::Client::new_with_agent(cfg.into(), user_agent)
             .context("build client")
             .map_err(map_err)?;
-        let inner = Arc::new(inner);
 
         Ok(HypersyncClient {
             inner,
-            enable_checksum_addresses: cfg.enable_checksum_addresses.unwrap_or_default(),
+            enable_checksum_addresses,
         })
     }
 
@@ -75,21 +70,15 @@ impl HypersyncClient {
         Ok(chain_id.try_into().unwrap())
     }
 
+    /// Collect blockchain data from the given query
     #[napi]
     pub async fn collect(&self, query: Query, config: StreamConfig) -> napi::Result<QueryResponse> {
-        let query = query
-            .try_convert()
-            .context("parse query")
-            .map_err(map_err)?;
-        let config = config
-            .try_convert()
-            .context("parse stream config")
-            .map_err(map_err)?;
+        let query = query.try_into().context("parse query").map_err(map_err)?;
 
         let resp = self
             .inner
             .clone()
-            .collect(query, config)
+            .collect(query, config.into())
             .await
             .context("run inner collect")
             .map_err(map_err)?;
@@ -99,20 +88,15 @@ impl HypersyncClient {
             .map_err(map_err)
     }
 
+    /// Collect blockchain events from the given query
     #[napi]
     pub async fn collect_events(
         &self,
         query: Query,
         config: StreamConfig,
     ) -> napi::Result<EventResponse> {
-        let query = query
-            .try_convert()
-            .context("parse query")
-            .map_err(map_err)?;
-        let config = config
-            .try_convert()
-            .context("parse stream config")
-            .map_err(map_err)?;
+        let query = query.try_into().context("parse query").map_err(map_err)?;
+        let config = config.into();
 
         let resp = self
             .inner
@@ -127,6 +111,7 @@ impl HypersyncClient {
             .map_err(map_err)
     }
 
+    /// Collect blockchain data and save to parquet format
     #[napi]
     pub async fn collect_parquet(
         &self,
@@ -134,14 +119,8 @@ impl HypersyncClient {
         query: Query,
         config: StreamConfig,
     ) -> napi::Result<()> {
-        let query = query
-            .try_convert()
-            .context("parse query")
-            .map_err(map_err)?;
-        let config = config
-            .try_convert()
-            .context("parse stream config")
-            .map_err(map_err)?;
+        let query = query.try_into().context("parse query").map_err(map_err)?;
+        let config = config.into();
 
         self.inner
             .clone()
@@ -150,12 +129,10 @@ impl HypersyncClient {
             .map_err(map_err)
     }
 
+    /// Get blockchain data for a single query
     #[napi]
     pub async fn get(&self, query: Query) -> napi::Result<QueryResponse> {
-        let query = query
-            .try_convert()
-            .context("parse query")
-            .map_err(map_err)?;
+        let query = query.try_into().context("parse query").map_err(map_err)?;
         let res = self
             .inner
             .get(&query)
@@ -167,12 +144,10 @@ impl HypersyncClient {
             .map_err(map_err)
     }
 
+    /// Get blockchain events for a single query
     #[napi]
     pub async fn get_events(&self, query: Query) -> napi::Result<EventResponse> {
-        let query = query
-            .try_convert()
-            .context("parse query")
-            .map_err(map_err)?;
+        let query = query.try_into().context("parse query").map_err(map_err)?;
         let res = self
             .inner
             .get_events(query)
@@ -185,20 +160,25 @@ impl HypersyncClient {
         Ok(r)
     }
 
+    /// Stream chain height events
+    #[napi]
+    // note: needs to be async for napi to allow a tokio::spawn internally
+    pub async fn stream_height(&self) -> HeightStream {
+        let inner = self.inner.clone().stream_height();
+
+        HeightStream {
+            inner: tokio::sync::Mutex::new(inner),
+        }
+    }
+    /// Stream blockchain data from the given query
     #[napi]
     pub async fn stream(
         &self,
         query: Query,
         config: StreamConfig,
     ) -> napi::Result<QueryResponseStream> {
-        let query = query
-            .try_convert()
-            .context("parse query")
-            .map_err(map_err)?;
-        let config = config
-            .try_convert()
-            .context("parse stream config")
-            .map_err(map_err)?;
+        let query = query.try_into().context("parse query").map_err(map_err)?;
+        let config = config.into();
 
         let inner = self
             .inner
@@ -214,20 +194,15 @@ impl HypersyncClient {
         })
     }
 
+    /// Stream blockchain events from the given query
     #[napi]
     pub async fn stream_events(
         &self,
         query: Query,
         config: StreamConfig,
     ) -> napi::Result<EventStream> {
-        let query = query
-            .try_convert()
-            .context("parse query")
-            .map_err(map_err)?;
-        let config = config
-            .try_convert()
-            .context("parse stream config")
-            .map_err(map_err)?;
+        let query = query.try_into().context("parse query").map_err(map_err)?;
+        let config = config.into();
 
         let inner = self
             .inner
@@ -244,6 +219,7 @@ impl HypersyncClient {
     }
 }
 
+/// Stream for receiving query responses
 #[napi]
 pub struct QueryResponseStream {
     inner: tokio::sync::Mutex<mpsc::Receiver<Result<hypersync_client::QueryResponse>>>,
@@ -252,11 +228,13 @@ pub struct QueryResponseStream {
 
 #[napi]
 impl QueryResponseStream {
+    /// Close the response stream
     #[napi]
     pub async fn close(&self) {
         self.inner.lock().await.close();
     }
 
+    /// Receive the next query response from the stream
     #[napi]
     pub async fn recv(&self) -> napi::Result<Option<QueryResponse>> {
         let resp = self.inner.lock().await.recv().await;
@@ -271,6 +249,7 @@ impl QueryResponseStream {
 
 type HSEventResponse = hypersync_client::QueryResponse<Vec<hypersync_client::simple_types::Event>>;
 
+/// Stream for receiving event responses
 #[napi]
 pub struct EventStream {
     inner: tokio::sync::Mutex<mpsc::Receiver<Result<HSEventResponse>>>,
@@ -279,11 +258,13 @@ pub struct EventStream {
 
 #[napi]
 impl EventStream {
+    /// Close the event stream
     #[napi]
     pub async fn close(&self) {
         self.inner.lock().await.close();
     }
 
+    /// Receive the next event response from the stream
     #[napi]
     pub async fn recv(&self) -> napi::Result<Option<EventResponse>> {
         let resp = self.inner.lock().await.recv().await;
@@ -296,14 +277,120 @@ impl EventStream {
     }
 }
 
+#[napi(string_enum)]
+pub enum HeightTag {
+    Height,
+}
+#[napi(object)]
+pub struct HeightStreamHeightEvent {
+    #[napi(js_name = "type")]
+    pub type_: HeightTag,
+    pub height: i64,
+}
+
+#[napi(string_enum)]
+pub enum ConnectedTag {
+    Connected,
+}
+
+#[napi(object)]
+pub struct HeightStreamConnectedEvent {
+    #[napi(js_name = "type")]
+    pub type_: ConnectedTag,
+}
+
+#[napi(string_enum)]
+pub enum ReconnectingTag {
+    Reconnecting,
+}
+
+#[napi(object)]
+pub struct HeightStreamReconnectingEvent {
+    #[napi(js_name = "type")]
+    pub type_: ReconnectingTag,
+    pub delay_millis: i64,
+    pub error_msg: String,
+}
+
+#[napi]
+/// Height stream event, switch on 'event.type' to get different payload options
+///
+/// switch (event.type) {
+///   case "Height":
+///     console.log("Height:", event.height);
+///     break;
+///   case "Connected":
+///     console.log("Connected to stream");
+///     break;
+///   case "Reconnecting":
+///     console.log("Reconnecting in", event.delayMillis, "ms", "due to error:", event.errorMsg);
+///     break;
+/// }
+pub type HeightStreamEvent =
+    Either3<HeightStreamHeightEvent, HeightStreamConnectedEvent, HeightStreamReconnectingEvent>;
+
+fn try_into_height_stream_event(
+    e: hypersync_client::HeightStreamEvent,
+) -> Result<HeightStreamEvent> {
+    let event = match e {
+        hypersync_client::HeightStreamEvent::Height(h) => Either3::A(HeightStreamHeightEvent {
+            type_: HeightTag::Height,
+            height: i64::try_from(h).context("convert height to i64")?,
+        }),
+        hypersync_client::HeightStreamEvent::Connected => Either3::B(HeightStreamConnectedEvent {
+            type_: ConnectedTag::Connected,
+        }),
+        hypersync_client::HeightStreamEvent::Reconnecting { delay, error_msg } => {
+            Either3::C(HeightStreamReconnectingEvent {
+                type_: ReconnectingTag::Reconnecting,
+                delay_millis: i64::try_from(delay.as_millis())
+                    .context("convert reconnect delay millis to i64")?,
+                error_msg,
+            })
+        }
+    };
+    Ok(event)
+}
+
+/// Stream for receiving height stream events
+/// yields the immediate height of the chain and then
+/// continues to yield height updates as they are received
+#[napi]
+pub struct HeightStream {
+    inner: tokio::sync::Mutex<mpsc::Receiver<hypersync_client::HeightStreamEvent>>,
+}
+
+#[napi]
+impl HeightStream {
+    /// Close the height stream
+    #[napi]
+    pub async fn close(&self) {
+        self.inner.lock().await.close();
+    }
+
+    /// Receive the next height stream event from the stream
+    #[napi]
+    pub async fn recv(&self) -> napi::Result<Option<HeightStreamEvent>> {
+        let resp = self.inner.lock().await.recv().await;
+        resp.map(|hs_height_event| try_into_height_stream_event(hs_height_event).map_err(map_err))
+            .transpose()
+    }
+}
+
+/// Data returned from a query response
 #[napi(object)]
 pub struct QueryResponseData {
+    /// Blocks returned by the query
     pub blocks: Vec<Block>,
+    /// Transactions returned by the query
     pub transactions: Vec<Transaction>,
+    /// Logs returned by the query
     pub logs: Vec<Log>,
+    /// Traces returned by the query
     pub traces: Vec<Trace>,
 }
 
+/// Response from a blockchain query
 #[napi(object)]
 pub struct QueryResponse {
     /// Current height of the source hypersync instance
@@ -320,6 +407,7 @@ pub struct QueryResponse {
     pub rollback_guard: Option<RollbackGuard>,
 }
 
+/// Response from an event query
 #[napi(object)]
 pub struct EventResponse {
     /// Current height of the source hypersync instance
@@ -336,6 +424,7 @@ pub struct EventResponse {
     pub rollback_guard: Option<RollbackGuard>,
 }
 
+/// Collection of events from a blockchain query
 #[napi(object)]
 pub struct Events {
     /// Current height of the source hypersync instance
@@ -410,7 +499,7 @@ fn convert_response(
         },
         rollback_guard: res
             .rollback_guard
-            .map(RollbackGuard::try_convert)
+            .map(RollbackGuard::try_from)
             .transpose()
             .context("convert rollback guard")?,
     })
@@ -455,7 +544,7 @@ fn convert_event_response(
         data,
         rollback_guard: resp
             .rollback_guard
-            .map(|rg| RollbackGuard::try_convert(rg).context("convert rollback guard"))
+            .map(|rg| RollbackGuard::try_from(rg).context("convert rollback guard"))
             .transpose()?,
     })
 }

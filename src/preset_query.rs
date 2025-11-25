@@ -22,9 +22,7 @@ pub fn preset_query_blocks_and_transactions(
         .transpose()
         .map_err(map_err)?;
 
-    let query: Query = preset_query::blocks_and_transactions(from_block, to_block)
-        .try_into()
-        .map_err(map_err)?;
+    let query: Query = preset_query::blocks_and_transactions(from_block, to_block).into();
 
     Ok(query)
 }
@@ -46,9 +44,7 @@ pub fn preset_query_blocks_and_transaction_hashes(
         .transpose()
         .map_err(map_err)?;
 
-    let query: Query = preset_query::blocks_and_transaction_hashes(from_block, to_block)
-        .try_into()
-        .map_err(map_err)?;
+    let query: Query = preset_query::blocks_and_transaction_hashes(from_block, to_block).into();
 
     Ok(query)
 }
@@ -74,9 +70,7 @@ pub fn preset_query_logs(
         .transpose()
         .map_err(map_err)?;
 
-    preset_query::logs(from_block, to_block, address)
-        .try_into()
-        .map_err(map_err)
+    Ok(preset_query::logs(from_block, to_block, address).into())
 }
 
 /// Returns a query for all Logs within the block range from the given address with a
@@ -105,8 +99,6 @@ pub fn preset_query_logs_of_event(
         .transpose()
         .map_err(map_err)?;
 
-    let query = preset_query::logs_of_event(from_block, to_block, topic0, address)
-        .try_into()
-        .map_err(map_err)?;
+    let query = preset_query::logs_of_event(from_block, to_block, topic0, address).into();
     Ok(query)
 }

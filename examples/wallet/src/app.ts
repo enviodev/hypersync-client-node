@@ -1,5 +1,4 @@
-import { HypersyncClient, Decoder, BlockField, LogField, TransactionField } from "@envio-dev/hypersync-client";
-import fs from "node:fs";
+import { HypersyncClient, Decoder, type Query } from "@envio-dev/hypersync-client";
 
 // The addresses we want to get data for
 const addresses = [
@@ -16,14 +15,15 @@ function addressToTopic(address: string): string {
 
 async function main() {
   // Create hypersync client using the mainnet hypersync endpoint
-  const client = HypersyncClient.new({
-    url: "https://eth.hypersync.xyz"
+  const client = new HypersyncClient({
+    url: "https://eth.hypersync.xyz",
+    apiToken: process.env.ENVIO_API_TOKEN!,
   });
 
   const addressTopicFilter = addresses.map(addressToTopic);
 
   // The query to run
-  const query = {
+  const query: Query = {
     // start from block 0 and go to the end of the chain (we don't specify a toBlock).
     "fromBlock": 0,
     // The logs we want. We will also automatically get transactions and blocks relating to these logs (the query implicitly joins them).
@@ -59,30 +59,30 @@ async function main() {
     // Select the fields we are interested in, notice topics are selected as topic0,1,2,3
     "fieldSelection": {
       "block": [
-        BlockField.Number,
-        BlockField.Timestamp,
-        BlockField.Hash,
+        "Number",
+        "Timestamp",
+        "Hash",
       ],
       "log": [
-        LogField.BlockNumber,
-        LogField.LogIndex,
-        LogField.TransactionIndex,
-        LogField.TransactionHash,
-        LogField.Data,
-        LogField.Address,
-        LogField.Topic0,
-        LogField.Topic1,
-        LogField.Topic2,
-        LogField.Topic3,
+        "BlockNumber",
+        "LogIndex",
+        "TransactionIndex",
+        "TransactionHash",
+        "Data",
+        "Address",
+        "Topic0",
+        "Topic1",
+        "Topic2",
+        "Topic3",
       ],
       "transaction": [
-        TransactionField.BlockNumber,
-        TransactionField.TransactionIndex,
-        TransactionField.Hash,
-        TransactionField.From,
-        TransactionField.To,
-        TransactionField.Value,
-        TransactionField.Input,
+        "BlockNumber",
+        "TransactionIndex",
+        "Hash",
+        "From",
+        "To",
+        "Value",
+        "Input",
       ]
     },
   };

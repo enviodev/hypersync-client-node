@@ -1,18 +1,18 @@
-import {HypersyncClient, Decoder, LogField} from "@envio-dev/hypersync-client";
-import fs from "node:fs";
+import {HypersyncClient, Decoder, type Query} from "@envio-dev/hypersync-client";
 
 const DAI_ADDRESS = "0x6B175474E89094C44Da98b954EedeAC495271d0F";
 
 async function main() {
     // Create hypersync client using the mainnet hypersync endpoint
-    const client = HypersyncClient.new({
-      url: "https://eth.hypersync.xyz"
+    const client = new HypersyncClient({
+      url: "https://eth.hypersync.xyz",
+      apiToken: process.env.ENVIO_API_TOKEN!,
     });
 
     const height = await client.getHeight();
 
     // The query to run
-    const query = {
+    const query: Query = {
         // start from tip of the chain
         "fromBlock": height,
         "logs": [
@@ -30,12 +30,12 @@ async function main() {
         // Select the fields we are interested in, notice topics are selected as topic0,1,2,3
         "fieldSelection": {
           "log": [
-                LogField.Data,
-                LogField.Address,
-                LogField.Topic0,
-                LogField.Topic1,
-                LogField.Topic2,
-                LogField.Topic3,
+                "Data",
+                "Address",
+                "Topic0",
+                "Topic1",
+                "Topic2",
+                "Topic3",
           ]
         },
       };

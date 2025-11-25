@@ -24,7 +24,6 @@ jobs:
           - host: macos-13
             target: x86_64-apple-darwin
             build: |
-              brew install capnp
               yarn set version 3
               rustup target install x86_64-apple-darwin
               yarn build --target x86_64-apple-darwin
@@ -32,7 +31,6 @@ jobs:
           - host: windows-latest
             build: |
               yarn set version 3
-              choco install capnproto
               yarn build
             target: x86_64-pc-windows-msvc
           - host: ubuntu-latest
@@ -41,7 +39,6 @@ jobs:
             build: |-
               rustup update stable
               yarn set version 3
-              apt-get install -y capnproto libcapnp-dev
               set -e &&
               yarn build --target x86_64-unknown-linux-gnu &&
               strip *.node
@@ -51,7 +48,6 @@ jobs:
             build: |-
               rustup update stable
               yarn set version 3
-              apt-get install -y capnproto libcapnp-dev
               set -e &&
               rustup target install x86_64-unknown-linux-musl
               yarn build --target x86_64-unknown-linux-musl &&
@@ -60,7 +56,6 @@ jobs:
             target: aarch64-apple-darwin
             build: |
               yarn set version 3
-              brew install capnp
               yarn set version 3
               yarn build --target aarch64-apple-darwin
               strip -x *.node
@@ -70,7 +65,6 @@ jobs:
             build: |-
               rustup update stable
               yarn set version 3
-              apt-get install -y capnproto libcapnp-dev
               set -e &&
               yarn build --target aarch64-unknown-linux-gnu &&
               aarch64-unknown-linux-gnu-strip *.node
@@ -78,7 +72,6 @@ jobs:
             target: aarch64-pc-windows-msvc
             build: |
               yarn set version 3
-              choco install capnproto
               yarn build
     name: stable - ${{ matrix.settings.target }} - node@18
     runs-on: ${{ matrix.settings.host }}

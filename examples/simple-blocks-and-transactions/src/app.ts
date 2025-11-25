@@ -2,8 +2,9 @@ import { HypersyncClient, presetQueryBlocksAndTransactions } from "@envio-dev/hy
 
 async function main() {
   // Create hypersync client using the mainnet hypersync endpoint
-  const client = HypersyncClient.new({
-    url: "https://eth.hypersync.xyz"
+  const client = new HypersyncClient({
+    url: "https://eth.hypersync.xyz",
+    apiToken: process.env.ENVIO_API_TOKEN!,
   });
 
   // query is inclusive of from_block, exclusive of to_block so this will return 49 blocks

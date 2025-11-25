@@ -1,13 +1,14 @@
-import { HypersyncClient, Decoder, TransactionField } from "@envio-dev/hypersync-client";
+import { HypersyncClient, type Query } from "@envio-dev/hypersync-client";
 
 async function main() {
   // Create hypersync client using the mainnet hypersync endpoint
-  const client = HypersyncClient.new({
-    url: "https://eth.hypersync.xyz"
+  const client = new HypersyncClient({
+    url: "https://eth.hypersync.xyz",
+    apiToken: process.env.ENVIO_API_TOKEN!,
   });
 
   // The query to run
-  const query = {
+  const query: Query = {
     "fromBlock": 0,
     "transactions": [
       // get all transactions coming from and going to our address.
@@ -20,11 +21,11 @@ async function main() {
     ],
     "fieldSelection": {
       "transaction": [
-        TransactionField.BlockNumber,
-        TransactionField.Hash,
-        TransactionField.From,
-        TransactionField.To,
-        TransactionField.Value,
+        "BlockNumber",
+        "Hash",
+        "From",
+        "To",
+        "Value",
       ]
     }
   };
