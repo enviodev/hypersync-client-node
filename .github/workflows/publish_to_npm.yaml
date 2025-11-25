@@ -237,6 +237,10 @@ jobs:
         with:
           name: bindings-x86_64-unknown-linux-musl
           path: .
+      - name: Print platform and arch
+        run: |
+          node -e "console.log(process.platform, process.arch)"
+          ldd --version
       - name: List packages
         run: ls -R .
         shell: bash
