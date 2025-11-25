@@ -8,4 +8,4 @@ This example demonstrates how to:
 - Monitor blockchain height changes as they occur
 - Properly clean up the stream when done
 
-Can run `npx tsc && node dist/app.js` to run it.
+Can run `pnpm start` to run it.
