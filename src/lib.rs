@@ -149,12 +149,13 @@ impl HypersyncClient {
 
     /// Stream blockchain data from the given query
     #[napi]
-    pub async fn stream_height(&self) -> napi::Result<HeightStream> {
+    // note: needs to be async for napi to allow a tokio::spawn internally
+    pub async fn stream_height(&self) -> HeightStream {
         let inner = self.inner.clone().stream_height();
 
-        Ok(HeightStream {
+        HeightStream {
             inner: tokio::sync::Mutex::new(inner),
-        })
+        }
     }
     /// Stream blockchain data from the given query
     #[napi]

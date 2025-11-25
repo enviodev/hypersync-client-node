@@ -5,6 +5,7 @@
   "main": "index.js",
   "types": "index.d.ts",
   "napi": {
+    "constEnum": false,
     "binaryName": "hypersync-client",
     "targets": [
       "aarch64-apple-darwin",
@@ -28,8 +29,8 @@
   },
   "scripts": {
     "artifacts": "napi artifacts",
-    "build": "napi build --platform --release --no-const-enum",
-    "build:debug": "napi build --platform --no-const-enum",
+    "build": "napi build --platform --release",
+    "build:debug": "napi build --platform",
     "prepublishOnly": "napi prepublish -t npm",
     "test": "ava",
     "universal": "napi universal",

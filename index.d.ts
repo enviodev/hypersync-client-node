@@ -50,6 +50,18 @@ export declare class EventStream {
   recv(): Promise<EventResponse | null>
 }
 
+/**
+ * Stream for receiving height stream events
+ * yields the immediate height of the chain and then
+ * continues to yield height updates as they are received
+ */
+export declare class HeightStream {
+  /** Close the height stream */
+  close(): Promise<void>
+  /** Receive the next height stream event from the stream */
+  recv(): Promise<HeightStreamEvent | null>
+}
+
 /** HyperSync client for querying blockchain data */
 export declare class HypersyncClient {
   /** Create a new client with given config */
@@ -68,6 +80,8 @@ export declare class HypersyncClient {
   get(query: Query): Promise<QueryResponse>
   /** Get blockchain events for a single query */
   getEvents(query: Query): Promise<EventResponse>
+  /** Stream blockchain data from the given query */
+  streamHeight(): Promise<HeightStream>
   /** Stream blockchain data from the given query */
   stream(query: Query, config: StreamConfig): Promise<QueryResponseStream>
   /** Stream blockchain events from the given query */
@@ -327,6 +341,22 @@ export interface FieldSelection {
   /** Trace fields to include in the response */
   trace?: Array<TraceField>
 }
+
+export interface HeightStreamEvent {
+  /** The event type - either connected, height, or reconnecting */
+  tag: HeightStreamEventTag
+  /**
+   * The value of the event
+   * - connected: 0
+   * - height: chain height
+   * - reconnecting: reconnect delay in milliseconds
+   */
+  value: number
+}
+
+export type HeightStreamEventTag =  'Connected'|
+'Height'|
+'ReconnectingMillis';
 
 /** Determines format of Binary column */
 export type HexOutput = /** Binary column won't be formatted as hex */
@@ -617,6 +647,10 @@ export interface Trace {
   transactionPosition?: number
   type?: string
   error?: string
+  actionAddress?: string
+  balance?: bigint
+  refundAddress?: string
+  sighash?: string
 }
 
 /** Available fields for trace data */
@@ -706,6 +740,17 @@ export interface Transaction {
   l1GasUsed?: bigint
   l1FeeScalar?: number
   gasUsedForL1?: bigint
+  blobGasPrice?: bigint
+  blobGasUsed?: bigint
+  depositNonce?: bigint
+  depositReceiptVersion?: bigint
+  l1BaseFeeScalar?: bigint
+  l1BlobBaseFee?: bigint
+  l1BlobBaseFeeScalar?: bigint
+  l1BlockNumber?: number
+  mint?: bigint
+  sighash?: string
+  sourceHash?: string
 }
 
 /** Available fields for transaction data */
