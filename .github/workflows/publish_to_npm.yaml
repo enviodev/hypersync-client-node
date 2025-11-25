@@ -21,7 +21,7 @@ jobs:
       fail-fast: false
       matrix:
         settings:
-          - host: macos-13
+          - host: macos-15
             target: x86_64-apple-darwin
             build: |
               yarn set version 3
@@ -147,7 +147,7 @@ jobs:
       fail-fast: false
       matrix:
         settings:
-          - host: macos-13
+          - host: macos-15
             target: x86_64-apple-darwin
           - host: windows-latest
             target: x86_64-pc-windows-msvc
