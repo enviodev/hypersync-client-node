@@ -2,6 +2,7 @@
 extern crate napi_derive;
 
 use anyhow::{Context, Result};
+use napi::bindgen_prelude::Either3;
 use tokio::sync::mpsc;
 
 mod config;
@@ -277,43 +278,78 @@ impl EventStream {
 }
 
 #[napi(string_enum)]
-pub enum HeightStreamEventTag {
-    Connected,
+pub enum HeightTag {
     Height,
-    ReconnectingMillis,
+}
+#[napi(object)]
+pub struct HeightStreamHeightEvent {
+    #[napi(js_name = "type")]
+    pub type_: HeightTag,
+    pub height: i64,
+}
+
+#[napi(string_enum)]
+pub enum ConnectedTag {
+    Connected,
 }
 
 #[napi(object)]
-pub struct HeightStreamEvent {
-    /// The event type - either connected, height, or reconnecting
-    pub tag: HeightStreamEventTag,
-    /// The value of the event
-    /// - connected: 0
-    /// - height: chain height
-    /// - reconnecting: reconnect delay in milliseconds
-    pub value: i64,
+pub struct HeightStreamConnectedEvent {
+    #[napi(js_name = "type")]
+    pub type_: ConnectedTag,
 }
 
-impl TryFrom<hypersync_client::HeightStreamEvent> for HeightStreamEvent {
-    type Error = anyhow::Error;
-    fn try_from(e: hypersync_client::HeightStreamEvent) -> Result<Self> {
-        let event = match e {
-            hypersync_client::HeightStreamEvent::Connected => Self {
-                tag: HeightStreamEventTag::Connected,
-                value: 0,
-            },
-            hypersync_client::HeightStreamEvent::Height(h) => Self {
-                tag: HeightStreamEventTag::Height,
-                value: i64::try_from(h).context("convert height to i64")?,
-            },
-            hypersync_client::HeightStreamEvent::Reconnecting { delay } => Self {
-                tag: HeightStreamEventTag::ReconnectingMillis,
-                value: i64::try_from(delay.as_millis())
+#[napi(string_enum)]
+pub enum ReconnectingTag {
+    Reconnecting,
+}
+
+#[napi(object)]
+pub struct HeightStreamReconnectingEvent {
+    #[napi(js_name = "type")]
+    pub type_: ReconnectingTag,
+    pub delay_millis: i64,
+    pub error_msg: String,
+}
+
+#[napi]
+/// Height stream event, switch on 'event.type' to get different payload options
+///
+/// switch (event.type) {
+///   case "Height":
+///     console.log("Height:", event.height);
+///     break;
+///   case "Connected":
+///     console.log("Connected to stream");
+///     break;
+///   case "Reconnecting":
+///     console.log("Reconnecting in", event.delayMillis, "ms", "due to error:", event.errorMsg);
+///     break;
+/// }
+pub type HeightStreamEvent =
+    Either3<HeightStreamHeightEvent, HeightStreamConnectedEvent, HeightStreamReconnectingEvent>;
+
+fn try_into_height_stream_event(
+    e: hypersync_client::HeightStreamEvent,
+) -> Result<HeightStreamEvent> {
+    let event = match e {
+        hypersync_client::HeightStreamEvent::Height(h) => Either3::A(HeightStreamHeightEvent {
+            type_: HeightTag::Height,
+            height: i64::try_from(h).context("convert height to i64")?,
+        }),
+        hypersync_client::HeightStreamEvent::Connected => Either3::B(HeightStreamConnectedEvent {
+            type_: ConnectedTag::Connected,
+        }),
+        hypersync_client::HeightStreamEvent::Reconnecting { delay, error_msg } => {
+            Either3::C(HeightStreamReconnectingEvent {
+                type_: ReconnectingTag::Reconnecting,
+                delay_millis: i64::try_from(delay.as_millis())
                     .context("convert reconnect delay millis to i64")?,
-            },
-        };
-        Ok(event)
-    }
+                error_msg,
+            })
+        }
+    };
+    Ok(event)
 }
 
 /// Stream for receiving height stream events
@@ -336,7 +372,7 @@ impl HeightStream {
     #[napi]
     pub async fn recv(&self) -> napi::Result<Option<HeightStreamEvent>> {
         let resp = self.inner.lock().await.recv().await;
-        resp.map(|hs_height_event| hs_height_event.try_into().map_err(map_err))
+        resp.map(|hs_height_event| try_into_height_stream_event(hs_height_event).map_err(map_err))
             .transpose()
     }
 }

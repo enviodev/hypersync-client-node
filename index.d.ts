@@ -272,6 +272,8 @@ export interface ColumnMapping {
   decodedLog?: Record<string, DataType>
 }
 
+export type ConnectedTag =  'Connected';
+
 /**
  * DataType is an enumeration representing the different data types that can be used in the column mapping.
  * Each variant corresponds to a specific data type.
@@ -351,21 +353,40 @@ export interface FieldSelection {
   trace?: Array<TraceField>
 }
 
-export interface HeightStreamEvent {
-  /** The event type - either connected, height, or reconnecting */
-  tag: HeightStreamEventTag
-  /**
-   * The value of the event
-   * - connected: 0
-   * - height: chain height
-   * - reconnecting: reconnect delay in milliseconds
-   */
-  value: number
+export interface HeightStreamConnectedEvent {
+  type: ConnectedTag
 }
 
-export type HeightStreamEventTag =  'Connected'|
-'Height'|
-'ReconnectingMillis';
+/**
+ * Height stream event, switch on 'event.type' to get different payload options
+ *
+ * switch (event.type) {
+ *   case "Height":
+ *     console.log("Height:", event.height);
+ *     break;
+ *   case "Connected":
+ *     console.log("Connected to stream");
+ *     break;
+ *   case "Reconnecting":
+ *     console.log("Reconnecting in", event.delayMillis, "ms", "due to error:", event.errorMsg);
+ *     break;
+ * }
+ */
+export type HeightStreamEvent =
+  HeightStreamHeightEvent | HeightStreamConnectedEvent | HeightStreamReconnectingEvent
+
+export interface HeightStreamHeightEvent {
+  type: HeightTag
+  height: number
+}
+
+export interface HeightStreamReconnectingEvent {
+  type: ReconnectingTag
+  delayMillis: number
+  errorMsg: string
+}
+
+export type HeightTag =  'Height';
 
 /** Determines format of Binary column */
 export type HexOutput = /** Binary column won't be formatted as hex */
@@ -566,6 +587,8 @@ export interface QueryResponseData {
   /** Traces returned by the query */
   traces: Array<Trace>
 }
+
+export type ReconnectingTag =  'Reconnecting';
 
 export interface RollbackGuard {
   /** Block number of the last scanned block */
