@@ -160,7 +160,7 @@ impl HypersyncClient {
         Ok(r)
     }
 
-    /// Stream blockchain data from the given query
+    /// Stream chain height events
     #[napi]
     // note: needs to be async for napi to allow a tokio::spawn internally
     pub async fn stream_height(&self) -> HeightStream {

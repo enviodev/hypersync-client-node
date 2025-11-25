@@ -89,7 +89,7 @@ export declare class HypersyncClient {
   get(query: Query): Promise<QueryResponse>
   /** Get blockchain events for a single query */
   getEvents(query: Query): Promise<EventResponse>
-  /** Stream blockchain data from the given query */
+  /** Stream chain height events */
   streamHeight(): Promise<HeightStream>
   /** Stream blockchain data from the given query */
   stream(query: Query, config: StreamConfig): Promise<QueryResponseStream>
