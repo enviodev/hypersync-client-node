@@ -149,6 +149,15 @@ impl HypersyncClient {
 
     /// Stream blockchain data from the given query
     #[napi]
+    pub async fn stream_height(&self) -> napi::Result<HeightStream> {
+        let inner = self.inner.clone().stream_height();
+
+        Ok(HeightStream {
+            inner: tokio::sync::Mutex::new(inner),
+        })
+    }
+    /// Stream blockchain data from the given query
+    #[napi]
     pub async fn stream(
         &self,
         query: Query,
@@ -251,6 +260,71 @@ impl EventStream {
         })
         .transpose()
         .map_err(map_err)
+    }
+}
+
+#[napi(string_enum)]
+pub enum HeightStreamEventTag {
+    Connected,
+    Height,
+    ReconnectingMillis,
+}
+
+#[napi(object)]
+pub struct HeightStreamEvent {
+    /// The event type - either connected, height, or reconnecting
+    pub tag: HeightStreamEventTag,
+    /// The value of the event
+    /// - connected: 0
+    /// - height: chain height
+    /// - reconnecting: reconnect delay in milliseconds
+    pub value: i64,
+}
+
+impl TryFrom<hypersync_client::HeightStreamEvent> for HeightStreamEvent {
+    type Error = anyhow::Error;
+    fn try_from(e: hypersync_client::HeightStreamEvent) -> Result<Self> {
+        let event = match e {
+            hypersync_client::HeightStreamEvent::Connected => Self {
+                tag: HeightStreamEventTag::Connected,
+                value: 0,
+            },
+            hypersync_client::HeightStreamEvent::Height(h) => Self {
+                tag: HeightStreamEventTag::Height,
+                value: i64::try_from(h).context("convert height to i64")?,
+            },
+            hypersync_client::HeightStreamEvent::Reconnecting { delay } => Self {
+                tag: HeightStreamEventTag::ReconnectingMillis,
+                value: i64::try_from(delay.as_millis())
+                    .context("convert reconnect delay millis to i64")?,
+            },
+        };
+        Ok(event)
+    }
+}
+
+/// Stream for receiving height stream events
+/// yields the immediate height of the chain and then
+/// continues to yield height updates as they are received
+#[napi]
+pub struct HeightStream {
+    inner: tokio::sync::Mutex<mpsc::Receiver<hypersync_client::HeightStreamEvent>>,
+}
+
+#[napi]
+impl HeightStream {
+    /// Close the height stream
+    #[napi]
+    pub async fn close(&self) {
+        self.inner.lock().await.close();
+    }
+
+    /// Receive the next height stream event from the stream
+    #[napi]
+    pub async fn recv(&self) -> napi::Result<Option<HeightStreamEvent>> {
+        let resp = self.inner.lock().await.recv().await;
+        resp.map(|hs_height_event| hs_height_event.try_into().map_err(map_err))
+            .transpose()
     }
 }
 
