@@ -1,6 +1,6 @@
 {
   "name": "@envio-dev/hypersync-client-win32-x64-msvc",
-  "version": "0.7.0",
+  "version": "0.7.0-internaltest.0",
   "os": [
     "win32"
   ],
