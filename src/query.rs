@@ -341,14 +341,18 @@ pub struct Query {
     pub to_block: Option<i64>,
     /// List of log selections, these have an or relationship between them, so the query will return logs
     /// that match any of these selections.
+    /// Note: Use LogSelection (with include/exclude) instead of LogFilter when you need to exclude certain logs.
     pub logs: Option<Vec<Either<LogFilter, LogSelection>>>,
     /// List of transaction selections, the query will return transactions that match any of these selections and
     ///  it will return transactions that are related to the returned logs.
+    /// Note: Use TransactionSelection (with include/exclude) instead of TransactionFilter when you need to exclude certain transactions.
     pub transactions: Option<Vec<Either<TransactionFilter, TransactionSelection>>>,
     /// List of trace selections, the query will return traces that match any of these selections and
     ///  it will re turn traces that are related to the returned logs.
+    /// Note: Use TraceSelection (with include/exclude) instead of TraceFilter when you need to exclude certain traces.
     pub traces: Option<Vec<Either<TraceFilter, TraceSelection>>>,
     /// List of block selections, the query will return blocks that match any of these selections
+    /// Note: Use BlockSelection (with include/exclude) instead of BlockFilter when you need to exclude certain blocks.
     pub blocks: Option<Vec<Either<BlockFilter, BlockSelection>>>,
     /// Weather to include all blocks regardless of if they are related to a returned transaction or log. Normally
     ///  the server will return only the blocks that are related to the transaction or logs in the response. But if this
