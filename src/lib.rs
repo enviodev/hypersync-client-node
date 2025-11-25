@@ -27,11 +27,23 @@ impl HypersyncClient {
     /// Create a new client with given config
     #[napi(constructor)]
     pub fn new(cfg: ClientConfig) -> napi::Result<HypersyncClient> {
+        Self::new_with_agent(cfg, format!("hscn/{}", env!("CARGO_PKG_VERSION")))
+    }
+
+    /// Create a new client with custom user agent
+    ///
+    /// This method is intended for internal use when you need to customize the user agent string.
+    /// Most users should use `new()` instead.
+    ///
+    /// @internal
+    #[doc(hidden)]
+    #[napi]
+    pub fn new_with_agent(cfg: ClientConfig, user_agent: String) -> napi::Result<HypersyncClient> {
         env_logger::try_init().ok();
 
         let enable_checksum_addresses = cfg.enable_checksum_addresses.unwrap_or_default();
 
-        let inner = hypersync_client::Client::new(cfg.into())
+        let inner = hypersync_client::Client::new_with_agent(cfg.into(), user_agent)
             .context("build client")
             .map_err(map_err)?;
 
