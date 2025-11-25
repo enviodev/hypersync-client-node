@@ -1,4 +1,8 @@
-import { HypersyncClient, Decoder, Query } from "@envio-dev/hypersync-client";
+import {
+  HypersyncClient,
+  Decoder,
+  type Query,
+} from "@envio-dev/hypersync-client";
 
 async function main() {
   // Create hypersync client using the mainnet hypersync endpoint

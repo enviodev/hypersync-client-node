@@ -1,4 +1,4 @@
-import { HypersyncClient, Decoder, Query } from "@envio-dev/hypersync-client";
+import { HypersyncClient, Decoder, type Query } from "@envio-dev/hypersync-client";
 
 // The addresses we want to get data for
 const addresses = [

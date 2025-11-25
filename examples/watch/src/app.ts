@@ -1,4 +1,4 @@
-import {HypersyncClient, Decoder, Query} from "@envio-dev/hypersync-client";
+import {HypersyncClient, Decoder, type Query} from "@envio-dev/hypersync-client";
 
 const DAI_ADDRESS = "0x6B175474E89094C44Da98b954EedeAC495271d0F";
 
