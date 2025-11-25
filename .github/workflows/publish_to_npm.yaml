@@ -37,20 +37,20 @@ jobs:
             target: x86_64-unknown-linux-gnu
             docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian
             build: |-
+              set -e
               rustup update stable
               yarn set version 3
-              set -e &&
-              yarn build --target x86_64-unknown-linux-gnu &&
+              yarn build --target x86_64-unknown-linux-gnu
               strip *.node
           - host: ubuntu-latest
             target: x86_64-unknown-linux-musl
             docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian-zig
             build: |-
+              set -e
               rustup update stable
               yarn set version 3
-              set -e &&
-              rustup target install x86_64-unknown-linux-musl
-              yarn build --target x86_64-unknown-linux-musl &&
+              rustup target add x86_64-unknown-linux-musl
+              yarn build --target x86_64-unknown-linux-musl
               strip *.node
           - host: macos-latest
             target: aarch64-apple-darwin
@@ -63,10 +63,11 @@ jobs:
             target: aarch64-unknown-linux-gnu
             docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian-aarch64
             build: |-
+              set -e
               rustup update stable
               yarn set version 3
-              set -e &&
-              yarn build --target aarch64-unknown-linux-gnu &&
+              rustup target add aarch64-unknown-linux-gnu
+              yarn build --target aarch64-unknown-linux-gnu
               aarch64-unknown-linux-gnu-strip *.node
           - host: windows-latest
             target: aarch64-pc-windows-msvc
@@ -127,7 +128,7 @@ jobs:
         if: ${{ matrix.settings.docker }}
         with:
           image: ${{ matrix.settings.docker }}
-          options: "--user 0:0 -v ${{ github.workspace }}/.cargo-cache/git/db:/usr/local/cargo/git/db -v ${{ github.workspace }}/.cargo/registry/cache:/usr/local/cargo/registry/cache -v ${{ github.workspace }}/.cargo/registry/index:/usr/local/cargo/registry/index -v ${{ github.workspace }}:/build -w /build"
+          options: "--user 0:0 -v ${{ github.workspace }}:/build -w /build"
           run: ${{ matrix.settings.build }}
       - name: Build
         run: ${{ matrix.settings.build }}

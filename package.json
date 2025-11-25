@@ -42,5 +42,5 @@
     "docs": "yarn build && npx typedoc index.d.ts",
     "docs:md": "yarn build && npx typedoc --plugin typedoc-plugin-markdown index.d.ts"
   },
-  "packageManager": "yarn@3.8.1"
+  "packageManager": "yarn@3.8.7"
 }
