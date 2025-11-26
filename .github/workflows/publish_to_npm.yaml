@@ -248,7 +248,39 @@ jobs:
         run: ls -la *.node
         shell: bash
       - name: Test bindings
-        run: docker run --rm -v $(pwd):/build -w /build node:${{ matrix.node }}-alpine yarn test
+        run: |
+          docker run --rm -v $(pwd):/build -w /build node:${{ matrix.node }}-alpine sh -c '
+            echo "=== Debug info ==="
+            echo "Files in /build:"
+            ls -la /build/*.node
+            echo ""
+            echo "Checking musl detection:"
+            node -e "
+              const fs = require(\"fs\");
+              try {
+                const ldd = fs.readFileSync(\"/usr/bin/ldd\", \"utf-8\");
+                console.log(\"ldd contains musl:\", ldd.includes(\"musl\"));
+              } catch(e) {
+                console.log(\"Error reading ldd:\", e.message);
+              }
+              console.log(\"Platform:\", process.platform);
+              console.log(\"Arch:\", process.arch);
+            "
+            echo ""
+            echo "Trying to load native binding directly:"
+            node -e "
+              try {
+                const binding = require(\"./hypersync-client.linux-x64-musl.node\");
+                console.log(\"SUCCESS: Native binding loaded\");
+              } catch(e) {
+                console.log(\"FAILED to load binding:\", e.message);
+                console.log(\"Error code:\", e.code);
+              }
+            "
+            echo ""
+            echo "=== Running tests ==="
+            yarn test
+          '
   test-linux-aarch64-gnu-binding:
     name: Test bindings on aarch64-unknown-linux-gnu - node@${{ matrix.node }}
     needs:
