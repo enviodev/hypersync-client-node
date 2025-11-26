@@ -1,7 +1,7 @@
 {
   "name": "@envio-dev/hypersync-client",
   "description": "HyperSync Client by Envio",
-  "version": "0.7.0-internaltest.0",
+  "version": "0.7.0",
   "main": "index.js",
   "types": "index.d.ts",
   "napi": {
