@@ -44,14 +44,12 @@ jobs:
               strip *.node
           - host: ubuntu-latest
             target: x86_64-unknown-linux-musl
-            docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian-zig
+            docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-alpine
             build: |-
               set -e
               rustup update stable
               yarn set version 3
-              rustup target add x86_64-unknown-linux-musl
-              cargo install cargo-zigbuild
-              yarn build --target x86_64-unknown-linux-musl -x
+              yarn build --target x86_64-unknown-linux-musl
               strip *.node
           - host: macos-latest
             target: aarch64-apple-darwin
