@@ -65,7 +65,6 @@ jobs:
               set -e
               rustup update stable
               yarn set version 3
-              rustup target add aarch64-unknown-linux-gnu
               yarn build --target aarch64-unknown-linux-gnu
               aarch64-unknown-linux-gnu-strip *.node
           - host: windows-latest
@@ -118,7 +117,7 @@ jobs:
         uses: actions/setup-node@v4
         if: matrix.settings.target == 'i686-pc-windows-msvc'
         with:
-          node-version: 20
+          node-version: 22
           check-latest: true
           cache: yarn
           architecture: x86
@@ -249,35 +248,6 @@ jobs:
       - name: Test bindings
         run: |
           docker run --rm -v $(pwd):/build -w /build node:${{ matrix.node }}-alpine sh -c '
-            echo "=== Debug info ==="
-            echo "Files in /build:"
-            ls -la /build/*.node
-            echo ""
-            echo "Checking musl detection:"
-            node -e "
-              const fs = require(\"fs\");
-              try {
-                const ldd = fs.readFileSync(\"/usr/bin/ldd\", \"utf-8\");
-                console.log(\"ldd contains musl:\", ldd.includes(\"musl\"));
-              } catch(e) {
-                console.log(\"Error reading ldd:\", e.message);
-              }
-              console.log(\"Platform:\", process.platform);
-              console.log(\"Arch:\", process.arch);
-            "
-            echo ""
-            echo "Trying to load native binding directly:"
-            node -e "
-              try {
-                const binding = require(\"./hypersync-client.linux-x64-musl.node\");
-                console.log(\"SUCCESS: Native binding loaded\");
-              } catch(e) {
-                console.log(\"FAILED to load binding:\", e.message);
-                console.log(\"Error code:\", e.code);
-              }
-            "
-            echo ""
-            echo "=== Running tests ==="
             yarn test
           '
   test-linux-aarch64-gnu-binding:
