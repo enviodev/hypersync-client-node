@@ -21,7 +21,7 @@ jobs:
       fail-fast: false
       matrix:
         settings:
-          - host: macos-13
+          - host: macos-15
             target: x86_64-apple-darwin
             build: |
               yarn set version 3
@@ -37,20 +37,19 @@ jobs:
             target: x86_64-unknown-linux-gnu
             docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian
             build: |-
+              set -e
               rustup update stable
               yarn set version 3
-              set -e &&
-              yarn build --target x86_64-unknown-linux-gnu &&
+              yarn build --target x86_64-unknown-linux-gnu
               strip *.node
           - host: ubuntu-latest
             target: x86_64-unknown-linux-musl
-            docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian-zig
+            docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-alpine
             build: |-
+              set -e
               rustup update stable
               yarn set version 3
-              set -e &&
-              rustup target install x86_64-unknown-linux-musl
-              yarn build --target x86_64-unknown-linux-musl &&
+              yarn build --target x86_64-unknown-linux-musl
               strip *.node
           - host: macos-latest
             target: aarch64-apple-darwin
@@ -63,17 +62,17 @@ jobs:
             target: aarch64-unknown-linux-gnu
             docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian-aarch64
             build: |-
+              set -e
               rustup update stable
               yarn set version 3
-              set -e &&
-              yarn build --target aarch64-unknown-linux-gnu &&
+              yarn build --target aarch64-unknown-linux-gnu
               aarch64-unknown-linux-gnu-strip *.node
           - host: windows-latest
             target: aarch64-pc-windows-msvc
             build: |
               yarn set version 3
               yarn build
-    name: stable - ${{ matrix.settings.target }} - node@18
+    name: stable - ${{ matrix.settings.target }} - node@22
     runs-on: ${{ matrix.settings.host }}
     steps:
       - uses: actions/checkout@v4
@@ -81,7 +80,7 @@ jobs:
         uses: actions/setup-node@v4
         if: ${{ !matrix.settings.docker }}
         with:
-          node-version: 18
+          node-version: 22
           check-latest: true
           cache: yarn
       - name: Install
@@ -118,7 +117,7 @@ jobs:
         uses: actions/setup-node@v4
         if: matrix.settings.target == 'i686-pc-windows-msvc'
         with:
-          node-version: 18
+          node-version: 22
           check-latest: true
           cache: yarn
           architecture: x86
@@ -127,7 +126,7 @@ jobs:
         if: ${{ matrix.settings.docker }}
         with:
           image: ${{ matrix.settings.docker }}
-          options: "--user 0:0 -v ${{ github.workspace }}/.cargo-cache/git/db:/usr/local/cargo/git/db -v ${{ github.workspace }}/.cargo/registry/cache:/usr/local/cargo/registry/cache -v ${{ github.workspace }}/.cargo/registry/index:/usr/local/cargo/registry/index -v ${{ github.workspace }}:/build -w /build"
+          options: "--user 0:0 -v ${{ github.workspace }}:/build -w /build"
           run: ${{ matrix.settings.build }}
       - name: Build
         run: ${{ matrix.settings.build }}
@@ -147,14 +146,19 @@ jobs:
       fail-fast: false
       matrix:
         settings:
-          - host: macos-13
+          - host: macos-15
             target: x86_64-apple-darwin
+            architecture: x64
+          - host: macos-latest
+            target: aarch64-apple-darwin
+            architecture: arm64
           - host: windows-latest
             target: x86_64-pc-windows-msvc
+            architecture: x64
         node:
-          - "16"
-          - "18"
           - "20"
+          - "22"
+          - "24"
     runs-on: ${{ matrix.settings.host }}
     steps:
       - uses: actions/checkout@v4
@@ -164,6 +168,7 @@ jobs:
           node-version: ${{ matrix.node }}
           check-latest: true
           cache: yarn
+          architecture: ${{ matrix.settings.architecture }}
       - name: Install dependencies
         run: yarn install
       - name: Download artifacts
@@ -184,9 +189,9 @@ jobs:
       fail-fast: false
       matrix:
         node:
-          - "16"
-          - "18"
           - "20"
+          - "22"
+          - "24"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -216,9 +221,9 @@ jobs:
       fail-fast: false
       matrix:
         node:
-          - "16"
-          - "18"
           - "20"
+          - "22"
+          - "24"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -238,10 +243,13 @@ jobs:
           name: bindings-x86_64-unknown-linux-musl
           path: .
       - name: List packages
-        run: ls -R .
+        run: ls -la *.node
         shell: bash
       - name: Test bindings
-        run: docker run --rm -v $(pwd):/build -w /build node:${{ matrix.node }}-alpine yarn test
+        run: |
+          docker run --rm -v $(pwd):/build -w /build node:${{ matrix.node }}-alpine sh -c '
+            yarn test
+          '
   test-linux-aarch64-gnu-binding:
     name: Test bindings on aarch64-unknown-linux-gnu - node@${{ matrix.node }}
     needs:
@@ -250,9 +258,9 @@ jobs:
       fail-fast: false
       matrix:
         node:
-          - "16"
-          - "18"
           - "20"
+          - "22"
+          - "24"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -296,7 +304,7 @@ jobs:
       - name: Setup node
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 22
           check-latest: true
           cache: yarn
       - name: Install dependencies
