@@ -120,6 +120,16 @@ jobs:
           check-latest: true
           cache: yarn
           architecture: x86
+      - name: Log in to GitHub Container Registry
+        if: ${{ matrix.settings.docker }}
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Pull Docker image
+        if: ${{ matrix.settings.docker }}
+        run: docker pull ${{ matrix.settings.docker }}
       - name: Build in docker
         uses: addnab/docker-run-action@v3
         if: ${{ matrix.settings.docker }}
@@ -127,9 +137,6 @@ jobs:
           image: ${{ matrix.settings.docker }}
           options: "--user 0:0 -v ${{ github.workspace }}:/build -w /build"
           run: ${{ matrix.settings.build }}
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build
         run: ${{ matrix.settings.build }}
         if: ${{ !matrix.settings.docker }}
