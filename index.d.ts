@@ -764,7 +764,7 @@ export interface Transaction {
   gasUsed?: bigint
   contractAddress?: string
   logsBloom?: string
-  type?: number
+  kind?: number
   root?: string
   status?: number
   l1Fee?: bigint
@@ -813,7 +813,7 @@ export type TransactionField =  'BlockHash'|
 'GasUsed'|
 'ContractAddress'|
 'LogsBloom'|
-'Type'|
+'Kind'|
 'Root'|
 'Status'|
 'L1Fee'|

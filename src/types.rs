@@ -69,7 +69,7 @@ pub struct Transaction {
     pub gas_used: Option<BigInt>,
     pub contract_address: Option<String>,
     pub logs_bloom: Option<String>,
-    #[napi(js_name = "type")]
+    #[napi(js_name = "kind")]
     pub type_: Option<i64>,
     pub root: Option<String>,
     pub status: Option<i64>,
