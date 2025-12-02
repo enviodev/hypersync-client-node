@@ -11,6 +11,7 @@ env:
 permissions:
   contents: write
   id-token: write
+  packages: read
 
 on:
   workflow_dispatch: null
