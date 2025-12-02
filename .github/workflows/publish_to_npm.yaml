@@ -11,6 +11,7 @@ env:
 permissions:
   contents: write
   id-token: write
+  packages: read
 
 on:
   workflow_dispatch: null
@@ -39,7 +40,6 @@ jobs:
             docker: ghcr.io/${{ github.repository }}/nodejs-rust:debian
             build: |-
               set -e
-              rustup update stable
               yarn set version 3
               yarn build --target x86_64-unknown-linux-gnu
               strip *.node
@@ -48,7 +48,6 @@ jobs:
             docker: ghcr.io/${{ github.repository }}/nodejs-rust:alpine
             build: |-
               set -e
-              rustup update stable
               yarn set version 3
               yarn build --target x86_64-unknown-linux-musl
               strip *.node
@@ -64,7 +63,6 @@ jobs:
             docker: ghcr.io/${{ github.repository }}/nodejs-rust:debian-aarch64
             build: |-
               set -e
-              rustup update stable
               yarn set version 3
               yarn build --target aarch64-unknown-linux-gnu
               aarch64-unknown-linux-gnu-strip *.node
@@ -123,6 +121,16 @@ jobs:
           check-latest: true
           cache: yarn
           architecture: x86
+      - name: Log in to GitHub Container Registry
+        if: ${{ matrix.settings.docker }}
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Pull Docker image
+        if: ${{ matrix.settings.docker }}
+        run: docker pull ${{ matrix.settings.docker }}
       - name: Build in docker
         uses: addnab/docker-run-action@v3
         if: ${{ matrix.settings.docker }}

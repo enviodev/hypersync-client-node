@@ -1,3 +1,5 @@
+# Taken from https://github.com/napi-rs/napi-rs/blob/main/.github/workflows/docker.yaml
+# and modified to build with latest rust and node 22
 name: Build Docker Images
 
 on:
@@ -6,7 +8,7 @@ on:
     branches:
       - main
     paths:
-      - 'docker/**'
+      - "docker/**"
 
 permissions:
   contents: read
@@ -85,7 +87,7 @@ jobs:
         uses: addnab/docker-run-action@v3
         with:
           image: node:lts-slim
-          options: '--platform linux/arm64 --user 0:0 -v ${{ github.workspace }}/lib/llvm-18:/usr/lib/llvm-18'
+          options: "--platform linux/arm64 --user 0:0 -v ${{ github.workspace }}/lib/llvm-18:/usr/lib/llvm-18"
           run: >-
             apt-get update &&
             apt-get install -y wget gnupg2 &&
