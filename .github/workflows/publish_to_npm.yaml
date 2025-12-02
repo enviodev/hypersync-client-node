@@ -31,11 +31,12 @@ jobs:
           - host: windows-latest
             build: |
               yarn set version 3
-              yarn build
+              rustup target add x86_64-pc-windows-msvc
+              yarn build --target x86_64-pc-windows-msvc
             target: x86_64-pc-windows-msvc
           - host: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-            docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian
+            docker: ghcr.io/${{ github.repository }}/nodejs-rust:debian
             build: |-
               set -e
               rustup update stable
@@ -44,7 +45,7 @@ jobs:
               strip *.node
           - host: ubuntu-latest
             target: x86_64-unknown-linux-musl
-            docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-alpine
+            docker: ghcr.io/${{ github.repository }}/nodejs-rust:alpine
             build: |-
               set -e
               rustup update stable
@@ -60,7 +61,7 @@ jobs:
               strip -x *.node
           - host: ubuntu-latest
             target: aarch64-unknown-linux-gnu
-            docker: ghcr.io/napi-rs/napi-rs/nodejs-rust:lts-debian-aarch64
+            docker: ghcr.io/${{ github.repository }}/nodejs-rust:debian-aarch64
             build: |-
               set -e
               rustup update stable
@@ -71,7 +72,8 @@ jobs:
             target: aarch64-pc-windows-msvc
             build: |
               yarn set version 3
-              yarn build
+              rustup target add aarch64-pc-windows-msvc
+              yarn build --target aarch64-pc-windows-msvc
     name: stable - ${{ matrix.settings.target }} - node@22
     runs-on: ${{ matrix.settings.host }}
     steps:

@@ -1,9 +1,6 @@
 {
   "name": "@envio-dev/hypersync-client-win32-x64-msvc",
-  "version": "0.7.0",
-  "os": [
-    "win32"
-  ],
+  "version": "0.7.1",
   "cpu": [
     "x64"
   ],
@@ -11,8 +8,12 @@
   "files": [
     "hypersync-client.win32-x64-msvc.node"
   ],
+  "description": "HyperSync Client by Envio",
   "license": "MIT",
   "engines": {
     "node": ">= 10"
-  }
+  },
+  "os": [
+    "win32"
+  ]
 }

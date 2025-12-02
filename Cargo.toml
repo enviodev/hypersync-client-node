@@ -8,12 +8,13 @@ crate-type = ["cdylib"]
 
 [dependencies]
 # Default enable napi4 feature, see https://nodejs.org/api/n-api.html#node-api-version-matrix
-napi = { version = "3.5.2", default-features = false, features = [
+napi = { version = "3.6.0", default-features = false, features = [
   "napi9",
   "async",
   "serde-json",
+  "dyn-symbols", # needed for windows build to include "libloading" crate
 ] }
-napi-derive = "3.3.3"
+napi-derive = "3.4.0"
 serde = { version = "1", features = ["derive"] }
 alloy-dyn-abi = "1.1"
 tokio = { version = "1", features = ["rt-multi-thread"] }
