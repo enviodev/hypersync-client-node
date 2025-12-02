@@ -39,7 +39,6 @@ jobs:
             docker: ghcr.io/${{ github.repository }}/nodejs-rust:debian
             build: |-
               set -e
-              rustup update stable
               yarn set version 3
               yarn build --target x86_64-unknown-linux-gnu
               strip *.node
@@ -48,7 +47,6 @@ jobs:
             docker: ghcr.io/${{ github.repository }}/nodejs-rust:alpine
             build: |-
               set -e
-              rustup update stable
               yarn set version 3
               yarn build --target x86_64-unknown-linux-musl
               strip *.node
@@ -64,7 +62,6 @@ jobs:
             docker: ghcr.io/${{ github.repository }}/nodejs-rust:debian-aarch64
             build: |-
               set -e
-              rustup update stable
               yarn set version 3
               yarn build --target aarch64-unknown-linux-gnu
               aarch64-unknown-linux-gnu-strip *.node
