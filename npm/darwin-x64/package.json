@@ -1,9 +1,6 @@
 {
   "name": "@envio-dev/hypersync-client-darwin-x64",
-  "version": "0.7.0",
-  "os": [
-    "darwin"
-  ],
+  "version": "0.7.1",
   "cpu": [
     "x64"
   ],
@@ -11,8 +8,12 @@
   "files": [
     "hypersync-client.darwin-x64.node"
   ],
+  "description": "HyperSync Client by Envio",
   "license": "MIT",
   "engines": {
     "node": ">= 10"
-  }
+  },
+  "os": [
+    "darwin"
+  ]
 }

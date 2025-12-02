@@ -1,9 +1,6 @@
 {
   "name": "@envio-dev/hypersync-client-linux-x64-musl",
-  "version": "0.7.0",
-  "os": [
-    "linux"
-  ],
+  "version": "0.7.1",
   "cpu": [
     "x64"
   ],
@@ -11,10 +8,14 @@
   "files": [
     "hypersync-client.linux-x64-musl.node"
   ],
+  "description": "HyperSync Client by Envio",
   "license": "MIT",
   "engines": {
     "node": ">= 10"
   },
+  "os": [
+    "linux"
+  ],
   "libc": [
     "musl"
   ]
