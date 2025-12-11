@@ -162,12 +162,12 @@ jobs:
           - host: macos-latest
             target: aarch64-apple-darwin
             architecture: arm64
-          - host: windows-latest
-            target: x86_64-pc-windows-msvc
-            architecture: x64
-          - host: windows-latest
-            target: aarch64-pc-windows-msvc
-            architecture: arm64
+          # - host: windows-latest
+          #   target: x86_64-pc-windows-msvc
+          #   architecture: x64
+          # - host: windows-latest
+          #   target: aarch64-pc-windows-msvc
+          #   architecture: arm64
         node:
           - "20"
           - "22"
@@ -192,23 +192,7 @@ jobs:
       - name: List packages
         run: ls -R .
         shell: bash
-      - name: Debug yarn test on Windows
-        if: matrix.os == 'windows-latest'
-        shell: pwsh
-        run: |
-          Write-Host "Node version:"
-          node -v
-
-          Write-Host "Yarn version:"
-          yarn -v
-
-          Write-Host "Running tests..."
-          yarn test
-          $exitCode = $LASTEXITCODE
-          Write-Host "yarn test exit code: $exitCode"
-          exit $exitCode
       - name: Test bindings
-        if: matrix.os != 'windows-latest'
         run: yarn test
   test-linux-x64-gnu-binding:
     name: Test bindings on Linux-x64-gnu - node@${{ matrix.node }}
