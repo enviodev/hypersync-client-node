@@ -1,6 +1,6 @@
 {
   "name": "@envio-dev/hypersync-client-win32-arm64-msvc",
-  "version": "0.7.2",
+  "version": "1.0.0",
   "cpu": [
     "arm64"
   ],
