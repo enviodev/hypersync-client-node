@@ -503,19 +503,19 @@ export interface Query {
    * List of log selections, these have an or relationship between them, so the query will return logs
    * that match any of these selections.
    */
-  logs?: Array<LogFilter | LogSelection>
+  logs?: Array<LogSelection | LogFilter>
   /**
    * List of transaction selections, the query will return transactions that match any of these selections and
    *  it will return transactions that are related to the returned logs.
    */
-  transactions?: Array<TransactionFilter | TransactionSelection>
+  transactions?: Array<TransactionSelection | TransactionFilter>
   /**
    * List of trace selections, the query will return traces that match any of these selections and
    *  it will re turn traces that are related to the returned logs.
    */
-  traces?: Array<TraceFilter | TraceSelection>
+  traces?: Array<TraceSelection | TraceFilter>
   /** List of block selections, the query will return blocks that match any of these selections */
-  blocks?: Array<BlockFilter | BlockSelection>
+  blocks?: Array<BlockSelection | BlockFilter>
   /**
    * Weather to include all blocks regardless of if they are related to a returned transaction or log. Normally
    *  the server will return only the blocks that are related to the transaction or logs in the response. But if this

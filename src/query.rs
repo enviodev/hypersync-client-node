@@ -341,15 +341,15 @@ pub struct Query {
     pub to_block: Option<i64>,
     /// List of log selections, these have an or relationship between them, so the query will return logs
     /// that match any of these selections.
-    pub logs: Option<Vec<Either<LogFilter, LogSelection>>>,
+    pub logs: Option<Vec<Either<LogSelection, LogFilter>>>,
     /// List of transaction selections, the query will return transactions that match any of these selections and
     ///  it will return transactions that are related to the returned logs.
-    pub transactions: Option<Vec<Either<TransactionFilter, TransactionSelection>>>,
+    pub transactions: Option<Vec<Either<TransactionSelection, TransactionFilter>>>,
     /// List of trace selections, the query will return traces that match any of these selections and
     ///  it will re turn traces that are related to the returned logs.
-    pub traces: Option<Vec<Either<TraceFilter, TraceSelection>>>,
+    pub traces: Option<Vec<Either<TraceSelection, TraceFilter>>>,
     /// List of block selections, the query will return blocks that match any of these selections
-    pub blocks: Option<Vec<Either<BlockFilter, BlockSelection>>>,
+    pub blocks: Option<Vec<Either<BlockSelection, BlockFilter>>>,
     /// Weather to include all blocks regardless of if they are related to a returned transaction or log. Normally
     ///  the server will return only the blocks that are related to the transaction or logs in the response. But if this
     ///  is set to true, the server will return data for all blocks in the requested range [from_block, to_block).
@@ -386,11 +386,11 @@ impl TryFrom<Query> for net_types::Query {
             log_filters
                 .into_iter()
                 .map(|either| match either {
-                    Either::A(filter) => {
+                    Either::A(selection) => net_types::LogSelection::try_from(selection),
+                    Either::B(filter) => {
                         let net_filter = net_types::LogFilter::try_from(filter)?;
                         Ok(net_types::LogSelection::new(net_filter))
                     }
-                    Either::B(selection) => net_types::LogSelection::try_from(selection),
                 })
                 .collect::<Result<Vec<_>>>()?
         } else {
@@ -401,11 +401,11 @@ impl TryFrom<Query> for net_types::Query {
             transaction_filters
                 .into_iter()
                 .map(|either| match either {
-                    Either::A(filter) => {
+                    Either::A(selection) => net_types::TransactionSelection::try_from(selection),
+                    Either::B(filter) => {
                         let net_filter = net_types::TransactionFilter::try_from(filter)?;
                         Ok(net_types::TransactionSelection::new(net_filter))
                     }
-                    Either::B(selection) => net_types::TransactionSelection::try_from(selection),
                 })
                 .collect::<Result<Vec<_>>>()?
         } else {
@@ -416,11 +416,11 @@ impl TryFrom<Query> for net_types::Query {
             trace_filters
                 .into_iter()
                 .map(|either| match either {
-                    Either::A(filter) => {
+                    Either::A(selection) => net_types::TraceSelection::try_from(selection),
+                    Either::B(filter) => {
                         let net_filter = net_types::TraceFilter::try_from(filter)?;
                         Ok(net_types::TraceSelection::new(net_filter))
                     }
-                    Either::B(selection) => net_types::TraceSelection::try_from(selection),
                 })
                 .collect::<Result<Vec<_>>>()?
         } else {
@@ -431,11 +431,11 @@ impl TryFrom<Query> for net_types::Query {
             block_filters
                 .into_iter()
                 .map(|either| match either {
-                    Either::A(filter) => {
+                    Either::A(selection) => net_types::BlockSelection::try_from(selection),
+                    Either::B(filter) => {
                         let net_filter = net_types::BlockFilter::try_from(filter)?;
                         Ok(net_types::BlockSelection::new(net_filter))
                     }
-                    Either::B(selection) => net_types::BlockSelection::try_from(selection),
                 })
                 .collect::<Result<Vec<_>>>()?
         } else {
@@ -900,7 +900,7 @@ impl From<net_types::Query> for Query {
     fn from(query: net_types::Query) -> Query {
         fn map_selections<T, F, S>(
             selections: Vec<net_types::Selection<T>>,
-        ) -> Option<Vec<Either<F, S>>>
+        ) -> Option<Vec<Either<S, F>>>
         where
             T: Into<F>,
             net_types::Selection<T>: Into<S>,
@@ -911,9 +911,9 @@ impl From<net_types::Query> for Query {
                 let mut converted = Vec::new();
                 for selection in selections {
                     if selection.exclude.is_some() {
-                        converted.push(Either::B(selection.into()));
+                        converted.push(Either::A(selection.into()));
                     } else {
-                        converted.push(Either::A(selection.include.into()));
+                        converted.push(Either::B(selection.include.into()));
                     }
                 }
                 Some(converted)
@@ -1594,7 +1594,7 @@ mod tests {
         let query = Query {
             from_block: 100,
             to_block: Some(200),
-            logs: Some(vec![Either::A(LogFilter {
+            logs: Some(vec![Either::B(LogFilter {
                 address: Some(vec![
                     "0xdAC17F958D2ee523a2206206994597C13D831ec7".to_string()
                 ]),
