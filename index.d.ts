@@ -89,6 +89,18 @@ export declare class HypersyncClient {
   get(query: Query): Promise<QueryResponse>
   /** Get blockchain events for a single query */
   getEvents(query: Query): Promise<EventResponse>
+  /** Get blockchain data for a single query, with rate limit info */
+  getWithRateLimit(query: Query): Promise<QueryResponseWithRateLimit>
+  /**
+   * Get the most recently observed rate limit information.
+   * Returns null if no requests have been made yet.
+   */
+  rateLimitInfo(): RateLimitInfo | null
+  /**
+   * Wait until the current rate limit window resets.
+   * Returns immediately if no rate limit info observed or quota available.
+   */
+  waitForRateLimit(): Promise<void>
   /** Stream chain height events */
   streamHeight(): Promise<HeightStream>
   /** Stream blockchain data from the given query */
@@ -253,6 +265,11 @@ export interface ClientConfig {
   serializationFormat?: SerializationFormat
   /** Whether to use query caching when using CapnProto serialization format. */
   enableQueryCaching?: boolean
+  /**
+   * Whether to proactively sleep when the rate limit is exhausted instead of
+   * sending requests that will be rejected with 429. Default: true.
+   */
+  proactiveRateLimitSleep?: boolean
 }
 
 /**
@@ -556,6 +573,32 @@ export interface Query {
    * JoinNothing: join nothing.
    */
   joinMode?: JoinMode
+}
+
+/** Rate limit information from server response headers. */
+export interface RateLimitInfo {
+  /** Total request quota for the current window. */
+  limit?: number
+  /** Remaining budget in the current window. */
+  remaining?: number
+  /** Seconds until the rate limit window resets. */
+  resetSecs?: number
+  /** Budget consumed per request. */
+  cost?: number
+  /** Seconds to wait before retrying (from retry-after header). */
+  retryAfterSecs?: number
+  /** Whether the rate limit quota has been exhausted. */
+  isRateLimited: boolean
+  /** Suggested number of seconds to wait before making another request. */
+  suggestedWaitSecs?: number
+}
+
+/** Response from a query that includes rate limit information. */
+export interface QueryResponseWithRateLimit {
+  /** The query response data. */
+  response: QueryResponse
+  /** Rate limit information from response headers. */
+  rateLimit: RateLimitInfo
 }
 
 /** Response from a blockchain query */
