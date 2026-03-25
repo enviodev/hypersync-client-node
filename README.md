@@ -1,6 +1,6 @@
 # hypersync-client-node
 
-[![npm](https://img.shields.io/npm/v/@envio-dev/hypersync-client)](https://www.npmjs.com/package/@envio-dev/hypersync-client) [![npm downloads](https://img.shields.io/npm/dm/@envio-dev/hypersync-client)](https://www.npmjs.com/package/@envio-dev/hypersync-client) [![Discord](https://img.shields.io/badge/Discord-Join%20Chat-7289da?logo=discord&logoColor=white)](https://discord.gg/Q9qt8gZ2fX)
+[![npm](https://img.shields.io/npm/v/@envio-dev/hypersync-client)](https://www.npmjs.com/package/@envio-dev/hypersync-client) [![npm downloads](https://img.shields.io/npm/dm/@envio-dev/hypersync-client)](https://www.npmjs.com/package/@envio-dev/hypersync-client) [![Discord](https://img.shields.io/badge/Discord-Join%20Chat-7289da?logo=discord&logoColor=white)](https://discord.com/invite/envio)
 
 Node.js client for [Envio's](https://envio.dev) HyperSync. TypeScript-first, built on top of the Rust implementation via NAPI bindings for high-performance blockchain data access.
 
@@ -122,6 +122,6 @@ This client is built on top of the [Rust client](https://github.com/enviodev/hyp
 
 ## Support
 
-- [Discord community](https://discord.gg/Q9qt8gZ2fX)
+- [Discord community](https://discord.com/invite/envio)
 - [GitHub Issues](https://github.com/enviodev/hypersync-client-node/issues)
 - [Documentation](https://docs.envio.dev/docs/HyperSync/overview)
