@@ -585,8 +585,6 @@ export interface RateLimitInfo {
   resetSecs?: number
   /** Budget consumed per request. */
   cost?: number
-  /** Seconds to wait before retrying (from retry-after header). */
-  retryAfterSecs?: number
   /** Whether the rate limit quota has been exhausted. */
   isRateLimited: boolean
   /** Suggested number of seconds to wait before making another request. */
