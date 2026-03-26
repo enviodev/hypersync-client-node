@@ -10,6 +10,8 @@ Node.js client for [Envio's](https://envio.dev) HyperSync. TypeScript-first, bui
 
 HyperSync lets you query logs, transactions, blocks, and traces with flexible filtering and field selection, returning only the data you need.
 
+If you need a full indexing framework on top of HyperSync with GraphQL APIs and schema management, see [HyperIndex](https://github.com/enviodev/hyperindex).
+
 ## Features
 
 - **TypeScript-first**: Full TypeScript types and IntelliSense support
@@ -92,6 +94,17 @@ const client = new HypersyncClient({
 
 See the full list of [supported networks and URLs](https://docs.envio.dev/docs/HyperSync/hypersync-supported-networks).
 
+## What you can build
+
+The Node.js client is a natural fit for JavaScript and TypeScript applications that need fast, direct access to blockchain data:
+
+- **Real-time event monitoring**: Stream block heights and query events as they land, like this [Polymarket trade tracker](https://docs.envio.dev/blog/track-polymarket-trades-hypersync) built with the Node.js client
+- **Blockchain data analytics**: Scan entire chain histories in seconds, not hours
+- **ETL pipelines**: Extract on-chain data and export to Parquet for downstream processing
+- **Block explorers**: Power responsive interfaces with comprehensive real-time data access
+- **DeFi dashboards**: Query protocol events, pool data, and token transfers at scale
+- **Cross-chain applications**: Query unified data across 70+ EVM chains from a single client
+
 ## Documentation
 
 - [API Documentation](https://enviodev.github.io/hypersync-client-node/)
@@ -106,7 +119,7 @@ See the full list of [supported networks and URLs](https://docs.envio.dev/docs/H
 HyperSync retrieves data up to 2000x faster than traditional JSON-RPC. It is designed for bulk historical data access, not transaction signing or contract writes. Use HyperSync alongside ethers.js or viem for read-heavy applications.
 
 **Do I need an API token?**
-Yes, an API token is required. [Get one here](https://docs.envio.dev/docs/HyperSync/api-tokens).
+Yes. [Get one here](https://docs.envio.dev/docs/HyperSync/api-tokens).
 
 **Which networks are supported?**
 70+ EVM-compatible networks and Fuel. See the [full list](https://docs.envio.dev/docs/HyperSync/hypersync-supported-networks).
@@ -118,7 +131,10 @@ Yes. See `examples/parquet-out` for an example of streaming data to a Parquet fi
 The package targets Node.js via NAPI bindings. Bun is broadly compatible with Node.js native modules. Deno compatibility may vary.
 
 **How is this different from the Rust client?**
-This client is built on top of the [Rust client](https://github.com/enviodev/hypersync-client-rust) via NAPI bindings. It provides a TypeScript-first interface for JavaScript/Node.js developers.
+This client is built on top of the [Rust client](https://github.com/enviodev/hypersync-client-rust) via NAPI bindings. It provides a TypeScript-first interface for JavaScript/Node.js developers. If you need the lowest-level access with the least overhead, use the Rust client directly.
+
+**What is the difference between HyperSync and HyperIndex?**
+HyperSync is the raw data access layer. Use it when you need direct access to blockchain data in your own pipeline. [HyperIndex](https://github.com/enviodev/hyperindex) is the full indexing framework built on top of HyperSync, with schema management, event handlers, and a GraphQL API.
 
 ## Support
 
