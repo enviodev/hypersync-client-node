@@ -18,5 +18,9 @@
   ],
   "libc": [
     "glibc"
-  ]
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/enviodev/hypersync-client-node"
+  }
 }
