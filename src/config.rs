@@ -186,11 +186,6 @@ pub struct ClientConfig {
     /// Whether to proactively sleep when the rate limit is exhausted instead of
     /// sending requests that will be rejected with 429. Default: true.
     pub proactive_rate_limit_sleep: Option<bool>,
-    /// Log level filter for the Rust logger. Accepts values like "info", "warn",
-    /// "debug", "trace", "error", or a full env_logger filter directive like
-    /// "hypersync_client=debug". If RUST_LOG env var is set, it takes precedence.
-    /// Only the first client creation initializes the logger (once per process).
-    pub log_level: Option<String>,
 }
 
 impl From<ClientConfig> for hypersync_client::ClientConfig {
