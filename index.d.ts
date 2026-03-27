@@ -89,6 +89,10 @@ export declare class HypersyncClient {
   get(query: Query): Promise<QueryResponse>
   /** Get blockchain events for a single query */
   getEvents(query: Query): Promise<EventResponse>
+  /** Stream chain height events */
+  streamHeight(): Promise<HeightStream>
+  /** Stream blockchain data from the given query */
+  stream(query: Query, config: StreamConfig): Promise<QueryResponseStream>
   /** Get blockchain data for a single query, with rate limit info */
   getWithRateLimit(query: Query): Promise<QueryResponseWithRateLimit>
   /**
@@ -101,10 +105,6 @@ export declare class HypersyncClient {
    * Returns immediately if no rate limit info observed or quota available.
    */
   waitForRateLimit(): Promise<void>
-  /** Stream chain height events */
-  streamHeight(): Promise<HeightStream>
-  /** Stream blockchain data from the given query */
-  stream(query: Query, config: StreamConfig): Promise<QueryResponseStream>
   /** Stream blockchain events from the given query */
   streamEvents(query: Query, config: StreamConfig): Promise<EventStream>
 }
@@ -575,26 +575,6 @@ export interface Query {
   joinMode?: JoinMode
 }
 
-/** Rate limit information from server response headers. */
-export interface RateLimitInfo {
-  /** Total request quota for the current window. */
-  limit?: number
-  /** Remaining budget in the current window. */
-  remaining?: number
-  /** Seconds until the rate limit window resets. */
-  resetSecs?: number
-  /** Budget consumed per request. */
-  cost?: number
-}
-
-/** Response from a query that includes rate limit information. */
-export interface QueryResponseWithRateLimit {
-  /** The query response data. */
-  response: QueryResponse
-  /** Rate limit information from response headers. */
-  rateLimit: RateLimitInfo
-}
-
 /** Response from a blockchain query */
 export interface QueryResponse {
   /** Current height of the source hypersync instance */
@@ -625,6 +605,26 @@ export interface QueryResponseData {
   traces: Array<Trace>
 }
 
+/** Response from a query that includes rate limit information. */
+export interface QueryResponseWithRateLimit {
+  /** The query response data. */
+  response: QueryResponse
+  /** Rate limit information from response headers. */
+  rateLimit: RateLimitInfo
+}
+
+/** Rate limit information from server response headers. */
+export interface RateLimitInfo {
+  /** Total request quota for the current window. */
+  limit?: number
+  /** Remaining budget in the current window. */
+  remaining?: number
+  /** Seconds until the rate limit window resets. */
+  resetSecs?: number
+  /** Budget consumed per request. */
+  cost?: number
+}
+
 export type ReconnectingTag =  'Reconnecting';
 
 export interface RollbackGuard {
@@ -653,6 +653,17 @@ export type SerializationFormat = /** Use JSON serialization (default) */
 'Json'|
 /** Use Cap'n Proto binary serialization */
 'CapnProto';
+
+/**
+ * Set the log level for the underlying Rust logger.
+ *
+ * Accepts values like "info", "warn", "debug", "trace", "error",
+ * or a full filter directive like "hypersync_client=debug".
+ * If RUST_LOG env var is set, it takes precedence.
+ * Must be called before creating any HypersyncClient.
+ * Only the first call takes effect (logger can only init once per process).
+ */
+export declare function setLogLevel(level: string): void
 
 /** Config for hypersync event streaming. */
 export interface StreamConfig {
