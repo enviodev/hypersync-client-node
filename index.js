@@ -69,6 +69,7 @@ function requireNative() {
     }
   } else if (process.platform === 'android') {
     if (process.arch === 'arm64') {
+      // Try Android-specific binaries first
       try {
         return require('./hypersync-client.android-arm64.node')
       } catch (e) {
@@ -77,6 +78,22 @@ function requireNative() {
       try {
         const binding = require('@envio-dev/hypersync-client-android-arm64')
         const bindingPackageVersion = require('@envio-dev/hypersync-client-android-arm64/package.json').version
+        if (bindingPackageVersion !== '1.1.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
+          throw new Error(`Native binding package version mismatch, expected 1.1.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
+        }
+        return binding
+      } catch (e) {
+        loadErrors.push(e)
+      }
+      // Fall back to Linux arm64 GNU binary (Android is Linux under the hood)
+      try {
+        return require('./hypersync-client.linux-arm64-gnu.node')
+      } catch (e) {
+        loadErrors.push(e)
+      }
+      try {
+        const binding = require('@envio-dev/hypersync-client-linux-arm64-gnu')
+        const bindingPackageVersion = require('@envio-dev/hypersync-client-linux-arm64-gnu/package.json').version
         if (bindingPackageVersion !== '1.1.0' && process.env.NAPI_RS_ENFORCE_VERSION_CHECK && process.env.NAPI_RS_ENFORCE_VERSION_CHECK !== '0') {
           throw new Error(`Native binding package version mismatch, expected 1.1.0 but got ${bindingPackageVersion}. You can reinstall dependencies to fix this issue.`)
         }
