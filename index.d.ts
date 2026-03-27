@@ -585,10 +585,6 @@ export interface RateLimitInfo {
   resetSecs?: number
   /** Budget consumed per request. */
   cost?: number
-  /** Whether the rate limit quota has been exhausted. */
-  isRateLimited: boolean
-  /** Suggested number of seconds to wait before making another request. */
-  suggestedWaitSecs?: number
 }
 
 /** Response from a query that includes rate limit information. */
