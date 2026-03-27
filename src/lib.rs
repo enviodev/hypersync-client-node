@@ -16,6 +16,40 @@ use config::{ClientConfig, StreamConfig};
 use query::Query;
 use types::{Block, Event, Log, RollbackGuard, Trace, Transaction};
 
+/// Rate limit information from server response headers.
+#[napi(object)]
+pub struct RateLimitInfo {
+    /// Total request quota for the current window.
+    pub limit: Option<i64>,
+    /// Remaining budget in the current window.
+    pub remaining: Option<i64>,
+    /// Seconds until the rate limit window resets.
+    pub reset_secs: Option<i64>,
+    /// Budget consumed per request.
+    pub cost: Option<i64>,
+}
+
+impl From<hypersync_client::RateLimitInfo> for RateLimitInfo {
+    fn from(info: hypersync_client::RateLimitInfo) -> Self {
+        Self {
+            limit: info.limit.map(|v| v as i64),
+            remaining: info.remaining.map(|v| v as i64),
+            reset_secs: info.reset_secs.map(|v| v as i64),
+            cost: info.cost.map(|v| v as i64),
+        }
+    }
+}
+
+/// Response from a query that includes rate limit information.
+#[napi(object)]
+pub struct QueryResponseWithRateLimit {
+    /// The query response data.
+    pub response: QueryResponse,
+    /// Rate limit information from response headers.
+    pub rate_limit: RateLimitInfo,
+}
+
+
 /// HyperSync client for querying blockchain data
 #[napi]
 pub struct HypersyncClient {
@@ -192,6 +226,42 @@ impl HypersyncClient {
             inner: tokio::sync::Mutex::new(inner),
             enable_checksum_addresses: self.enable_checksum_addresses,
         })
+    }
+
+    /// Get blockchain data for a single query, with rate limit info
+    #[napi]
+    pub async fn get_with_rate_limit(
+        &self,
+        query: Query,
+    ) -> napi::Result<QueryResponseWithRateLimit> {
+        let query = query.try_into().context("parse query").map_err(map_err)?;
+        let res = self
+            .inner
+            .get_with_rate_limit(&query)
+            .await
+            .context("run inner query")
+            .map_err(map_err)?;
+        let response = convert_response(res.response, self.enable_checksum_addresses)
+            .context("convert response")
+            .map_err(map_err)?;
+        Ok(QueryResponseWithRateLimit {
+            response,
+            rate_limit: res.rate_limit.into(),
+        })
+    }
+
+    /// Get the most recently observed rate limit information.
+    /// Returns null if no requests have been made yet.
+    #[napi]
+    pub fn rate_limit_info(&self) -> Option<RateLimitInfo> {
+        self.inner.rate_limit_info().map(|info| info.into())
+    }
+
+    /// Wait until the current rate limit window resets.
+    /// Returns immediately if no rate limit info observed or quota available.
+    #[napi]
+    pub async fn wait_for_rate_limit(&self) {
+        self.inner.wait_for_rate_limit().await;
     }
 
     /// Stream blockchain events from the given query

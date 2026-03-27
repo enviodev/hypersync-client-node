@@ -183,6 +183,9 @@ pub struct ClientConfig {
     pub serialization_format: Option<SerializationFormat>,
     /// Whether to use query caching when using CapnProto serialization format.
     pub enable_query_caching: Option<bool>,
+    /// Whether to proactively sleep when the rate limit is exhausted instead of
+    /// sending requests that will be rejected with 429. Default: true.
+    pub proactive_rate_limit_sleep: Option<bool>,
 }
 
 impl From<ClientConfig> for hypersync_client::ClientConfig {
@@ -216,6 +219,9 @@ impl From<ClientConfig> for hypersync_client::ClientConfig {
                 .retry_ceiling_ms
                 .map_or(Cfg::default_retry_ceiling_ms(), |v| v as u64),
             serialization_format,
+            proactive_rate_limit_sleep: config
+                .proactive_rate_limit_sleep
+                .unwrap_or(Cfg::default_proactive_rate_limit_sleep()),
         }
     }
 }
