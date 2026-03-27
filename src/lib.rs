@@ -1,6 +1,8 @@
 #[macro_use]
 extern crate napi_derive;
 
+use std::sync::Once;
+
 use anyhow::{Context, Result};
 use napi::bindgen_prelude::Either3;
 use tokio::sync::mpsc;
@@ -15,6 +17,18 @@ mod types;
 use config::{ClientConfig, StreamConfig};
 use query::Query;
 use types::{Block, Event, Log, RollbackGuard, Trace, Transaction};
+
+static LOGGER_INIT: Once = Once::new();
+
+fn init_logger(log_level: Option<&str>) {
+    LOGGER_INIT.call_once(|| {
+        if std::env::var("RUST_LOG").is_ok() {
+            env_logger::init();
+        } else if let Some(filter) = log_level {
+            env_logger::Builder::new().parse_filters(filter).init();
+        }
+    });
+}
 
 /// Rate limit information from server response headers.
 #[napi(object)]
@@ -74,7 +88,7 @@ impl HypersyncClient {
     #[doc(hidden)]
     #[napi]
     pub fn new_with_agent(cfg: ClientConfig, user_agent: String) -> napi::Result<HypersyncClient> {
-        env_logger::try_init().ok();
+        init_logger(cfg.log_level.as_deref());
 
         let enable_checksum_addresses = cfg.enable_checksum_addresses.unwrap_or_default();
 
