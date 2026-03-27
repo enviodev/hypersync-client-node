@@ -1,6 +1,8 @@
 #[macro_use]
 extern crate napi_derive;
 
+use std::sync::Once;
+
 use anyhow::{Context, Result};
 use napi::bindgen_prelude::Either3;
 use tokio::sync::mpsc;
@@ -15,6 +17,30 @@ mod types;
 use config::{ClientConfig, StreamConfig};
 use query::Query;
 use types::{Block, Event, Log, RollbackGuard, Trace, Transaction};
+
+static LOGGER_INIT: Once = Once::new();
+
+fn init_logger(log_level: Option<&str>) {
+    LOGGER_INIT.call_once(|| {
+        if std::env::var("RUST_LOG").is_ok() {
+            env_logger::init();
+        } else if let Some(filter) = log_level {
+            env_logger::Builder::new().parse_filters(filter).init();
+        }
+    });
+}
+
+/// Set the log level for the underlying Rust logger.
+///
+/// Accepts values like "info", "warn", "debug", "trace", "error",
+/// or a full filter directive like "hypersync_client=debug".
+/// If RUST_LOG env var is set, it takes precedence.
+/// Must be called before creating any HypersyncClient.
+/// Only the first call takes effect (logger can only init once per process).
+#[napi]
+pub fn set_log_level(level: String) {
+    init_logger(Some(&level));
+}
 
 /// Rate limit information from server response headers.
 #[napi(object)]
@@ -74,7 +100,7 @@ impl HypersyncClient {
     #[doc(hidden)]
     #[napi]
     pub fn new_with_agent(cfg: ClientConfig, user_agent: String) -> napi::Result<HypersyncClient> {
-        env_logger::try_init().ok();
+        init_logger(Some("info"));
 
         let enable_checksum_addresses = cfg.enable_checksum_addresses.unwrap_or_default();
 
