@@ -100,7 +100,7 @@ impl HypersyncClient {
     #[doc(hidden)]
     #[napi]
     pub fn new_with_agent(cfg: ClientConfig, user_agent: String) -> napi::Result<HypersyncClient> {
-        init_logger(None);
+        init_logger(Some("info"));
 
         let enable_checksum_addresses = cfg.enable_checksum_addresses.unwrap_or_default();
 
