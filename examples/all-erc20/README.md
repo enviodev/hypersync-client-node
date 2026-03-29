@@ -12,7 +12,7 @@ The example uses the 'Transfer' event and counts all the amounts in the first ba
 ## Run
 
 ```bash
-git clone https://github.com/enviodev/hypersync-client-node.github
+git clone https://github.com/enviodev/hypersync-client-node.git
 cd hypersync-client-node/examples/all-erc20
 npm install
 npm build
