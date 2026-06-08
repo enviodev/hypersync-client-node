@@ -11,11 +11,14 @@ pub struct StreamConfig {
     pub event_signature: Option<String>,
     /// Determines formatting of binary columns numbers into utf8 hex. Default: NoEncode.
     pub hex_output: Option<HexOutput>,
-    /// Initial batch size. Size would be adjusted based on response size during execution. Default: 1000.
+    /// Initial, deliberately-overestimated batch size used for the first wave of
+    /// requests and as a fallback before any response density is measured. Default: 1000.
     pub batch_size: Option<i64>,
-    /// Maximum batch size that could be used during dynamic adjustment. Default: 200000.
+    /// Optional hard cap on the number of blocks per request. Leave unset (the
+    /// default) for no cap: an over-large request is truncated by the server and
+    /// the remainder is backfilled in parallel, so overshoot self-corrects.
     pub max_batch_size: Option<i64>,
-    /// Minimum batch size that could be used during dynamic adjustment. Default: 200.
+    /// Hard lower clamp on the projected block count, to avoid tiny ranges. Default: 200.
     pub min_batch_size: Option<i64>,
     /// Number of async threads that would be spawned to execute different block ranges of queries. Default: 10.
     pub concurrency: Option<i64>,
@@ -27,10 +30,13 @@ pub struct StreamConfig {
     pub max_num_logs: Option<i64>,
     /// Max number of traces to fetch in a single request.
     pub max_num_traces: Option<i64>,
-    /// Size of a response in bytes from which step size will be lowered. Default: 500000.
-    pub response_bytes_ceiling: Option<i64>,
-    /// Size of a response in bytes from which step size will be increased. Default: 250000.
-    pub response_bytes_floor: Option<i64>,
+    /// Target response size in bytes. Each request's block span is projected from
+    /// the most recently observed byte-density to aim each response at this size. Default: 400000.
+    pub response_bytes_target: Option<i64>,
+    /// Optional cap on the bytes of fetched-but-undelivered chunks held in the
+    /// reorder buffer (consumer backpressure). Leave unset (the default) for an
+    /// adaptive cap that grows with the largest response seen.
+    pub max_buffered_bytes: Option<i64>,
     /// Stream data in reverse order. Default: false.
     pub reverse: Option<bool>,
 }
@@ -135,9 +141,7 @@ impl From<StreamConfig> for hypersync_client::StreamConfig {
             batch_size: config
                 .batch_size
                 .map_or(Cfg::default_batch_size(), |v| v as u64),
-            max_batch_size: config
-                .max_batch_size
-                .map_or(Cfg::default_max_batch_size(), |v| v as u64),
+            max_batch_size: config.max_batch_size.map(|v| v as u64),
             min_batch_size: config
                 .min_batch_size
                 .map_or(Cfg::default_min_batch_size(), |v| v as u64),
@@ -148,12 +152,10 @@ impl From<StreamConfig> for hypersync_client::StreamConfig {
             max_num_transactions: config.max_num_transactions.map(|v| v as usize),
             max_num_logs: config.max_num_logs.map(|v| v as usize),
             max_num_traces: config.max_num_traces.map(|v| v as usize),
-            response_bytes_ceiling: config
-                .response_bytes_ceiling
-                .map_or(Cfg::default_response_bytes_ceiling(), |v| v as u64),
-            response_bytes_floor: config
-                .response_bytes_floor
-                .map_or(Cfg::default_response_bytes_floor(), |v| v as u64),
+            response_bytes_target: config
+                .response_bytes_target
+                .map_or(Cfg::default_response_bytes_target(), |v| v as u64),
+            max_buffered_bytes: config.max_buffered_bytes.map(|v| v as u64),
             reverse: config.reverse.unwrap_or_default(),
         }
     }

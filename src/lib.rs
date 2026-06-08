@@ -69,8 +69,9 @@ impl From<hypersync_client::RateLimitInfo> for RateLimitInfo {
 /// Response from a query that includes rate limit information.
 #[napi(object)]
 pub struct QueryResponseWithRateLimit {
-    /// The query response data.
-    pub response: QueryResponse,
+    /// The query response data. `null` when the request was rate limited
+    /// (HTTP 429) — in that case inspect `rate_limit` and retry later.
+    pub response: Option<QueryResponse>,
     /// Rate limit information from response headers.
     pub rate_limit: RateLimitInfo,
 }
@@ -267,13 +268,26 @@ impl HypersyncClient {
             .await
             .context("run inner query")
             .map_err(map_err)?;
-        let response = convert_response(res.response, self.enable_checksum_addresses)
-            .context("convert response")
-            .map_err(map_err)?;
-        Ok(QueryResponseWithRateLimit {
-            response,
-            rate_limit: res.rate_limit.into(),
-        })
+        match res {
+            hypersync_client::RateLimitResponse::Success {
+                response,
+                rate_limit,
+            } => {
+                let response = convert_response(response, self.enable_checksum_addresses)
+                    .context("convert response")
+                    .map_err(map_err)?;
+                Ok(QueryResponseWithRateLimit {
+                    response: Some(response),
+                    rate_limit: rate_limit.into(),
+                })
+            }
+            hypersync_client::RateLimitResponse::RateLimited(rate_limit) => {
+                Ok(QueryResponseWithRateLimit {
+                    response: None,
+                    rate_limit: rate_limit.into(),
+                })
+            }
+        }
     }
 
     /// Get the most recently observed rate limit information.
