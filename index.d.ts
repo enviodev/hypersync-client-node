@@ -607,7 +607,10 @@ export interface QueryResponseData {
 
 /** Response from a query that includes rate limit information. */
 export interface QueryResponseWithRateLimit {
-  /** The query response data. `null` when the request was rate limited (HTTP 429) — inspect `rateLimit` and retry later. */
+  /**
+   * The query response data. `null` when the request was rate limited
+   * (HTTP 429) — in that case inspect `rate_limit` and retry later.
+   */
   response?: QueryResponse
   /** Rate limit information from response headers. */
   rateLimit: RateLimitInfo
@@ -676,9 +679,16 @@ export interface StreamConfig {
   eventSignature?: string
   /** Determines formatting of binary columns numbers into utf8 hex. Default: NoEncode. */
   hexOutput?: HexOutput
-  /** Initial, deliberately-overestimated batch size used for the first wave of requests and as a fallback before any response density is measured. Default: 1000. */
+  /**
+   * Initial, deliberately-overestimated batch size used for the first wave of
+   * requests and as a fallback before any response density is measured. Default: 1000.
+   */
   batchSize?: number
-  /** Optional hard cap on the number of blocks per request. Leave unset (the default) for no cap: an over-large request is truncated by the server and the remainder is backfilled in parallel, so overshoot self-corrects. */
+  /**
+   * Optional hard cap on the number of blocks per request. Leave unset (the
+   * default) for no cap: an over-large request is truncated by the server and
+   * the remainder is backfilled in parallel, so overshoot self-corrects.
+   */
   maxBatchSize?: number
   /** Hard lower clamp on the projected block count, to avoid tiny ranges. Default: 200. */
   minBatchSize?: number
@@ -692,9 +702,16 @@ export interface StreamConfig {
   maxNumLogs?: number
   /** Max number of traces to fetch in a single request. */
   maxNumTraces?: number
-  /** Target response size in bytes. Each request's block span is projected from the most recently observed byte-density to aim each response at this size. Default: 400000. */
+  /**
+   * Target response size in bytes. Each request's block span is projected from
+   * the most recently observed byte-density to aim each response at this size. Default: 400000.
+   */
   responseBytesTarget?: number
-  /** Optional cap on the bytes of fetched-but-undelivered chunks held in the reorder buffer (consumer backpressure). Leave unset (the default) for an adaptive cap that grows with the largest response seen. */
+  /**
+   * Optional cap on the bytes of fetched-but-undelivered chunks held in the
+   * reorder buffer (consumer backpressure). Leave unset (the default) for an
+   * adaptive cap that grows with the largest response seen.
+   */
   maxBufferedBytes?: number
   /** Stream data in reverse order. Default: false. */
   reverse?: boolean
