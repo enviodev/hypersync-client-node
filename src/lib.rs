@@ -89,7 +89,9 @@ impl HypersyncClient {
     /// Create a new client with given config
     #[napi(constructor)]
     pub fn new(cfg: ClientConfig) -> napi::Result<HypersyncClient> {
-        Self::new_with_agent(cfg, format!("hscn/{}", env!("CARGO_PKG_VERSION")))
+        // NPM_PKG_VERSION is the package.json version, injected by build.rs.
+        // (CARGO_PKG_VERSION is 0.0.0 because napi keeps the Cargo version static.)
+        Self::new_with_agent(cfg, format!("hscn/{}", env!("NPM_PKG_VERSION")))
     }
 
     /// Create a new client with custom user agent
