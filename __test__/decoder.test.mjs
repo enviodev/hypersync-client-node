@@ -19,6 +19,70 @@ test("Decodes event from etherscan", async (t) => {
   t.is(decoded[0].indexed[1].val, -1n);
 });
 
+const TRANSFER_SIG = "event Transfer(address indexed from, address indexed to, uint256 value)";
+const FROM = "0xdac17f958d2ee523a2206206994597c13d831ec7";
+const TO = "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48";
+const transferLog = {
+  address: "0x1234567890123456789012345678901234567890",
+  topics: [
+    "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef",
+    `0x${FROM.slice(2).padStart(64, "0")}`,
+    `0x${TO.slice(2).padStart(64, "0")}`,
+  ],
+  data: `0x${(1000000).toString(16).padStart(64, "0")}`,
+};
+
+test("Decodes a Transfer log", async (t) => {
+  const decoder = Decoder.fromSignatures([TRANSFER_SIG]);
+  const [decoded] = decoder.decodeLogsSync([transferLog]);
+  t.deepEqual(
+    decoded.indexed.map((v) => v.val),
+    [FROM, TO],
+  );
+  t.is(decoded.body[0].val, 1000000n);
+  t.deepEqual(await decoder.decodeLogs([transferLog]), [decoded]);
+  t.deepEqual(decoder.decodeEventsSync([{ log: transferLog }]), [decoded]);
+  t.deepEqual(await decoder.decodeEvents([{ log: transferLog }]), [decoded]);
+});
+
+// #10: decoding is keyed on the event signature, so the log address (or its
+// absence) must not matter.
+test("Decoding does not depend on the log address", (t) => {
+  const decoder = Decoder.fromSignatures([TRANSFER_SIG]);
+  const expected = decoder.decodeLogsSync([transferLog]);
+  for (const address of ["0x0000000000000000000000000000000000000000", undefined]) {
+    t.deepEqual(decoder.decodeLogsSync([{ ...transferLog, address }]), expected);
+  }
+});
+
+// #18: checksummed address output.
+test("Decoder checksums addresses when enabled", (t) => {
+  const checksummed = ["0xdAC17F958D2ee523a2206206994597C13D831ec7", "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"];
+  const vals = (decoder) => decoder.decodeLogsSync([transferLog])[0].indexed.map((v) => v.val);
+
+  t.deepEqual(vals(Decoder.fromSignaturesWithChecksum([TRANSFER_SIG], true)), checksummed);
+  const decoder = Decoder.fromSignatures([TRANSFER_SIG]);
+  decoder.enableChecksummedAddresses();
+  t.deepEqual(vals(decoder), checksummed);
+  decoder.disableChecksummedAddresses();
+  t.deepEqual(vals(decoder), [FROM, TO]);
+});
+
+test("Undecodable logs yield null instead of throwing", (t) => {
+  const decoder = Decoder.fromSignatures([TRANSFER_SIG]);
+  const logs = [
+    { ...transferLog, topics: [`0x${"11".repeat(32)}`, ...transferLog.topics.slice(1)] },
+    { ...transferLog, topics: [null] },
+    { ...transferLog, data: undefined },
+    { ...transferLog, data: "0xzz" },
+  ];
+  t.deepEqual(decoder.decodeLogsSync(logs), [null, null, null, null]);
+});
+
+test("Invalid signatures are rejected", (t) => {
+  t.throws(() => Decoder.fromSignatures(["event Foo("]));
+});
+
 //skig the async test against hypersync endpoint
 test.skip("Fetches event from base", async (t) => {
   const decoder = Decoder.fromSignatures([

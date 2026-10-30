@@ -766,6 +766,64 @@ mod tests {
         );
     }
 
+    const USDT_LOWER: &str = "0xdac17f958d2ee523a2206206994597c13d831ec7";
+    const USDT_CHECKSUMMED: &str = "0xdAC17F958D2ee523a2206206994597C13D831ec7";
+
+    fn usdt() -> Option<format::Address> {
+        Some(format::Address::decode_hex(USDT_LOWER).unwrap())
+    }
+
+    // Response addresses are checksummed only when enable_checksum_addresses is set.
+    #[test]
+    fn checksums_response_addresses_when_enabled() {
+        let tx = simple_types::Transaction {
+            from: usdt(),
+            to: usdt(),
+            contract_address: usdt(),
+            ..Default::default()
+        };
+        let log = simple_types::Log {
+            address: usdt(),
+            ..Default::default()
+        };
+        let block = simple_types::Block {
+            miner: usdt(),
+            ..Default::default()
+        };
+
+        for (checksum, expected) in [(true, USDT_CHECKSUMMED), (false, USDT_LOWER)] {
+            let tx = Transaction::from_simple(&tx, checksum).unwrap();
+            assert_eq!(tx.from.as_deref(), Some(expected));
+            assert_eq!(tx.to.as_deref(), Some(expected));
+            assert_eq!(tx.contract_address.as_deref(), Some(expected));
+            let log = Log::from_simple(&log, checksum).unwrap();
+            assert_eq!(log.address.as_deref(), Some(expected));
+            let block = Block::from_simple(&block, checksum).unwrap();
+            assert_eq!(block.miner.as_deref(), Some(expected));
+        }
+    }
+
+    // Quantities are exposed as BigInt (they were once hex strings, and block.size
+    // a string).
+    #[test]
+    fn quantities_are_bigints() {
+        let tx = simple_types::Transaction {
+            gas: Some(21000u64.into()),
+            value: Some(1_000_000_000_000_000_000u64.into()),
+            ..Default::default()
+        };
+        let tx = Transaction::from_simple(&tx, false).unwrap();
+        assert_eq!(tx.gas.unwrap().get_u64().1, 21000);
+        assert_eq!(tx.value.unwrap().get_u64().1, 1_000_000_000_000_000_000);
+
+        let block = simple_types::Block {
+            size: Some(1234u64.into()),
+            ..Default::default()
+        };
+        let block = Block::from_simple(&block, false).unwrap();
+        assert_eq!(block.size.unwrap().get_u64().1, 1234);
+    }
+
     #[test]
     fn test_bigint_convert_signed() {
         for i in (i128::from(i64::MIN)..i128::from(u64::MAX))
