@@ -6,6 +6,10 @@ export declare class CallDecoder {
   static fromSignatures(signatures: Array<string>): CallDecoder
   /** Create call decoder from function signatures with checksum option */
   static fromSignaturesWithChecksum(signatures: Array<string>, checksum: boolean): CallDecoder
+  /** Enable checksummed addresses in decoded output */
+  enableChecksummedAddresses(): void
+  /** Disable checksummed addresses in decoded output */
+  disableChecksummedAddresses(): void
   /** Decode function call inputs asynchronously */
   decodeInputs(inputs: Array<string>): Promise<Array<Array<DecodedSolValue> | undefined | null>>
   /** Decode transaction inputs asynchronously */
@@ -18,7 +22,12 @@ export declare class CallDecoder {
   decodeTransactionsInputSync(txs: Array<Transaction>): Array<Array<DecodedSolValue> | undefined | null>
   /** Decode trace inputs synchronously */
   decodeTracesInputSync(traces: Array<Trace>): Array<Array<DecodedSolValue> | undefined | null>
-  /** Decode a single input string */
+  /**
+   * Decode a single input string
+   *
+   * Returns null if the input is not valid hex, doesn't match a known
+   * function selector, or doesn't decode as that function's arguments.
+   */
   decodeImpl(input: string): Array<DecodedSolValue> | null
 }
 
