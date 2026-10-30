@@ -96,8 +96,6 @@ jobs:
     name: Run examples against HyperSync
     needs: build
     runs-on: ubuntu-latest
-    env:
-      ENVIO_API_TOKEN: ${{ secrets.ENVIO_API_TOKEN }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -111,9 +109,13 @@ jobs:
         with:
           name: binding-linux-x64-gnu
           path: .
+      # The token is only exposed to this step, not to dependency installs.
       - name: Run examples
-        if: env.ENVIO_API_TOKEN != ''
-        run: scripts/check-examples.sh --run
-      - name: Skip without token
-        if: env.ENVIO_API_TOKEN == ''
-        run: echo "::warning::ENVIO_API_TOKEN secret is not available (e.g. a fork PR); examples were type-checked but not run"
+        env:
+          ENVIO_API_TOKEN: ${{ secrets.ENVIO_API_TOKEN }}
+        run: |
+          if [ -z "$ENVIO_API_TOKEN" ]; then
+            echo "::warning::ENVIO_API_TOKEN secret is not available (e.g. a fork PR); examples were type-checked but not run"
+            exit 0
+          fi
+          scripts/check-examples.sh --run

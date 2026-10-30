@@ -3,6 +3,7 @@
 import test from "ava";
 import { readFileSync, readdirSync } from "node:fs";
 import { createRequire } from "node:module";
+import { parseTriple } from "@napi-rs/cli";
 
 const require = createRequire(import.meta.url);
 const read = (p) => readFileSync(new URL(`../${p}`, import.meta.url), "utf8");
@@ -34,5 +35,16 @@ test("versions are consistent across packages", (t) => {
   t.true(platformDirs.length > 0);
   for (const dir of platformDirs) {
     t.is(JSON.parse(read(`npm/${dir}/package.json`)).version, pkg.version, `npm/${dir}`);
+  }
+});
+
+// `napi pre-publish` adds an optionalDependency on `${name}-${platformArchABI}`
+// for every target and publishes npm/<platformArchABI>; both must line up.
+test("every napi target has a matching platform package", (t) => {
+  for (const target of pkg.napi.targets) {
+    const dir = parseTriple(target).platformArchABI;
+    const platformPkg = JSON.parse(read(`npm/${dir}/package.json`));
+    t.is(platformPkg.name, `${pkg.name}-${dir}`, target);
+    t.is(platformPkg.main, `hypersync-client.${dir}.node`, target);
   }
 });
