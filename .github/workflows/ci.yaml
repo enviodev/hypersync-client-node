@@ -59,6 +59,8 @@ jobs:
         run: yarn test
       - name: Smoke test the packed library
         run: scripts/smoke-test-package.sh linux-x64-gnu
+      - name: Type-check examples
+        run: scripts/check-examples.sh
       - name: Upload binding
         uses: actions/upload-artifact@v4
         with:
@@ -89,3 +91,29 @@ jobs:
           path: .
       - name: Test
         run: yarn test
+
+  examples:
+    name: Run examples against HyperSync
+    needs: build
+    runs-on: ubuntu-latest
+    env:
+      ENVIO_API_TOKEN: ${{ secrets.ENVIO_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: yarn
+      - name: Install dependencies
+        run: yarn install --immutable
+      - name: Download binding
+        uses: actions/download-artifact@v4
+        with:
+          name: binding-linux-x64-gnu
+          path: .
+      - name: Run examples
+        if: env.ENVIO_API_TOKEN != ''
+        run: scripts/check-examples.sh --run
+      - name: Skip without token
+        if: env.ENVIO_API_TOKEN == ''
+        run: echo "::warning::ENVIO_API_TOKEN secret is not available (e.g. a fork PR); examples were type-checked but not run"
