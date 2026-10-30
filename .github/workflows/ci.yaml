@@ -1,0 +1,91 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  rust:
+    name: Rust lint and unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - name: Format
+        run: cargo fmt --check
+      - name: Clippy
+        run: cargo clippy --all-targets -- -D warnings
+      - name: Unit tests
+        run: cargo test
+
+  build:
+    name: Build, codegen check and tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: yarn
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Install dependencies
+        run: yarn install --immutable
+      - name: Build
+        run: yarn build:debug
+      - name: Check committed codegen is up to date
+        run: |
+          if ! git diff --exit-code -- index.js index.d.ts; then
+            echo "::error::index.js / index.d.ts are out of date. Run 'yarn build' and commit the result."
+            exit 1
+          fi
+      - name: Test
+        run: yarn test
+      - name: Smoke test the packed library
+        run: scripts/smoke-test-package.sh linux-x64-gnu
+      - name: Upload binding
+        uses: actions/upload-artifact@v4
+        with:
+          name: binding-linux-x64-gnu
+          path: hypersync-client.linux-x64-gnu.node
+          if-no-files-found: error
+
+  node-versions:
+    name: Test on node@${{ matrix.node }}
+    needs: build
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ["20", "24"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: yarn
+      - name: Install dependencies
+        run: yarn install --immutable
+      - name: Download binding
+        uses: actions/download-artifact@v4
+        with:
+          name: binding-linux-x64-gnu
+          path: .
+      - name: Test
+        run: yarn test
