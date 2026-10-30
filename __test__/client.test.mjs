@@ -55,7 +55,8 @@ test("rate limit info is parsed from response headers", async (t) => {
 test("proactive rate limit sleep avoids hitting the server", async (t) => {
   const { server, client } = await setup(
     t,
-    { rateLimitHeaders: { ...RATE_LIMIT_HEADERS, "x-ratelimit-reset": "1" } },
+    // A few seconds of margin so a slow CI runner can't outlast the window between calls.
+    { rateLimitHeaders: { ...RATE_LIMIT_HEADERS, "x-ratelimit-reset": "3" } },
     { proactiveRateLimitSleep: true },
   );
   const query = { fromBlock: 1, fieldSelection: {} };
@@ -65,7 +66,7 @@ test("proactive rate limit sleep avoids hitting the server", async (t) => {
 
   const start = Date.now();
   await client.waitForRateLimit();
-  t.true(Date.now() - start >= 500);
+  t.true(Date.now() - start >= 1000);
   await client.getWithRateLimit(query);
   t.is(server.queries().length, 2);
 });
