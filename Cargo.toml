@@ -17,6 +17,7 @@ napi = { version = "3.6.0", default-features = false, features = [
 napi-derive = "3.4.0"
 serde = { version = "1", features = ["derive"] }
 alloy-dyn-abi = "1.1"
+alloy-json-abi = "1.1"
 tokio = { version = "1", features = ["rt-multi-thread"] }
 env_logger = "0.11"
 faster-hex = "0.9.0"

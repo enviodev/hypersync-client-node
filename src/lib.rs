@@ -76,7 +76,6 @@ pub struct QueryResponseWithRateLimit {
     pub rate_limit: RateLimitInfo,
 }
 
-
 /// HyperSync client for querying blockchain data
 #[napi]
 pub struct HypersyncClient {
